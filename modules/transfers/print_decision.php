@@ -80,7 +80,7 @@ $year = date('Y', $effective_time);
         <!-- Header Quốc Hiệu & Cơ Quan -->
         <div class="grid grid-cols-2 gap-4 pb-6">
             <div class="text-center">
-                <div class="font-bold text-xs uppercase tracking-wider">CƠ QUAN QUẢN LÝ NHÂN SỰ</div>
+                <div class="font-bold text-xs uppercase tracking-wider">AURA RETAIL GROUP JSC</div>
                 <div class="font-bold text-sm uppercase mt-0.5"><?= e($t['from_branch_name']) ?></div>
                 <div class="text-xs mt-1">Số: <strong><?= e($t['decision_number']) ?></strong></div>
                 <div class="w-24 h-0.5 bg-slate-900 mx-auto mt-2"></div>
@@ -96,21 +96,21 @@ $year = date('Y', $effective_time);
         <!-- Tiêu Đề Quyết Định -->
         <div class="text-center py-4 space-y-1">
             <h1 class="text-xl font-bold uppercase tracking-tight">QUYẾT ĐỊNH</h1>
-            <div class="text-sm font-bold uppercase">Về việc điều động và bổ nhiệm cán bộ, người lao động</div>
-            <div class="text-xs italic">Căn cứ nhu cầu bố trí nhân sự và phát triển mạng lưới các chi nhánh của Cơ quan</div>
+            <div class="text-sm font-bold uppercase">Về việc điều động và bổ nhiệm cán bộ, nhân sự</div>
+            <div class="text-xs italic">Căn cứ nhu cầu phát triển kinh doanh & chuỗi chi nhánh của Tập đoàn Bán lẻ Aura</div>
         </div>
 
         <!-- Thẩm Quyền Ban Hành -->
         <div class="text-center font-bold text-sm tracking-wide uppercase pt-2">
-            THỦ TRƯỞNG CƠ QUAN / BAN TỔ CHỨC CÁN BỘ
+            TỔNG GIÁM ĐỐC TẬP ĐOÀN AURA
         </div>
 
         <!-- Các Căn Cứ Pháp Lý -->
         <div class="text-justify text-sm space-y-1.5 leading-relaxed indent-6">
-            <p>• Căn cứ Điều lệ tổ chức và Quy chế quản lý nhân sự của Cơ quan ban hành kèm theo các văn bản hiện hành;</p>
-            <p>• Căn cứ Kế hoạch phát triển, kiện toàn tổ chức bộ máy và định biên nhân lực tại các đơn vị, chi nhánh;</p>
+            <p>• Căn cứ Điều lệ tổ chức và Quy chế quản lý nhân sự Tập đoàn Aura ban hành kèm theo các nghị quyết hiện hành;</p>
+            <p>• Căn cứ Kế hoạch mở rộng chuỗi chi nhánh và tối ưu định biên nhân lực toàn quốc năm 2026;</p>
             <p>• Căn cứ phẩm chất, năng lực chuyên môn và thâm niên cống hiến của cán bộ;</p>
-            <p>• Xét đề nghị của Trưởng Ban Tổ chức Cán bộ và Giám đốc <?= e($t['to_branch_name']) ?>;</p>
+            <p>• Xét đề nghị của Giám Đốc Nhân Sự (CHRO) và Giám đốc <?= e($t['to_branch_name']) ?>;</p>
         </div>
 
         <!-- Quyết Định Ban Hành -->
@@ -141,7 +141,7 @@ $year = date('Y', $effective_time);
 
             <p>
                 <strong>Điều 3.</strong> Trách nhiệm thi hành:<br>
-                Ban Tổ chức Cán bộ, Ban Tài chính Kế toán, Giám đốc <?= e($t['from_branch_name']) ?>, Giám đốc <?= e($t['to_branch_name']) ?> và Ông/Bà <strong><?= e($t['emp_fullname']) ?></strong> chịu trách nhiệm thi hành Quyết định này. Ông/Bà có tên tại Điều 1 có trách nhiệm hoàn tất bàn giao công việc tại đơn vị cũ trước ngày hiệu lực và có mặt nhận nhiệm vụ đúng thời hạn./.
+                Khối Quản Trị Nhân Sự, Khối Tài Chính Kế Toán, Giám đốc <?= e($t['from_branch_name']) ?>, Giám đốc <?= e($t['to_branch_name']) ?> và Ông/Bà <strong><?= e($t['emp_fullname']) ?></strong> chịu trách nhiệm thi hành Quyết định này. Cán bộ có tên tại Điều 1 có trách nhiệm hoàn tất bàn giao công việc tại đơn vị cũ trước ngày hiệu lực và có mặt nhận nhiệm vụ đúng thời hạn./.
             </p>
         </div>
 
@@ -150,12 +150,12 @@ $year = date('Y', $effective_time);
             <div class="text-xs space-y-1">
                 <div class="font-bold">Nơi nhận:</div>
                 <div>- Như Điều 3;</div>
-                <div>- Ban Giám đốc cơ quan;</div>
-                <div>- Lưu: VT, TCCB (<?= e($t['transfer_code']) ?>).</div>
+                <div>- Ban Tổng Giám đốc Tập đoàn;</div>
+                <div>- Lưu: Văn phòng HĐQT, Khối HR (<?= e($t['transfer_code']) ?>).</div>
                 
                 <div class="pt-6">
                     <div class="p-2.5 rounded border border-slate-200 bg-slate-50 font-sans text-[10px] space-y-0.5 max-w-[200px]">
-                        <span class="font-bold text-slate-700 block"><i class="fa-solid fa-shield-check text-emerald-600"></i> HỆ THỐNG HRMS</span>
+                        <span class="font-bold text-slate-700 block"><i class="fa-solid fa-shield-check text-emerald-600"></i> AURA HRM SYSTEM</span>
                         <span class="text-slate-500 block">Chứng thực số: <?= e($t['transfer_code']) ?></span>
                         <span class="text-slate-500 block">Ngày ký: <?= date('d/m/Y H:i') ?></span>
                     </div>
@@ -163,21 +163,21 @@ $year = date('Y', $effective_time);
             </div>
 
             <div class="text-center">
-                <div class="font-bold text-xs uppercase">TM. BAN LÃNH ĐẠO CƠ QUAN</div>
-                <div class="font-bold text-sm uppercase mt-0.5">THỦ TRƯỞNG ĐƠN VỊ</div>
+                <div class="font-bold text-xs uppercase">TM. BAN TỔNG GIÁM ĐỐC</div>
+                <div class="font-bold text-sm uppercase mt-0.5">TỔNG GIÁM ĐỐC</div>
                 <div class="text-xs italic text-slate-500 mt-0.5">(Ký, đóng dấu điện tử)</div>
 
                 <!-- Mô Phỏng Dấu Đỏ & Chữ Ký Sang Trọng -->
                 <div class="relative h-28 flex items-center justify-center">
                     <div class="w-24 h-24 rounded-full border-2 border-rose-500 text-rose-600 flex flex-col items-center justify-center text-[9px] font-bold uppercase transform -rotate-12 opacity-85 select-none pointer-events-none">
-                        <span>CƠ QUAN</span>
+                        <span>AURA GROUP</span>
                         <i class="fa-solid fa-star text-rose-500 text-[10px] my-0.5"></i>
-                        <span>ĐÃ KÝ DUYỆT</span>
+                        <span>ĐÃ KÝ ĐIỆN TỬ</span>
                         <span class="text-[8px] mt-0.5"><?= date('d/m/Y') ?></span>
                     </div>
                 </div>
 
-                <div class="font-bold text-sm mt-1"><?= e($t['approver_name'] ?? 'Lê Hoàng Long') ?></div>
+                <div class="font-bold text-sm mt-1"><?= e($t['approver_name'] ?? 'Nguyễn Hoàng Nam') ?></div>
             </div>
         </div>
 

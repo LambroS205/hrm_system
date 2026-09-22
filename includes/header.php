@@ -11,7 +11,7 @@ $flash = get_flash();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= e($page_title ?? 'Quản Trị Nhân Sự') ?> - HRMS Portal</title>
+    <title><?= e($page_title ?? 'Quản Trị Nhân Sự') ?> - AURA HRM - Tập Đoàn Aura</title>
     
     <!-- Script đồng bộ theme Dark/Light ngay lập tức để tránh chớp màn hình -->
     <script>

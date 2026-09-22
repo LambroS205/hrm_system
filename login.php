@@ -90,7 +90,7 @@ $flash = get_flash();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng Nhập - Hệ Thống Quản Lý Nhân Sự HRMS</title>
+    <title>AURA HRM - Đăng Nhập Hệ Thống Nhân Sự Tập Đoàn</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -130,8 +130,8 @@ $flash = get_flash();
         <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-indigo-600 to-violet-500 text-white rounded-2xl shadow-lg shadow-indigo-100 dark:shadow-none mb-3">
             <i class="fa-solid fa-users-gear text-2xl"></i>
         </div>
-        <h2 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Cổng Quản Trị Nhân Sự</h2>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Hệ thống hoạch định và phân quyền nhân sự toàn diện</p>
+        <h2 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Cổng Nhân Sự Tập Đoàn Aura</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">"Nâng tầm trải nghiệm bán lẻ thông minh"</p>
     </div>
 
     <!-- Thông báo lỗi hoặc flash -->
@@ -193,43 +193,46 @@ $flash = get_flash();
 
         <div class="mt-8 pt-6 border-t border-slate-100 dark:border-slate-700/60">
             <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3 text-center">
-                Tài Khoản Mẫu Để Kiểm Thử (Mật khẩu: <span class="text-indigo-600 dark:text-indigo-400 font-bold">admin123</span>)
+                Tài Khoản Trình Diễn (Mật khẩu chung: <span class="text-indigo-600 dark:text-indigo-400 font-bold">Aura@2026</span>)
             </h4>
             <div class="grid grid-cols-1 gap-2 text-xs">
-                <button type="button" onclick="fillAccount('superadmin')"
+                <button type="button" onclick="fillAccount('admin@auragroup.vn')"
                         class="p-2.5 rounded-xl bg-amber-50/70 hover:bg-amber-100 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 text-amber-900 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800 flex items-center justify-between text-left transition">
                     <div>
-                        <span class="font-bold">superadmin</span> (Admin Tổng - Toàn quyền)
+                        <span class="font-bold">admin@auragroup.vn</span>
+                        <div class="text-[11px] opacity-80">Nguyễn Hoàng Nam (Tổng Giám Đốc / Toàn quyền)</div>
                     </div>
                     <i class="fa-solid fa-crown text-amber-500"></i>
                 </button>
-                <button type="button" onclick="fillAccount('admin_nhansu')"
+                <button type="button" onclick="fillAccount('tp.hcm@auragroup.vn')"
                         class="p-2.5 rounded-xl bg-sky-50/70 hover:bg-sky-100 dark:bg-sky-950/30 dark:hover:bg-sky-950/50 text-sky-900 dark:text-sky-300 border border-sky-200/80 dark:border-sky-800 flex items-center justify-between text-left transition">
                     <div>
-                        <span class="font-bold">admin_nhansu</span> (Admin Con 1 - Quản lý nhân sự)
+                        <span class="font-bold">tp.hcm@auragroup.vn</span>
+                        <div class="text-[11px] opacity-80">Trần Quốc Bảo (Giám Đốc Chi Nhánh TP.HCM)</div>
                     </div>
-                    <i class="fa-solid fa-id-badge text-sky-500"></i>
+                    <i class="fa-solid fa-building-user text-sky-500"></i>
                 </button>
-                <button type="button" onclick="fillAccount('admin_luong')"
+                <button type="button" onclick="fillAccount('nhanvien@auragroup.vn')"
                         class="p-2.5 rounded-xl bg-emerald-50/70 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 text-emerald-900 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 flex items-center justify-between text-left transition">
                     <div>
-                        <span class="font-bold">admin_luong</span> (Admin Con 2 - Chấm công & lương)
+                        <span class="font-bold">nhanvien@auragroup.vn</span>
+                        <div class="text-[11px] opacity-80">Phạm Thu Thảo (Chuyên Viên Nhân Sự & Tuyển Dụng)</div>
                     </div>
-                    <i class="fa-solid fa-wallet text-emerald-500"></i>
+                    <i class="fa-solid fa-id-badge text-emerald-500"></i>
                 </button>
             </div>
         </div>
     </div>
 
     <p class="text-center text-xs text-slate-400 dark:text-slate-500 mt-6">
-        &copy; <?= date('Y') ?> HRMS Portal. Bảo mật cấp doanh nghiệp với CSRF & Rate Limiting.
+        &copy; <?= date('Y') ?> Aura Retail Group JSC. Nền tảng Quản trị Nhân sự & Chuỗi Dịch vụ Đa Chi Nhánh.
     </p>
 </div>
 
 <script>
 function fillAccount(username) {
     document.getElementById('username').value = username;
-    document.getElementById('password').value = 'admin123';
+    document.getElementById('password').value = 'Aura@2026';
 }
 
 function togglePasswordVisibility() {

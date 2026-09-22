@@ -12,8 +12,8 @@ $current_uri = $_SERVER['REQUEST_URI'];
             <i class="fa-solid fa-users-gear text-base"></i>
         </div>
         <div>
-            <span class="font-bold text-slate-800 dark:text-white tracking-tight text-base block leading-none">HRMS PORTAL</span>
-            <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-600 dark:text-indigo-400 block mt-1">Enterprise Light</span>
+            <span class="font-bold text-slate-800 dark:text-white tracking-tight text-base block leading-none">AURA GROUP HRM</span>
+            <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-600 dark:text-indigo-400 block mt-1">Enterprise Edition v3.2</span>
         </div>
     </div>
 

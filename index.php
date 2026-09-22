@@ -114,14 +114,14 @@ require_once __DIR__ . '/includes/header.php';
     <div class="bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-indigo-100 dark:shadow-none flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
         <div class="relative z-10">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/20 backdrop-blur-md mb-3 text-indigo-50">
-                <i class="fa-solid fa-sparkles text-amber-300"></i> Trung Tâm Giám Sát & Điều Hành Doanh Nghiệp
+                <i class="fa-solid fa-sparkles text-amber-300"></i> Trung Tâm Điều Hành Nhân Sự - Aura Retail Group
             </div>
             <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Xin chào, <?= e($user['fullname']) ?>!</h2>
             <p class="text-indigo-100 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
-                Hôm nay là <strong class="text-white"><?= date('l, d/m/Y') ?></strong>. Hệ thống HRMS đang quản lý 
+                Hôm nay là <strong class="text-white"><?= date('l, d/m/Y') ?></strong>. Hệ thống AURA HRM đang quản lý 
                 <strong class="text-amber-200"><?= $total_employees ?></strong> nhân sự trực thuộc 
                 <strong class="text-amber-200"><?= $total_branches ?></strong> chi nhánh và 
-                <strong class="text-amber-200"><?= $total_departments ?></strong> phòng ban chức năng.
+                <strong class="text-amber-200"><?= $total_departments ?></strong> khối phòng ban chức năng.
             </p>
         </div>
 
