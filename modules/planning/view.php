@@ -26,6 +26,7 @@ $page_title = 'Kế Hoạch: ' . $plan['title'];
 
 // Xử lý các thao tác POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
+    verify_csrf();
     $action_type = $_POST['action_type'];
 
     // 1. Thêm đề xuất cán bộ vào kế hoạch
@@ -331,10 +332,14 @@ require_once __DIR__ . '/../../includes/header.php';
 
                             <td class="py-3.5 px-4 text-right space-x-1">
                                 <?php if (!$it['transfer_id'] && has_permission('planning', 'create')): ?>
-                                    <form method="POST" action="view.php?id=<?= $plan['id'] ?>" class="inline" onsubmit="return confirm('Xóa cán bộ này khỏi kế hoạch?')">
+                                    <form method="POST" action="view.php?id=<?= $plan['id'] ?>" class="inline">
+                                        <?= csrf_field() ?>
                                         <input type="hidden" name="action_type" value="delete_plan_item">
                                         <input type="hidden" name="item_id" value="<?= $it['id'] ?>">
-                                        <button type="submit" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-400 inline-flex items-center justify-center transition">
+                                        <button type="submit" 
+                                                data-confirm="Bạn có chắc chắn muốn xóa cán bộ này khỏi kế hoạch điều động?" 
+                                                data-confirm-title="Xóa Đề Xuất Khỏi Kế Hoạch"
+                                                class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-400 inline-flex items-center justify-center transition">
                                             <i class="fa-solid fa-trash-can text-xs"></i>
                                         </button>
                                     </form>
@@ -360,6 +365,7 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
 
         <form action="view.php?id=<?= $plan['id'] ?>" method="POST" class="mt-4 space-y-4">
+            <?= csrf_field() ?>
             <input type="hidden" name="action_type" value="add_plan_item">
             <input type="hidden" name="from_branch_id" id="modalFromBranchId" value="">
             <input type="hidden" name="from_department_id" id="modalFromDeptId" value="">
@@ -472,6 +478,7 @@ require_once __DIR__ . '/../../includes/header.php';
         </p>
         
         <form method="POST" action="view.php?id=<?= $plan['id'] ?>">
+            <?= csrf_field() ?>
             <input type="hidden" name="action_type" value="batch_execute_plan">
             <div class="flex items-center justify-center gap-3">
                 <button type="button" onclick="document.getElementById('batchModal').classList.add('hidden')" 

@@ -7,6 +7,7 @@ require_permission('employees', 'view');
 
 // Xử lý Xóa nhân viên
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type']) && $_POST['action_type'] === 'delete_employee') {
+    verify_csrf();
     require_permission('employees', 'delete');
     $emp_id = (int)($_POST['employee_id'] ?? 0);
 
@@ -379,6 +380,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <p id="deleteEmpMsg" class="text-xs text-slate-500 mb-6">Thao tác này sẽ xóa hồ sơ và ảnh đại diện của nhân viên khỏi hệ thống.</p>
         
         <form action="index.php" method="POST">
+            <?= csrf_field() ?>
             <input type="hidden" name="action_type" value="delete_employee">
             <input type="hidden" name="employee_id" id="deleteEmpId" value="">
             <div class="flex items-center justify-center gap-3">

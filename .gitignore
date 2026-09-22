@@ -1,0 +1,14 @@
+# Environment files
+.env
+
+# Temporary / OS files
+.DS_Store
+Thumbs.db
+*.log
+
+# Composer & dependencies
+/vendor/
+
+# Uploads directory contents except .gitkeep
+/assets/uploads/*
+!/assets/uploads/.gitkeep

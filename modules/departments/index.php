@@ -7,6 +7,7 @@ require_permission('departments', 'view');
 
 // Xử lý tạo hoặc chỉnh sửa Phòng ban
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
+    verify_csrf();
     $action_type = $_POST['action_type'];
 
     // 1. Thêm mới Phòng Ban
@@ -349,6 +350,7 @@ require_once __DIR__ . '/../../includes/header.php';
             </button>
         </div>
         <form id="deptForm" action="index.php?tab=departments" method="POST" class="mt-4 space-y-4">
+            <?= csrf_field() ?>
             <input type="hidden" name="action_type" id="deptActionType" value="create_dept">
             <input type="hidden" name="dept_id" id="deptId" value="">
 
@@ -404,6 +406,7 @@ require_once __DIR__ . '/../../includes/header.php';
             </button>
         </div>
         <form id="posForm" action="index.php?tab=positions" method="POST" class="mt-4 space-y-4">
+            <?= csrf_field() ?>
             <input type="hidden" name="action_type" id="posActionType" value="create_position">
             <input type="hidden" name="pos_id" id="posId" value="">
 
@@ -441,6 +444,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <p id="deleteModalMsg" class="text-xs text-slate-500 mb-6">Thao tác này không thể hoàn tác nếu đã thực hiện.</p>
         
         <form id="deleteForm" method="POST">
+            <?= csrf_field() ?>
             <input type="hidden" name="action_type" id="delActionType" value="">
             <input type="hidden" name="dept_id" id="delDeptId" value="">
             <input type="hidden" name="pos_id" id="delPosId" value="">

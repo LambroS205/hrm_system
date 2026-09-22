@@ -9,6 +9,7 @@ $user = current_user();
 
 // Xử lý Xóa Kế Hoạch
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type']) && $_POST['action_type'] === 'delete_plan') {
+    verify_csrf();
     require_permission('planning', 'delete');
     $plan_id = (int)($_POST['plan_id'] ?? 0);
     if ($plan_id > 0) {
@@ -434,6 +435,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <h3 class="font-bold text-slate-800 text-base mb-1">Xóa Kế Hoạch Quy Hoạch?</h3>
         <p id="delPlanMsg" class="text-xs text-slate-500 mb-5"></p>
         <form method="POST" action="index.php">
+            <?= csrf_field() ?>
             <input type="hidden" name="action_type" value="delete_plan">
             <input type="hidden" name="plan_id" id="delPlanId" value="">
             <div class="flex items-center justify-center gap-2.5">

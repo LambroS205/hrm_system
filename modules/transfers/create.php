@@ -14,6 +14,7 @@ $preset_to_dept_id = (int)($_GET['to_department_id'] ?? 0);
 
 // Xử lý Lưu Phiếu Thuyên Chuyển
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf();
     $employee_id = (int)($_POST['employee_id'] ?? 0);
     $from_branch_id = (int)($_POST['from_branch_id'] ?? 0);
     $from_department_id = !empty($_POST['from_department_id']) ? (int)$_POST['from_department_id'] : null;
@@ -135,6 +136,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <!-- Form Đề Xuất Thuyên Chuyển -->
     <form action="create.php" method="POST" id="transferForm" class="space-y-6">
+        <?= csrf_field() ?>
 
         <!-- Khối 1: Chọn Cán Bộ & Thông Tin Hiện Tại -->
         <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-5">

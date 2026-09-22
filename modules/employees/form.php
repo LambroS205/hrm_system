@@ -53,6 +53,7 @@ if ($is_edit) {
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf();
     $employee_code     = strtoupper(trim($_POST['employee_code'] ?? ''));
     $fullname          = trim($_POST['fullname'] ?? '');
     $gender            = $_POST['gender'] ?? 'Nam';
@@ -210,6 +211,7 @@ require_once __DIR__ . '/../../includes/header.php';
     <?php endif; ?>
 
     <form id="employeeForm" action="" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <?= csrf_field() ?>
 
         <!-- CỘT TRÁI: Ảnh đại diện & Trạng thái làm việc -->
         <div class="space-y-6">

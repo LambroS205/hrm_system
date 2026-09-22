@@ -1,0 +1,23 @@
+{
+    "name": "hrms/hrm-system",
+    "description": "Enterprise Human Resource Management System (HRMS) with Multi-Level RBAC Matrix",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "HRMS Development Team"
+        }
+    ],
+    "require": {
+        "php": ">=7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "core/"
+        },
+        "files": [
+            "core/helpers.php",
+            "core/auth.php"
+        ]
+    }
+}

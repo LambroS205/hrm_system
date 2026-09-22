@@ -15,6 +15,7 @@ $selected_year = !empty($_GET['year']) ? (int)$_GET['year'] : (int)date('Y');
 $selected_dept = !empty($_GET['department_id']) ? (int)$_GET['department_id'] : 0;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
+    verify_csrf();
     $action_type = $_POST['action_type'];
 
     // 1. Lưu bảng điểm danh hàng loạt theo ngày
@@ -286,6 +287,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
         <!-- Bảng Nhập Liệu Điểm Danh Ngày -->
         <form id="dailyAttendanceForm" action="index.php" method="POST" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <?= csrf_field() ?>
             <input type="hidden" name="action_type" value="save_daily_attendance">
             <input type="hidden" name="attendance_date" value="<?= e($selected_date) ?>">
 

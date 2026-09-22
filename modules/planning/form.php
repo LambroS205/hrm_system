@@ -34,6 +34,7 @@ if ($is_edit) {
 
 // Xử lý Lưu Kế Hoạch
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf();
     $plan_code = strtoupper(trim($_POST['plan_code'] ?? ''));
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
@@ -96,6 +97,7 @@ require_once __DIR__ . '/../../includes/header.php';
     </div>
 
     <form action="form.php<?= $is_edit ? '?id=' . $id : '' ?>" method="POST" class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-5">
+        <?= csrf_field() ?>
         
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

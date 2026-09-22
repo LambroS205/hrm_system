@@ -5,6 +5,10 @@ $page_title = 'Ma Trận Phân Quyền Đa Cấp';
 require_once __DIR__ . '/../../core/auth.php';
 require_permission('matrix', 'manage'); // Chỉ Super Admin hoặc tài khoản có quyền 'matrix:manage' mới được vào
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf();
+}
+
 // 1. Xử lý tạo Vai trò mới cho Admin con
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type']) && $_POST['action_type'] === 'create_role') {
     $role_name = trim($_POST['role_name'] ?? '');
@@ -188,6 +192,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
             <div class="lg:col-span-3">
                 <form action="index.php" method="POST" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="action_type" value="save_matrix">
                     <input type="hidden" name="role_id" value="<?= $current_role_id ?>">
 
@@ -393,6 +398,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                         <span class="text-xs text-slate-400 italic">Không áp dụng (Super Admin tự có toàn quyền)</span>
                                     <?php else: ?>
                                         <form id="assignForm_<?= $u['id'] ?>" action="index.php" method="POST" class="flex items-center gap-2">
+                                            <?= csrf_field() ?>
                                             <input type="hidden" name="action_type" value="assign_user_role">
                                             <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
                                             <select name="assigned_role_id" 
@@ -436,6 +442,7 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
 
         <form action="index.php" method="POST" class="mt-4 space-y-4">
+            <?= csrf_field() ?>
             <input type="hidden" name="action_type" value="create_role">
             
             <div>

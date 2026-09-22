@@ -7,6 +7,7 @@ require_permission('branches', 'view');
 
 // Xử lý Thêm / Sửa / Xóa Chi Nhánh
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
+    verify_csrf();
     $action_type = $_POST['action_type'];
 
     // 1. Thêm mới Chi Nhánh
@@ -358,6 +359,7 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
 
         <form id="branchForm" action="index.php" method="POST" class="mt-4 space-y-4">
+            <?= csrf_field() ?>
             <input type="hidden" name="action_type" id="branchActionType" value="create_branch">
             <input type="hidden" name="branch_id" id="branchId" value="">
 
@@ -447,6 +449,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <p id="deleteModalMsg" class="text-xs text-slate-500 mb-6">Thao tác này chỉ thực hiện được khi chi nhánh không còn nhân sự trực thuộc.</p>
         
         <form id="deleteForm" method="POST" action="index.php">
+            <?= csrf_field() ?>
             <input type="hidden" name="action_type" value="delete_branch">
             <input type="hidden" name="branch_id" id="delBranchId" value="">
             <div class="flex items-center justify-center gap-3">

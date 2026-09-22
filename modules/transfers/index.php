@@ -9,6 +9,7 @@ $user = current_user();
 
 // Xử lý các thao tác Phê Duyệt / Thực Thi / Từ Chối / Xóa
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
+    verify_csrf();
     $action_type = $_POST['action_type'];
     $transfer_id = (int)($_POST['transfer_id'] ?? 0);
 
@@ -498,6 +499,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <p id="executeModalMsg" class="text-xs text-slate-500 mb-6 leading-relaxed"></p>
         
         <form method="POST" action="index.php">
+            <?= csrf_field() ?>
             <input type="hidden" name="action_type" value="execute_transfer">
             <input type="hidden" name="transfer_id" id="executeTransferId" value="">
             <div class="flex items-center justify-center gap-3">
@@ -521,6 +523,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <p id="rejectModalMsg" class="text-xs text-slate-500 mb-4"></p>
         
         <form method="POST" action="index.php" class="space-y-4">
+            <?= csrf_field() ?>
             <input type="hidden" name="action_type" value="reject_transfer">
             <input type="hidden" name="transfer_id" id="rejectTransferId" value="">
             
@@ -553,6 +556,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <h3 class="font-bold text-slate-800 text-base mb-1">Xóa Đề Xuất Này?</h3>
         <p class="text-xs text-slate-500 mb-5">Hành động này sẽ xóa vĩnh viễn phiếu đề xuất thuyên chuyển.</p>
         <form method="POST" action="index.php">
+            <?= csrf_field() ?>
             <input type="hidden" name="action_type" value="delete_transfer">
             <input type="hidden" name="transfer_id" id="delTransferId" value="">
             <div class="flex items-center justify-center gap-2.5">

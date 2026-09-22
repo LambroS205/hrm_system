@@ -10,6 +10,7 @@ $selected_year  = !empty($_GET['year']) ? (int)$_GET['year'] : (int)date('Y');
 $selected_dept  = !empty($_GET['department_id']) ? (int)$_GET['department_id'] : 0;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
+    verify_csrf();
     $action_type = $_POST['action_type'];
 
     // 1. Tính toán hoặc Cập nhật Bảng lương Tự động cho tháng
@@ -218,6 +219,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <div class="flex items-center gap-2">
             <?php if (has_permission('payroll', 'create')): ?>
                 <form action="index.php" method="POST">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="action_type" value="calculate_payroll">
                     <input type="hidden" name="calc_month" value="<?= $selected_month ?>">
                     <input type="hidden" name="calc_year" value="<?= $selected_year ?>">
@@ -437,6 +439,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
                                     <!-- Nút Đổi trạng thái thanh toán -->
                                     <form action="index.php?month=<?= $selected_month ?>&year=<?= $selected_year ?>" method="POST" class="inline-block">
+                                        <?= csrf_field() ?>
                                         <input type="hidden" name="action_type" value="toggle_payment_status">
                                         <input type="hidden" name="payroll_id" value="<?= $item['id'] ?>">
                                         <input type="hidden" name="status" value="<?= $item['payment_status'] === 'paid' ? 'pending' : 'paid' ?>">
@@ -468,6 +471,7 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
 
         <form action="index.php?month=<?= $selected_month ?>&year=<?= $selected_year ?>" method="POST" class="mt-4 space-y-4">
+            <?= csrf_field() ?>
             <input type="hidden" name="action_type" value="update_single_payroll">
             <input type="hidden" name="payroll_id" id="editPayrollId" value="">
 
@@ -592,6 +596,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <p id="delPayrollMsg" class="text-xs text-slate-500 mb-6"></p>
         
         <form action="index.php" method="POST">
+            <?= csrf_field() ?>
             <input type="hidden" name="action_type" value="delete_monthly_payroll">
             <input type="hidden" name="month" id="delPayrollMonth" value="">
             <input type="hidden" name="year" id="delPayrollYear" value="">
