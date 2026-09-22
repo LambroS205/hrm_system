@@ -43,7 +43,6 @@ $current_uri = $_SERVER['REQUEST_URI'];
                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition <?= (strpos($current_uri, '/orgchart/') !== false) ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white' ?>">
                 <i class="fa-solid fa-sitemap w-5 text-center text-sm <?= (strpos($current_uri, '/orgchart/') !== false) ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500' ?>"></i>
                 <span>Sơ Đồ Tổ Chức</span>
-                <span class="ml-auto px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">Mới</span>
             </a>
         <?php endif; ?>
 
@@ -83,20 +82,56 @@ $current_uri = $_SERVER['REQUEST_URI'];
                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition <?= (strpos($current_uri, '/planning/') !== false) ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white' ?>">
                 <i class="fa-solid fa-wand-magic-sparkles w-5 text-center text-sm <?= (strpos($current_uri, '/planning/') !== false) ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500' ?>"></i>
                 <span>Kế Hoạch Tối Ưu</span>
-                <span class="ml-auto px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">Smart</span>
             </a>
         <?php endif; ?>
 
-        <?php if (has_permission('employees', 'view')): ?>
+        <!-- Khối Tuyển Dụng Nhân Tài (Phase 2) -->
+        <?php if (has_permission('recruitment', 'view')): ?>
+            <div class="pt-5 px-3 pb-2 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                Tuyển Dụng & Ứng Viên
+            </div>
+            
+            <a href="<?= base_url('modules/recruitment/index.php') ?>" 
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition <?= (strpos($current_uri, '/recruitment/') !== false && strpos($current_uri, '/jobs.php') === false) ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white' ?>">
+                <i class="fa-solid fa-people-roof w-5 text-center text-sm <?= (strpos($current_uri, '/recruitment/') !== false && strpos($current_uri, '/jobs.php') === false) ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500' ?>"></i>
+                <span>Pipeline Tuyển Dụng</span>
+            </a>
+
+            <a href="<?= base_url('modules/recruitment/jobs.php') ?>" 
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition <?= (strpos($current_uri, '/jobs.php') !== false) ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white' ?>">
+                <i class="fa-solid fa-bullhorn w-5 text-center text-sm <?= (strpos($current_uri, '/jobs.php') !== false) ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500' ?>"></i>
+                <span>Vị Trí Đang Tuyển</span>
+            </a>
+        <?php endif; ?>
+
+        <?php if (has_permission('employees', 'view') || has_permission('rewards', 'view') || has_permission('disciplines', 'view')): ?>
             <div class="pt-5 px-3 pb-2 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                 Quản Lý Nhân Sự
             </div>
             
-            <a href="<?= base_url('modules/employees/index.php') ?>" 
-               class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition <?= (strpos($current_uri, '/employees/') !== false) ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white' ?>">
-                <i class="fa-solid fa-address-card w-5 text-center text-sm <?= (strpos($current_uri, '/employees/') !== false) ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500' ?>"></i>
-                <span>Hồ Sơ Nhân Viên</span>
-            </a>
+            <?php if (has_permission('employees', 'view')): ?>
+                <a href="<?= base_url('modules/employees/index.php') ?>" 
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition <?= (strpos($current_uri, '/employees/') !== false) ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white' ?>">
+                    <i class="fa-solid fa-address-card w-5 text-center text-sm <?= (strpos($current_uri, '/employees/') !== false) ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500' ?>"></i>
+                    <span>Hồ Sơ Nhân Viên</span>
+                </a>
+            <?php endif; ?>
+
+            <?php if (has_permission('rewards', 'view')): ?>
+                <a href="<?= base_url('modules/rewards/index.php') ?>" 
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition <?= (strpos($current_uri, '/rewards/') !== false) ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white' ?>">
+                    <i class="fa-solid fa-award w-5 text-center text-sm <?= (strpos($current_uri, '/rewards/') !== false) ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500' ?>"></i>
+                    <span>Khen Thưởng</span>
+                </a>
+            <?php endif; ?>
+
+            <?php if (has_permission('disciplines', 'view')): ?>
+                <a href="<?= base_url('modules/disciplines/index.php') ?>" 
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition <?= (strpos($current_uri, '/disciplines/') !== false) ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white' ?>">
+                    <i class="fa-solid fa-scale-unbalanced w-5 text-center text-sm <?= (strpos($current_uri, '/disciplines/') !== false) ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500' ?>"></i>
+                    <span>Kỷ Luật & Vi Phạm</span>
+                </a>
+            <?php endif; ?>
         <?php endif; ?>
 
         <?php if (has_permission('attendance', 'view') || has_permission('payroll', 'view')): ?>

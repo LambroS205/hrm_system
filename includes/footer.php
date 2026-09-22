@@ -38,6 +38,7 @@
 <!-- SCRIPTS & CONTROLLERS -->
 <!-- ==================================================== -->
 <script src="<?= asset('js/app.js') ?>"></script>
+<script src="<?= asset('js/drag_drop.js') ?>"></script>
 
 <script>
 // Xử lý bật tắt Sidebar trên thiết bị di động

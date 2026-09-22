@@ -93,10 +93,17 @@ $all_permissions = $pdo->query("SELECT * FROM permissions ORDER BY module ASC, i
 // Nhóm permissions theo Module để vẽ hàng ngang
 $matrix_modules = [
     'employees'   => ['name' => 'Hồ Sơ Nhân Viên', 'icon' => 'fa-address-card', 'color' => 'indigo'],
-    'departments' => ['name' => 'Phòng Ban & Chức Vụ', 'icon' => 'fa-sitemap', 'color' => 'sky'],
+    'recruitment' => ['name' => 'Quy Trình Tuyển Dụng', 'icon' => 'fa-people-roof', 'color' => 'purple'],
+    'rewards'     => ['name' => 'Khen Thưởng', 'icon' => 'fa-award', 'color' => 'emerald'],
+    'disciplines' => ['name' => 'Kỷ Luật & Vi Phạm', 'icon' => 'fa-scale-unbalanced', 'color' => 'rose'],
+    'departments' => ['name' => 'Phòng Ban & Chức Vụ', 'icon' => 'fa-building-user', 'color' => 'sky'],
+    'branches'    => ['name' => 'Mạng Lưới Chi Nhánh', 'icon' => 'fa-building-flag', 'color' => 'blue'],
+    'orgchart'    => ['name' => 'Sơ Đồ Cơ Cấu Tổ Chức', 'icon' => 'fa-sitemap', 'color' => 'teal'],
+    'transfers'   => ['name' => 'Thuyên Chuyển Cán Bộ', 'icon' => 'fa-people-arrows', 'color' => 'violet'],
+    'planning'    => ['name' => 'Quy Hoạch & Tối Ưu', 'icon' => 'fa-wand-magic-sparkles', 'color' => 'amber'],
     'attendance'  => ['name' => 'Chấm Công Hàng Ngày', 'icon' => 'fa-calendar-check', 'color' => 'emerald'],
     'payroll'     => ['name' => 'Bảng Tính Lương', 'icon' => 'fa-money-bill-wave', 'color' => 'amber'],
-    'matrix'      => ['name' => 'Cấu Hình Phân Quyền', 'icon' => 'fa-network-wired', 'color' => 'rose'],
+    'matrix'      => ['name' => 'Cấu Hình Phân Quyền', 'icon' => 'fa-network-wired', 'color' => 'slate'],
 ];
 
 // Lấy danh sách permission_id mà vai trò này đang sở hữu
