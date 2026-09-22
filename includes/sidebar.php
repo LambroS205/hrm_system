@@ -31,25 +31,71 @@ $current_uri = $_SERVER['REQUEST_URI'];
             <span>Tổng Quan</span>
         </a>
 
-        <?php if (has_permission('employees', 'view') || has_permission('departments', 'view')): ?>
+        <!-- Khối Cơ Cấu Tổ Chức & Chi Nhánh -->
+        <?php if (has_permission('orgchart', 'view') || has_permission('branches', 'view') || has_permission('departments', 'view')): ?>
             <div class="pt-5 px-3 pb-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                Quản Lý Nhân Sự
+                Cơ Cấu & Chi Nhánh
             </div>
         <?php endif; ?>
 
-        <?php if (has_permission('employees', 'view')): ?>
-            <a href="<?= base_url('modules/employees/index.php') ?>" 
-               class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition <?= (strpos($current_uri, '/employees/') !== false) ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' ?>">
-                <i class="fa-solid fa-address-card w-5 text-center text-sm <?= (strpos($current_uri, '/employees/') !== false) ? 'text-indigo-600' : 'text-slate-400' ?>"></i>
-                <span>Hồ Sơ Nhân Viên</span>
+        <?php if (has_permission('orgchart', 'view')): ?>
+            <a href="<?= base_url('modules/orgchart/index.php') ?>" 
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition <?= (strpos($current_uri, '/orgchart/') !== false) ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' ?>">
+                <i class="fa-solid fa-sitemap w-5 text-center text-sm <?= (strpos($current_uri, '/orgchart/') !== false) ? 'text-indigo-600' : 'text-slate-400' ?>"></i>
+                <span>Sơ Đồ Tổ Chức</span>
+                <span class="ml-auto px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-indigo-100 text-indigo-700">Mới</span>
+            </a>
+        <?php endif; ?>
+
+        <?php if (has_permission('branches', 'view')): ?>
+            <a href="<?= base_url('modules/branches/index.php') ?>" 
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition <?= (strpos($current_uri, '/branches/') !== false) ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' ?>">
+                <i class="fa-solid fa-building-flag w-5 text-center text-sm <?= (strpos($current_uri, '/branches/') !== false) ? 'text-indigo-600' : 'text-slate-400' ?>"></i>
+                <span>Mạng Lưới Chi Nhánh</span>
             </a>
         <?php endif; ?>
 
         <?php if (has_permission('departments', 'view')): ?>
             <a href="<?= base_url('modules/departments/index.php') ?>" 
                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition <?= (strpos($current_uri, '/departments/') !== false) ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' ?>">
-                <i class="fa-solid fa-sitemap w-5 text-center text-sm <?= (strpos($current_uri, '/departments/') !== false) ? 'text-indigo-600' : 'text-slate-400' ?>"></i>
+                <i class="fa-solid fa-building-user w-5 text-center text-sm <?= (strpos($current_uri, '/departments/') !== false) ? 'text-indigo-600' : 'text-slate-400' ?>"></i>
                 <span>Phòng Ban & Chức Vụ</span>
+            </a>
+        <?php endif; ?>
+
+        <!-- Khối Thuyên Chuyển & Quy Hoạch -->
+        <?php if (has_permission('transfers', 'view') || has_permission('planning', 'view')): ?>
+            <div class="pt-5 px-3 pb-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                Điều Động & Quy Hoạch
+            </div>
+        <?php endif; ?>
+
+        <?php if (has_permission('transfers', 'view')): ?>
+            <a href="<?= base_url('modules/transfers/index.php') ?>" 
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition <?= (strpos($current_uri, '/transfers/') !== false) ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' ?>">
+                <i class="fa-solid fa-people-arrows w-5 text-center text-sm <?= (strpos($current_uri, '/transfers/') !== false) ? 'text-indigo-600' : 'text-slate-400' ?>"></i>
+                <span>Thuyên Chuyển Công Tác</span>
+            </a>
+        <?php endif; ?>
+
+        <?php if (has_permission('planning', 'view')): ?>
+            <a href="<?= base_url('modules/planning/index.php') ?>" 
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition <?= (strpos($current_uri, '/planning/') !== false) ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' ?>">
+                <i class="fa-solid fa-wand-magic-sparkles w-5 text-center text-sm <?= (strpos($current_uri, '/planning/') !== false) ? 'text-indigo-600' : 'text-slate-400' ?>"></i>
+                <span>Kế Hoạch & Đề Xuất Tối Ưu</span>
+                <span class="ml-auto px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-amber-100 text-amber-800">Smart</span>
+            </a>
+        <?php endif; ?>
+
+        <?php if (has_permission('employees', 'view')): ?>
+            <div class="pt-5 px-3 pb-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                Quản Lý Nhân Sự
+            </div>
+            
+            <a href="<?= base_url('modules/employees/index.php') ?>" 
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition <?= (strpos($current_uri, '/employees/') !== false) ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' ?>">
+                <i class="fa-solid fa-address-card w-5 text-center text-sm <?= (strpos($current_uri, '/employees/') !== false) ? 'text-indigo-600' : 'text-slate-400' ?>"></i>
+                <span>Hồ Sơ Nhân Viên</span>
             </a>
         <?php endif; ?>
 

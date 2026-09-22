@@ -13,8 +13,9 @@ if ($is_edit) {
     $page_title = 'Thêm Mới Hồ Sơ Nhân Viên';
 }
 
-// Lấy danh sách phòng ban & chức vụ cho thẻ select
-$departments = $pdo->query("SELECT id, name, code FROM departments ORDER BY name ASC")->fetchAll();
+// Lấy danh sách chi nhánh, phòng ban & chức vụ cho thẻ select
+$branches = $pdo->query("SELECT id, name, code, is_headquarter FROM branches ORDER BY is_headquarter DESC, name ASC")->fetchAll();
+$departments = $pdo->query("SELECT id, name, code, branch_id FROM departments ORDER BY name ASC")->fetchAll();
 $positions = $pdo->query("SELECT id, name, base_salary FROM positions ORDER BY base_salary DESC")->fetchAll();
 
 $employee = [
@@ -27,6 +28,7 @@ $employee = [
     'email' => '',
     'address' => '',
     'avatar' => '',
+    'branch_id' => 1,
     'department_id' => '',
     'position_id' => '',
     'hire_date' => date('Y-m-d'),
@@ -59,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone             = trim($_POST['phone'] ?? '');
     $email             = trim($_POST['email'] ?? '');
     $address           = trim($_POST['address'] ?? '');
+    $branch_id         = !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : 1;
     $department_id     = !empty($_POST['department_id']) ? (int)$_POST['department_id'] : null;
     $position_id       = !empty($_POST['position_id']) ? (int)$_POST['position_id'] : null;
     $hire_date         = !empty($_POST['hire_date']) ? $_POST['hire_date'] : date('Y-m-d');
@@ -74,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'phone' => $phone,
         'email' => $email,
         'address' => $address,
+        'branch_id' => $branch_id,
         'department_id' => $department_id,
         'position_id' => $position_id,
         'hire_date' => $hire_date,
@@ -138,26 +142,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($is_edit) {
                 $sql = "UPDATE employees SET 
                     employee_code = ?, fullname = ?, gender = ?, birth_date = ?, identity_card = ?, 
-                    phone = ?, email = ?, address = ?, avatar = ?, department_id = ?, position_id = ?, 
+                    phone = ?, email = ?, address = ?, avatar = ?, branch_id = ?, department_id = ?, position_id = ?, 
                     hire_date = ?, employment_status = ? 
                     WHERE id = ?";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([
                     $employee_code, $fullname, $gender, $birth_date, $identity_card,
-                    $phone, $email, $address, $avatar_name, $department_id, $position_id,
+                    $phone, $email, $address, $avatar_name, $branch_id, $department_id, $position_id,
                     $hire_date, $employment_status, $id
                 ]);
                 set_flash('success', "Đã cập nhật thành công hồ sơ nhân viên: {$fullname}");
             } else {
                 $sql = "INSERT INTO employees (
                     employee_code, fullname, gender, birth_date, identity_card, 
-                    phone, email, address, avatar, department_id, position_id, 
+                    phone, email, address, avatar, branch_id, department_id, position_id, 
                     hire_date, employment_status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([
                     $employee_code, $fullname, $gender, $birth_date, $identity_card,
-                    $phone, $email, $address, $avatar_name, $department_id, $position_id,
+                    $phone, $email, $address, $avatar_name, $branch_id, $department_id, $position_id,
                     $hire_date, $employment_status
                 ]);
                 set_flash('success', "Đã tạo mới thành công hồ sơ nhân viên: {$fullname}");
@@ -318,19 +322,39 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
             </div>
 
-            <!-- Card 2: Bố trí phòng ban & Vị trí công tác -->
+            <!-- Card 2: Bố trí chi nhánh, phòng ban & Vị trí công tác -->
             <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 pb-2 border-b border-slate-100 flex items-center gap-2">
-                    <i class="fa-solid fa-sitemap text-sky-500"></i> Bố Trí Phòng Ban & Chức Vụ
-                </h3>
+                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <i class="fa-solid fa-sitemap text-sky-500"></i> Bố Trí Chi Nhánh, Phòng Ban & Chức Vụ
+                    </h3>
+                    <?php if ($is_edit && has_permission('transfers', 'create')): ?>
+                        <a href="<?= base_url('modules/transfers/create.php?employee_id=' . $employee['id']) ?>" 
+                           class="text-xs text-indigo-600 font-semibold hover:underline flex items-center gap-1">
+                            <i class="fa-solid fa-people-arrows"></i> Thuyên chuyển công tác &rarr;
+                        </a>
+                    <?php endif; ?>
+                </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">Chi Nhánh Công Tác *</label>
+                        <select name="branch_id" id="empBranchSelect" required onchange="filterDeptOptions(this.value)"
+                                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none font-semibold text-slate-800">
+                            <?php foreach ($branches as $br): ?>
+                                <option value="<?= $br['id'] ?>" <?= ($employee['branch_id'] == $br['id']) ? 'selected' : '' ?>>
+                                    <?= $br['is_headquarter'] ? '★ ' : '• ' ?><?= e($br['name']) ?> (<?= e($br['code']) ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
                     <div>
                         <label class="block text-xs font-medium text-slate-700 mb-1">Thuộc Phòng Ban *</label>
-                        <select name="department_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
+                        <select name="department_id" id="empDeptSelect" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
                             <option value="">-- Chưa gán phòng ban --</option>
                             <?php foreach ($departments as $d): ?>
-                                <option value="<?= $d['id'] ?>" <?= ($employee['department_id'] == $d['id']) ? 'selected' : '' ?>>
+                                <option value="<?= $d['id'] ?>" data-branch-id="<?= $d['branch_id'] ?>" <?= ($employee['department_id'] == $d['id']) ? 'selected' : '' ?>>
                                     <?= e($d['name']) ?> (<?= e($d['code']) ?>)
                                 </option>
                             <?php endforeach; ?>
@@ -372,6 +396,29 @@ function previewFile(event) {
         reader.readAsDataURL(input.files[0]);
     }
 }
+
+function filterDeptOptions(branchId) {
+    branchId = parseInt(branchId);
+    const deptSelect = document.getElementById('empDeptSelect');
+    const options = deptSelect.querySelectorAll('option');
+
+    options.forEach(opt => {
+        if (!opt.value) return;
+        const bId = parseInt(opt.getAttribute('data-branch-id'));
+        if (!branchId || bId === branchId) {
+            opt.style.display = 'block';
+        } else {
+            opt.style.display = 'none';
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const curBranch = document.getElementById('empBranchSelect').value;
+    if (curBranch) {
+        filterDeptOptions(curBranch);
+    }
+});
 </script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

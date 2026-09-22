@@ -34,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type']) && $_P
 
 // Nhận các tham số tìm kiếm & lọc
 $keyword = trim($_GET['search'] ?? '');
+$branch_filter = !empty($_GET['branch_id']) ? (int)$_GET['branch_id'] : 0;
 $dept_filter = !empty($_GET['department_id']) ? (int)$_GET['department_id'] : 0;
 $status_filter = trim($_GET['status'] ?? '');
 
@@ -55,6 +56,11 @@ if (!empty($keyword)) {
     $params[] = $search_param;
 }
 
+if ($branch_filter > 0) {
+    $where_clauses[] = "e.branch_id = ?";
+    $params[] = $branch_filter;
+}
+
 if ($dept_filter > 0) {
     $where_clauses[] = "e.department_id = ?";
     $params[] = $dept_filter;
@@ -73,10 +79,14 @@ $countStmt->execute($params);
 $total_records = $countStmt->fetchColumn();
 $total_pages = ceil($total_records / $limit);
 
-// Lấy danh sách nhân viên kèm thông tin phòng ban & chức vụ
+// Lấy danh sách nhân viên kèm thông tin chi nhánh, phòng ban & chức vụ
 $query_sql = "
-    SELECT e.*, d.name AS department_name, d.code AS department_code, p.name AS position_name 
+    SELECT e.*, 
+           b.name AS branch_name, b.code AS branch_code,
+           d.name AS department_name, d.code AS department_code, 
+           p.name AS position_name 
     FROM employees e 
+    LEFT JOIN branches b ON e.branch_id = b.id
     LEFT JOIN departments d ON e.department_id = d.id 
     LEFT JOIN positions p ON e.position_id = p.id 
     WHERE {$where_sql} 
@@ -87,8 +97,9 @@ $stmt = $pdo->prepare($query_sql);
 $stmt->execute($params);
 $employees = $stmt->fetchAll();
 
-// Lấy danh sách phòng ban để làm dropdown bộ lọc
-$departments = $pdo->query("SELECT id, name, code FROM departments ORDER BY name ASC")->fetchAll();
+// Lấy danh sách chi nhánh & phòng ban để làm dropdown bộ lọc
+$branches = $pdo->query("SELECT id, name, code FROM branches ORDER BY is_headquarter DESC, name ASC")->fetchAll();
+$departments = $pdo->query("SELECT id, name, code, branch_id FROM departments ORDER BY name ASC")->fetchAll();
 
 // Thống kê nhanh cho các tab số liệu
 $total_all = $pdo->query("SELECT COUNT(*) FROM employees")->fetchColumn() ?: 0;
@@ -163,13 +174,25 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <!-- Khung Bộ Lọc & Tìm Kiếm -->
     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <form action="index.php" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+        <form method="GET" action="index.php" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div class="lg:col-span-1">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+                    <input type="text" name="search" value="<?= e($keyword) ?>" 
+                           placeholder="Họ tên, mã NV, email..." 
+                           class="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
                 </div>
-                <input type="text" name="search" value="<?= e($keyword) ?>" placeholder="Tìm tên, mã NV, SĐT, email..."
-                       class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+            </div>
+
+            <div>
+                <select name="branch_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-medium text-slate-700">
+                    <option value="">-- Tất cả chi nhánh --</option>
+                    <?php foreach ($branches as $br): ?>
+                        <option value="<?= $br['id'] ?>" <?= ($branch_filter == $br['id']) ? 'selected' : '' ?>>
+                            <?= e($br['name']) ?> (<?= e($br['code']) ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </div>
 
             <div>
@@ -210,9 +233,8 @@ require_once __DIR__ . '/../../includes/header.php';
                 <thead>
                     <tr class="border-b border-slate-200 bg-slate-50 text-slate-600 text-xs uppercase tracking-wider font-semibold">
                         <th class="py-3.5 px-6">Nhân Viên</th>
-                        <th class="py-3.5 px-6">Phòng Ban & Chức Vụ</th>
-                        <th class="py-3.5 px-6">Thông Tin Liên Hệ</th>
-                        <th class="py-3.5 px-6">Ngày Vào Làm</th>
+                        <th class="py-3.5 px-6">Chi Nhánh & Phòng Ban</th>
+                        <th class="py-3.5 px-6">Chức Danh / Vị Trí</th>
                         <th class="py-3.5 px-6 text-center">Trạng Thái</th>
                         <th class="py-3.5 px-6 text-right">Thao Tác</th>
                     </tr>
@@ -220,7 +242,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 <tbody class="divide-y divide-slate-100">
                     <?php if (empty($employees)): ?>
                         <tr>
-                            <td colspan="6" class="text-center py-12 text-slate-400 text-sm">
+                            <td colspan="5" class="text-center py-12 text-slate-400 text-sm">
                                 <i class="fa-regular fa-folder-open text-3xl mb-2 block text-slate-300"></i>
                                 Không tìm thấy nhân viên nào phù hợp với điều kiện tìm kiếm.
                             </td>
@@ -245,37 +267,31 @@ require_once __DIR__ . '/../../includes/header.php';
                                             <?= e($emp['fullname']) ?>
                                         </a>
                                         <div class="text-[11px] text-slate-400 font-mono">
-                                            Mã: <span class="font-semibold text-indigo-600"><?= e($emp['employee_code']) ?></span> • <?= e($emp['gender']) ?>
+                                            Mã: <span class="font-semibold text-indigo-600"><?= e($emp['employee_code']) ?></span> • <?= e($emp['phone'] ?: 'Chưa có SĐT') ?>
                                         </div>
                                     </div>
                                 </div>
                             </td>
 
-                            <!-- Cột Phòng ban & Chức danh -->
-                            <td class="py-4 px-6">
-                                <div class="font-medium text-slate-800 text-xs">
-                                    <?= e($emp['department_name'] ?? 'Chưa phân phòng') ?>
+                            <!-- Cột Chi Nhánh & Phòng Ban -->
+                            <td class="py-4 px-6 text-xs">
+                                <div class="font-bold text-indigo-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-building-flag text-[10px] text-indigo-500"></i>
+                                    <span><?= e($emp['branch_name'] ?? 'Chưa phân chi nhánh') ?></span>
                                 </div>
-                                <div class="text-[11px] text-slate-500 mt-0.5">
-                                    <?= e($emp['position_name'] ?? 'Chưa gán chức vụ') ?>
-                                </div>
-                            </td>
-
-                            <!-- Cột Liên hệ -->
-                            <td class="py-4 px-6 text-xs text-slate-600">
-                                <div class="flex items-center gap-1.5">
-                                    <i class="fa-solid fa-phone text-[10px] text-slate-400"></i>
-                                    <span><?= e($emp['phone'] ?: '---') ?></span>
-                                </div>
-                                <div class="flex items-center gap-1.5 text-slate-400 text-[11px] mt-0.5">
-                                    <i class="fa-regular fa-envelope text-[10px]"></i>
-                                    <span><?= e($emp['email'] ?: '---') ?></span>
+                                <div class="text-slate-600 mt-0.5">
+                                    <?= e($emp['department_name'] ?? 'Chưa gán phòng ban') ?>
                                 </div>
                             </td>
 
-                            <!-- Cột Ngày vào làm -->
-                            <td class="py-4 px-6 text-xs text-slate-600">
-                                <?= format_date($emp['hire_date']) ?>
+                            <!-- Cột Chức Danh / Vị Trí -->
+                            <td class="py-4 px-6 text-xs">
+                                <div class="font-semibold text-slate-800">
+                                    <?= e($emp['position_name'] ?? 'Chưa bổ nhiệm') ?>
+                                </div>
+                                <div class="text-slate-400 text-[10px] mt-0.5">
+                                    Vào làm: <?= format_date($emp['hire_date']) ?>
+                                </div>
                             </td>
 
                             <!-- Cột Trạng thái hợp đồng -->
@@ -296,12 +312,20 @@ require_once __DIR__ . '/../../includes/header.php';
                             </td>
 
                             <!-- Cột Thao tác -->
-                            <td class="py-4 px-6 text-right space-x-1">
+                            <td class="py-4 px-6 text-right space-x-1 whitespace-nowrap">
                                 <a href="view.php?id=<?= $emp['id'] ?>" 
                                    class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 inline-flex items-center justify-center transition"
-                                   title="Xem hồ sơ">
+                                   title="Xem hồ sơ & Lịch sử công tác">
                                     <i class="fa-regular fa-eye text-xs"></i>
                                 </a>
+
+                                <?php if (has_permission('transfers', 'create')): ?>
+                                    <a href="<?= base_url('modules/transfers/create.php?employee_id=' . $emp['id']) ?>" 
+                                       class="w-8 h-8 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 inline-flex items-center justify-center transition"
+                                       title="Thuyên chuyển công tác">
+                                        <i class="fa-solid fa-people-arrows text-xs"></i>
+                                    </a>
+                                <?php endif; ?>
 
                                 <?php if (has_permission('employees', 'edit')): ?>
                                     <a href="form.php?id=<?= $emp['id'] ?>" 

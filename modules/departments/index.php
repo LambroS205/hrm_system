@@ -15,11 +15,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         $code = strtoupper(trim($_POST['code'] ?? ''));
         $name = trim($_POST['name'] ?? '');
         $description = trim($_POST['description'] ?? '');
+        $branch_id = !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : 1;
 
         if (!empty($code) && !empty($name)) {
             try {
-                $stmt = $pdo->prepare("INSERT INTO departments (code, name, description) VALUES (?, ?, ?)");
-                $stmt->execute([$code, $name, $description]);
+                $stmt = $pdo->prepare("INSERT INTO departments (code, name, description, branch_id) VALUES (?, ?, ?, ?)");
+                $stmt->execute([$code, $name, $description, $branch_id]);
                 set_flash('success', "Đã thêm thành công phòng ban: {$name} ({$code})");
                 redirect('modules/departments/index.php');
             } catch (PDOException $e) {
@@ -37,11 +38,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         $code = strtoupper(trim($_POST['code'] ?? ''));
         $name = trim($_POST['name'] ?? '');
         $description = trim($_POST['description'] ?? '');
+        $branch_id = !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : 1;
 
         if ($dept_id > 0 && !empty($code) && !empty($name)) {
             try {
-                $stmt = $pdo->prepare("UPDATE departments SET code = ?, name = ?, description = ? WHERE id = ?");
-                $stmt->execute([$code, $name, $description, $dept_id]);
+                $stmt = $pdo->prepare("UPDATE departments SET code = ?, name = ?, description = ?, branch_id = ? WHERE id = ?");
+                $stmt->execute([$code, $name, $description, $branch_id, $dept_id]);
                 set_flash('success', "Đã cập nhật thông tin phòng ban: {$name}");
                 redirect('modules/departments/index.php');
             } catch (PDOException $e) {
@@ -131,14 +133,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
     }
 }
 
-// Truy vấn danh sách phòng ban kèm số lượng nhân viên thực tế
+// Truy vấn danh sách phòng ban kèm chi nhánh và số lượng nhân viên thực tế
 $departments = $pdo->query("
-    SELECT d.*, COUNT(e.id) AS total_employees 
+    SELECT d.*, b.name AS branch_name, b.code AS branch_code, COUNT(e.id) AS total_employees 
     FROM departments d 
+    LEFT JOIN branches b ON d.branch_id = b.id
     LEFT JOIN employees e ON d.id = e.department_id 
     GROUP BY d.id 
-    ORDER BY d.id ASC
+    ORDER BY d.branch_id ASC, d.id ASC
 ")->fetchAll();
+
+// Truy vấn danh sách chi nhánh
+$branches = $pdo->query("SELECT id, name, code, is_headquarter FROM branches ORDER BY is_headquarter DESC, name ASC")->fetchAll();
 
 // Truy vấn danh sách chức vụ kèm số lượng nhân viên
 $positions = $pdo->query("
@@ -206,6 +212,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     <thead>
                         <tr class="border-b border-slate-200 bg-slate-50 text-slate-600 text-xs uppercase tracking-wider font-semibold">
                             <th class="py-3.5 px-6">Mã & Tên Phòng Ban</th>
+                            <th class="py-3.5 px-6">Chi Nhánh Trực Thuộc</th>
                             <th class="py-3.5 px-6">Mô Tả Chức Năng</th>
                             <th class="py-3.5 px-6 text-center">Quy Mô Nhân Sự</th>
                             <th class="py-3.5 px-6 text-right">Thao Tác</th>
@@ -214,7 +221,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     <tbody class="divide-y divide-slate-100">
                         <?php if (empty($departments)): ?>
                             <tr>
-                                <td colspan="4" class="text-center py-8 text-slate-400 text-sm">Chưa có phòng ban nào trong hệ thống.</td>
+                                <td colspan="5" class="text-center py-8 text-slate-400 text-sm">Chưa có phòng ban nào trong hệ thống.</td>
                             </tr>
                         <?php endif; ?>
                         <?php foreach ($departments as $d): ?>
@@ -229,6 +236,12 @@ require_once __DIR__ . '/../../includes/header.php';
                                             <div class="text-[11px] text-slate-400">Tạo ngày: <?= format_date($d['created_at']) ?></div>
                                         </div>
                                     </div>
+                                </td>
+                                <td class="py-4 px-6 text-xs">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-semibold border border-indigo-100">
+                                        <i class="fa-solid fa-building-flag text-[10px]"></i>
+                                        <span><?= e($d['branch_name'] ?? 'Trụ sở chính') ?></span>
+                                    </span>
                                 </td>
                                 <td class="py-4 px-6 text-slate-600 text-xs max-w-md">
                                     <?= e($d['description'] ?: 'Không có mô tả') ?>
@@ -342,13 +355,25 @@ require_once __DIR__ . '/../../includes/header.php';
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Mã Phòng Ban (Code) *</label>
                 <input type="text" name="code" id="deptCode" required placeholder="VD: IT, HR, MKT, ACC..."
-                       class="w-full uppercase px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+                       class="w-full uppercase px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-mono">
             </div>
 
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Tên Phòng Ban *</label>
                 <input type="text" name="name" id="deptName" required placeholder="VD: Phòng Công Nghệ Thông Tin..."
                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Chi Nhánh Trực Thuộc *</label>
+                <select name="branch_id" id="deptBranchId" required
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-semibold text-slate-800">
+                    <?php foreach ($branches as $br): ?>
+                        <option value="<?= $br['id'] ?>">
+                            <?= $br['is_headquarter'] ? '★ ' : '• ' ?><?= e($br['name']) ?> (<?= e($br['code']) ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </div>
 
             <div>
@@ -442,6 +467,7 @@ function openCreateDeptModal() {
     document.getElementById('deptCode').value = '';
     document.getElementById('deptName').value = '';
     document.getElementById('deptDescription').value = '';
+    document.getElementById('deptBranchId').value = '1';
     document.getElementById('deptModal').classList.remove('hidden');
 }
 
@@ -452,6 +478,7 @@ function openEditDeptModal(dept) {
     document.getElementById('deptCode').value = dept.code;
     document.getElementById('deptName').value = dept.name;
     document.getElementById('deptDescription').value = dept.description || '';
+    document.getElementById('deptBranchId').value = dept.branch_id || '1';
     document.getElementById('deptModal').classList.remove('hidden');
 }
 

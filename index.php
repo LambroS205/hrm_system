@@ -15,6 +15,7 @@ $total_employees = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE emplo
 $total_official = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status = 'official'")->fetchColumn() ?: 0);
 $total_probation = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status = 'probation'")->fetchColumn() ?: 0);
 $total_departments = (int)($pdo->query("SELECT COUNT(*) FROM departments")->fetchColumn() ?: 0);
+$total_branches = (int)($pdo->query("SELECT COUNT(*) FROM branches WHERE status = 'active'")->fetchColumn() ?: 0);
 
 // 2. Thống kê chấm công trong ngày hôm nay
 $att_today_stmt = $pdo->prepare("
@@ -119,14 +120,31 @@ require_once __DIR__ . '/includes/header.php';
             <p class="text-indigo-100 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
                 Hôm nay là <strong class="text-white"><?= date('l, d/m/Y') ?></strong>. Hệ thống HRMS đang quản lý 
                 <strong class="text-amber-200"><?= $total_employees ?></strong> nhân sự trực thuộc 
+                <strong class="text-amber-200"><?= $total_branches ?></strong> chi nhánh vùng miền và 
                 <strong class="text-amber-200"><?= $total_departments ?></strong> khối phòng ban chức năng.
             </p>
         </div>
 
-        <div class="flex items-center gap-3 flex-shrink-0">
+        <div class="flex flex-wrap items-center gap-2.5 flex-shrink-0">
+            <?php if (has_permission('orgchart', 'view')): ?>
+                <a href="<?= base_url('modules/orgchart/index.php') ?>" 
+                   class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 backdrop-blur-md transition">
+                    <i class="fa-solid fa-sitemap text-amber-300"></i>
+                    <span>Sơ Đồ Cơ Cấu</span>
+                </a>
+            <?php endif; ?>
+
+            <?php if (has_permission('transfers', 'view')): ?>
+                <a href="<?= base_url('modules/transfers/index.php') ?>" 
+                   class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 backdrop-blur-md transition">
+                    <i class="fa-solid fa-people-arrows text-sky-300"></i>
+                    <span>Thuyên Chuyển</span>
+                </a>
+            <?php endif; ?>
+
             <?php if (is_superadmin()): ?>
                 <a href="<?= base_url('modules/matrix/index.php') ?>" 
-                   class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 backdrop-blur-md transition">
+                   class="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 backdrop-blur-md transition">
                     <i class="fa-solid fa-network-wired"></i>
                     <span>Ma Trận Quyền</span>
                 </a>
