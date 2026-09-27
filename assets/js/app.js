@@ -196,5 +196,283 @@
             }, 5000);
         });
     });
+    // 7. COMMAND PALETTE (Ctrl+K / Cmd+K Quick Search)
+    document.addEventListener('DOMContentLoaded', function() {
+        const palette = document.getElementById('searchCommandPalette');
+        const paletteInput = document.getElementById('cmdPaletteInput');
+        const paletteResults = document.getElementById('cmdPaletteResults');
+        const paletteLoading = document.getElementById('cmdPaletteLoading');
+        const quickLinks = document.getElementById('cmdQuickLinks');
+        const openBtn = document.getElementById('openSearchModalBtn');
+        const openBtnMobile = document.getElementById('openSearchModalBtnMobile');
+
+        if (!palette || !paletteInput) return;
+
+        let cmdDebounce = null;
+        let cmdAbort = null;
+        let cmdSelectedIndex = -1;
+        let cmdResultLinks = [];
+
+        // Xác định base URL từ script tag hoặc meta
+        const scriptTag = document.querySelector('script[src*="app.js"]');
+        let searchApiUrl = '';
+        if (scriptTag) {
+            const src = scriptTag.getAttribute('src');
+            const assetsIndex = src.indexOf('assets/');
+            if (assetsIndex !== -1) {
+                searchApiUrl = src.substring(0, assetsIndex) + 'modules/search/api.php';
+            }
+        }
+        // Fallback: try to build from current URL
+        if (!searchApiUrl) {
+            const path = window.location.pathname;
+            const hrmIndex = path.indexOf('/hrm_system/');
+            if (hrmIndex !== -1) {
+                searchApiUrl = path.substring(0, hrmIndex) + '/hrm_system/modules/search/api.php';
+            } else {
+                searchApiUrl = '/hrm_system/modules/search/api.php';
+            }
+        }
+
+        function openPalette() {
+            palette.classList.remove('hidden');
+            palette.style.animation = 'fadeIn 0.15s ease forwards';
+            paletteInput.value = '';
+            paletteInput.focus();
+            showQuickLinks();
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePalette() {
+            palette.classList.add('hidden');
+            paletteInput.value = '';
+            cmdSelectedIndex = -1;
+            document.body.style.overflow = '';
+        }
+
+        function showQuickLinks() {
+            if (quickLinks) {
+                paletteResults.innerHTML = '';
+                paletteResults.appendChild(quickLinks);
+                quickLinks.style.display = '';
+            }
+            paletteLoading.classList.add('hidden');
+            updateResultLinks();
+        }
+
+        // Open handlers
+        if (openBtn) openBtn.addEventListener('click', openPalette);
+        if (openBtnMobile) openBtnMobile.addEventListener('click', openPalette);
+
+        // Ctrl+K / Cmd+K
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                if (palette.classList.contains('hidden')) {
+                    openPalette();
+                } else {
+                    closePalette();
+                }
+            }
+        });
+
+        // Close on backdrop click
+        palette.addEventListener('click', function(e) {
+            if (e.target === palette) closePalette();
+        });
+
+        // Input events
+        paletteInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closePalette();
+                return;
+            }
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                cmdSelectedIndex = Math.min(cmdSelectedIndex + 1, cmdResultLinks.length - 1);
+                highlightResult();
+                return;
+            }
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                cmdSelectedIndex = Math.max(cmdSelectedIndex - 1, 0);
+                highlightResult();
+                return;
+            }
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (cmdResultLinks[cmdSelectedIndex]) {
+                    cmdResultLinks[cmdSelectedIndex].click();
+                } else if (paletteInput.value.trim()) {
+                    // Go to full search page
+                    window.location.href = searchApiUrl.replace('api.php', 'index.php') + '?q=' + encodeURIComponent(paletteInput.value.trim());
+                }
+                return;
+            }
+        });
+
+        paletteInput.addEventListener('input', function() {
+            clearTimeout(cmdDebounce);
+            const kw = this.value.trim();
+            
+            if (!kw) {
+                showQuickLinks();
+                return;
+            }
+
+            cmdDebounce = setTimeout(() => {
+                performQuickSearch(kw);
+            }, 250);
+        });
+
+        async function performQuickSearch(keyword) {
+            if (cmdAbort) cmdAbort.abort();
+            cmdAbort = new AbortController();
+
+            paletteLoading.classList.remove('hidden');
+            if (quickLinks) quickLinks.style.display = 'none';
+
+            try {
+                const resp = await fetch(`${searchApiUrl}?q=${encodeURIComponent(keyword)}&mode=quick&category=all&limit=5`, {
+                    signal: cmdAbort.signal
+                });
+                const data = await resp.json();
+                paletteLoading.classList.add('hidden');
+
+                if (data.success && data.total > 0) {
+                    renderQuickResults(data, keyword);
+                } else {
+                    paletteResults.innerHTML = `
+                        <div class="px-5 py-8 text-center">
+                            <i class="fa-regular fa-folder-open text-2xl text-slate-300 dark:text-slate-600 mb-2 block"></i>
+                            <div class="text-sm text-slate-400 dark:text-slate-500">Không tìm thấy kết quả cho "<strong>${escapeHtml(keyword)}</strong>"</div>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    paletteLoading.classList.add('hidden');
+                }
+            }
+
+            cmdSelectedIndex = -1;
+            updateResultLinks();
+        }
+
+        function renderQuickResults(data, keyword) {
+            let html = '';
+
+            for (const [catKey, catData] of Object.entries(data.results)) {
+                if (!catData.items || catData.items.length === 0) continue;
+
+                const iconColors = {
+                    indigo: 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-500',
+                    sky: 'bg-sky-50 dark:bg-sky-950/60 text-sky-500',
+                    violet: 'bg-violet-50 dark:bg-violet-950/60 text-violet-500',
+                    emerald: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-500',
+                    rose: 'bg-rose-50 dark:bg-rose-950/60 text-rose-500',
+                    amber: 'bg-amber-50 dark:bg-amber-950/60 text-amber-500',
+                    pink: 'bg-pink-50 dark:bg-pink-950/60 text-pink-500'
+                };
+                const ic = iconColors[catData.color] || iconColors.indigo;
+
+                html += `<div class="px-5 py-1.5 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                    <span>${escapeHtml(catData.label)}</span>
+                    <span class="text-[10px] font-mono">${catData.total}</span>
+                </div>`;
+
+                catData.items.forEach(item => {
+                    const itemUrl = getItemUrl(catKey, item);
+                    const title = getItemTitle(catKey, item);
+                    const subtitle = getItemSubtitle(catKey, item);
+
+                    html += `<a href="${itemUrl}" class="cmd-result flex items-center gap-3 px-5 py-2.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition text-sm rounded-lg mx-2">
+                        <div class="w-8 h-8 rounded-lg ${ic} flex items-center justify-center text-xs flex-shrink-0"><i class="${catData.icon}"></i></div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold text-slate-700 dark:text-slate-200 truncate text-[13px]">${highlightText(title, keyword)}</div>
+                            ${subtitle ? `<div class="text-[11px] text-slate-400 dark:text-slate-500 truncate">${escapeHtml(subtitle)}</div>` : ''}
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-[10px] text-slate-300 dark:text-slate-600 flex-shrink-0"></i>
+                    </a>`;
+                });
+            }
+
+            // View all link
+            const searchPageUrl = searchApiUrl.replace('api.php', 'index.php');
+            html += `<div class="px-5 py-3 border-t border-slate-100 dark:border-slate-700 mt-2">
+                <a href="${searchPageUrl}?q=${encodeURIComponent(keyword)}" class="cmd-result flex items-center justify-center gap-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition py-2">
+                    <i class="fa-solid fa-magnifying-glass-plus"></i>
+                    Xem tất cả ${data.total} kết quả trong Tìm Kiếm Nâng Cao
+                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </a>
+            </div>`;
+
+            paletteResults.innerHTML = html;
+            updateResultLinks();
+        }
+
+        function getItemUrl(catKey, item) {
+            const base = searchApiUrl.replace('modules/search/api.php', '');
+            switch (catKey) {
+                case 'employees': return base + 'modules/employees/view.php?id=' + item.id;
+                case 'departments': return base + 'modules/departments/index.php';
+                case 'branches': return base + 'modules/branches/index.php';
+                case 'rewards': return base + 'modules/rewards/index.php';
+                case 'disciplines': return base + 'modules/disciplines/index.php';
+                case 'transfers': return base + 'modules/transfers/index.php';
+                case 'recruitment': return base + 'modules/recruitment/candidate_view.php?id=' + item.id;
+                default: return '#';
+            }
+        }
+
+        function getItemTitle(catKey, item) {
+            switch (catKey) {
+                case 'employees': return item.fullname || '';
+                case 'departments': return item.name || '';
+                case 'branches': return item.name || '';
+                case 'rewards': return item.title || '';
+                case 'disciplines': return item.title || '';
+                case 'transfers': return item.employee_name || 'Thuyên chuyển';
+                case 'recruitment': return item.fullname || '';
+                default: return '';
+            }
+        }
+
+        function getItemSubtitle(catKey, item) {
+            switch (catKey) {
+                case 'employees': return [item.employee_code, item.department_name, item.position_name].filter(Boolean).join(' • ');
+                case 'departments': return [item.code, item.branch_name, (item.employee_count || 0) + ' NV'].filter(Boolean).join(' • ');
+                case 'branches': return [item.code, (item.employee_count || 0) + ' NV', item.address].filter(Boolean).join(' • ');
+                case 'rewards': return [item.employee_name, item.decision_number].filter(Boolean).join(' • ');
+                case 'disciplines': return [item.employee_name, item.decision_number].filter(Boolean).join(' • ');
+                case 'transfers': return [item.from_department, '→', item.to_department].filter(Boolean).join(' ');
+                case 'recruitment': return [item.job_title, item.email, item.stage].filter(Boolean).join(' • ');
+                default: return '';
+            }
+        }
+
+        function highlightText(text, keyword) {
+            if (!text || !keyword) return escapeHtml(text || '');
+            const escaped = escapeHtml(text);
+            const kwEscaped = escapeHtml(keyword);
+            const regex = new RegExp(`(${kwEscaped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            return escaped.replace(regex, '<mark class="bg-amber-200/70 dark:bg-amber-600/40 text-inherit rounded px-0.5">$1</mark>');
+        }
+
+        function updateResultLinks() {
+            cmdResultLinks = Array.from(paletteResults.querySelectorAll('a.cmd-result'));
+        }
+
+        function highlightResult() {
+            cmdResultLinks.forEach((el, i) => {
+                if (i === cmdSelectedIndex) {
+                    el.classList.add('bg-indigo-50', 'dark:bg-indigo-950/40');
+                    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                } else {
+                    el.classList.remove('bg-indigo-50', 'dark:bg-indigo-950/40');
+                }
+            });
+        }
+    });
 
 })();

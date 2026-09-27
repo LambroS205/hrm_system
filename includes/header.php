@@ -60,68 +60,83 @@ $flash = get_flash();
 <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
     
     <!-- Topbar Điều Hướng Trên Cùng -->
-    <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between px-6 z-10 flex-shrink-0 transition-colors duration-200">
+    <header class="h-16 bg-white dark:bg-slate-800 border-b-2 border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 z-10 flex-shrink-0 transition-colors duration-200 shadow-xs">
         <!-- Nút menu mobile & Tiêu đề trang -->
         <div class="flex items-center gap-4">
-            <button id="mobileMenuBtn" class="lg:hidden text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+            <button id="mobileMenuBtn" class="lg:hidden text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition">
                 <i class="fa-solid fa-bars text-lg"></i>
             </button>
             <div>
-                <h1 class="text-lg font-bold text-slate-800 dark:text-white leading-tight flex items-center gap-2.5">
+                <h1 class="text-lg font-extrabold text-slate-900 dark:text-white leading-tight flex items-center gap-2.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-indigo-600 dark:bg-indigo-400 shadow-xs"></span>
                     <?= e($page_title ?? 'Bảng Điều Khiển') ?>
                 </h1>
             </div>
         </div>
 
         <div class="flex items-center gap-3">
+            <!-- Nút Tìm Kiếm Toàn Cục (Ctrl+K) -->
+            <button type="button" id="openSearchModalBtn" 
+                    class="hidden sm:flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-700/80 hover:bg-indigo-50/70 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition group border border-slate-300 dark:border-slate-600 shadow-2xs"
+                    title="Tìm kiếm toàn cục (Ctrl+K)">
+                <i class="fa-solid fa-magnifying-glass text-sm text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform"></i>
+                <span class="text-slate-600 dark:text-slate-300 font-medium">Tìm kiếm toàn cục...</span>
+                <kbd class="ml-2 px-1.5 py-0.5 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 rounded text-[10px] font-extrabold border border-slate-300 dark:border-slate-500 shadow-xs">⌘K</kbd>
+            </button>
+            <button type="button" id="openSearchModalBtnMobile" 
+                    class="sm:hidden w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 flex items-center justify-center transition shadow-2xs"
+                    title="Tìm kiếm">
+                <i class="fa-solid fa-magnifying-glass text-sm text-indigo-600 dark:text-indigo-400"></i>
+            </button>
+
             <!-- Nút bật/tắt Dark Mode -->
-            <button type="button" onclick="toggleTheme()" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700/70 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 flex items-center justify-center transition" title="Chuyển chế độ Sáng / Tối">
+            <button type="button" onclick="toggleTheme()" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 flex items-center justify-center transition shadow-2xs" title="Chuyển chế độ Sáng / Tối">
                 <i class="fa-regular fa-moon dark:hidden text-sm theme-icon-moon"></i>
                 <i class="fa-regular fa-sun hidden dark:inline text-sm theme-icon-sun text-amber-400"></i>
             </button>
 
             <!-- Khối thông tin User & Avatar Dropdown -->
             <div class="relative" id="userMenuDropdownContainer">
-                <button type="button" id="userMenuBtn" class="flex items-center gap-3 p-1.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-700/60 transition focus:outline-none">
+                <button type="button" id="userMenuBtn" class="flex items-center gap-3 p-1.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-700/60 transition focus:outline-none border border-transparent hover:border-slate-200 dark:hover:border-slate-600">
                     <div class="text-right hidden sm:block">
-                        <div class="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-tight">
+                        <div class="text-sm font-bold text-slate-900 dark:text-white leading-tight">
                             <?= e($user['fullname']) ?>
                         </div>
-                        <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center justify-end gap-1.5 mt-0.5">
+                        <div class="text-xs text-slate-600 dark:text-slate-300 flex items-center justify-end gap-1.5 mt-0.5">
                             <?php if (!empty($user['is_superadmin'])): ?>
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300">
-                                    <i class="fa-solid fa-crown text-[9px] mr-1"></i> Super Admin
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
+                                    <i class="fa-solid fa-crown text-[9px] mr-1 text-amber-600 dark:text-amber-400"></i> Super Admin
                                 </span>
                             <?php else: ?>
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 dark:bg-indigo-950/50 text-indigo-800 dark:text-indigo-300">
-                                    <i class="fa-solid fa-user-shield text-[9px] mr-1"></i> <?= e($user['role_name'] ?? 'Admin Phân Hệ') ?>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-900 dark:text-indigo-200 border border-indigo-300 dark:border-indigo-700">
+                                    <i class="fa-solid fa-user-shield text-[9px] mr-1 text-indigo-600 dark:text-indigo-400"></i> <?= e($user['role_name'] ?? 'Admin Phân Hệ') ?>
                                 </span>
                             <?php endif; ?>
                         </div>
                     </div>
 
                     <?= render_avatar($user['fullname'], $user['avatar'] ?? null, 9) ?>
-                    <i class="fa-solid fa-chevron-down text-xs text-slate-400 dark:text-slate-500 mr-1 hidden sm:inline"></i>
+                    <i class="fa-solid fa-chevron-down text-xs text-slate-500 dark:text-slate-400 mr-1 hidden sm:inline"></i>
                 </button>
 
                 <!-- Dropdown Menu -->
-                <div id="userMenuDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 py-2 z-50 animate-scale-up">
-                    <div class="px-4 py-2 border-b border-slate-100 dark:border-slate-700/70 sm:hidden">
-                        <div class="font-semibold text-sm text-slate-800 dark:text-white"><?= e($user['fullname']) ?></div>
-                        <div class="text-xs text-slate-400"><?= e($user['username']) ?></div>
+                <div id="userMenuDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border-2 border-slate-200 dark:border-slate-700 py-2 z-50 animate-scale-up">
+                    <div class="px-4 py-2 border-b border-slate-200 dark:border-slate-700 sm:hidden">
+                        <div class="font-bold text-sm text-slate-900 dark:text-white"><?= e($user['fullname']) ?></div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400"><?= e($user['username']) ?></div>
                     </div>
-                    <a href="<?= base_url('profile.php') ?>" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
-                        <i class="fa-regular fa-user-circle text-base text-indigo-500 w-5 text-center"></i>
+                    <a href="<?= base_url('profile.php') ?>" class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-800 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-700/70 transition">
+                        <i class="fa-regular fa-user-circle text-base text-indigo-600 dark:text-indigo-400 w-5 text-center"></i>
                         <span>Hồ Sơ Cá Nhân</span>
                     </a>
                     <?php if (is_superadmin() || has_permission('matrix', 'manage')): ?>
-                        <a href="<?= base_url('modules/matrix/index.php') ?>" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
-                            <i class="fa-solid fa-sliders text-base text-amber-500 w-5 text-center"></i>
+                        <a href="<?= base_url('modules/matrix/index.php') ?>" class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-800 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-slate-700/70 transition">
+                            <i class="fa-solid fa-sliders text-base text-amber-600 dark:text-amber-400 w-5 text-center"></i>
                             <span>Phân Quyền Ma Trận</span>
                         </a>
                     <?php endif; ?>
-                    <div class="border-t border-slate-100 dark:border-slate-700/70 my-1"></div>
-                    <a href="<?= base_url('logout.php') ?>" class="flex items-center gap-3 px-4 py-2.5 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition">
+                    <div class="border-t border-slate-200 dark:border-slate-700 my-1"></div>
+                    <a href="<?= base_url('logout.php') ?>" class="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition">
                         <i class="fa-solid fa-arrow-right-from-bracket text-base w-5 text-center"></i>
                         <span>Đăng Xuất</span>
                     </a>

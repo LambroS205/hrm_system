@@ -202,42 +202,42 @@ require_once __DIR__ . '/../../includes/header.php';
 
         <!-- 4 Khối Thống kê Trực quan Trong Ngày -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between kpi-stripe-emerald transition-all hover:shadow-md">
                 <div>
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-emerald-600">Có Mặt Đầy Đủ</span>
-                    <div class="text-xl font-bold text-slate-800 mt-0.5"><?= $stat_present ?> <span class="text-xs font-normal text-slate-400">/ <?= count($active_employees) ?></span></div>
+                    <span class="kpi-label text-emerald-600 dark:text-emerald-400">Có Mặt Đầy Đủ</span>
+                    <div class="kpi-value text-slate-900 dark:text-white mt-0.5"><?= $stat_present ?> <span class="text-xs font-semibold text-slate-400 dark:text-slate-500">/ <?= count($active_employees) ?></span></div>
                 </div>
-                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-base border border-emerald-200 dark:border-emerald-800/60">
                     <i class="fa-solid fa-user-check"></i>
                 </div>
             </div>
 
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between kpi-stripe-amber transition-all hover:shadow-md">
                 <div>
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-amber-600">Đi Muộn / Về Sớm</span>
-                    <div class="text-xl font-bold text-slate-800 mt-0.5"><?= $stat_late ?></div>
+                    <span class="kpi-label text-amber-600 dark:text-amber-400">Đi Muộn / Về Sớm</span>
+                    <div class="kpi-value text-slate-900 dark:text-white mt-0.5"><?= $stat_late ?></div>
                 </div>
-                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-base border border-amber-200 dark:border-amber-800/60">
                     <i class="fa-solid fa-clock-rotate-left"></i>
                 </div>
             </div>
 
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between kpi-stripe-sky transition-all hover:shadow-md">
                 <div>
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-sky-600">Nghỉ Có Phép</span>
-                    <div class="text-xl font-bold text-slate-800 mt-0.5"><?= $stat_leave ?></div>
+                    <span class="kpi-label text-sky-600 dark:text-sky-400">Nghỉ Có Phép</span>
+                    <div class="kpi-value text-slate-900 dark:text-white mt-0.5"><?= $stat_leave ?></div>
                 </div>
-                <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
+                <div class="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-base border border-sky-200 dark:border-sky-800/60">
                     <i class="fa-solid fa-file-signature"></i>
                 </div>
             </div>
 
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between kpi-stripe-rose transition-all hover:shadow-md">
                 <div>
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-rose-500">Vắng Không Phép</span>
-                    <div class="text-xl font-bold text-slate-800 mt-0.5"><?= $stat_absent ?></div>
+                    <span class="kpi-label text-rose-600 dark:text-rose-400">Vắng Không Phép</span>
+                    <div class="kpi-value text-slate-900 dark:text-white mt-0.5"><?= $stat_absent ?></div>
                 </div>
-                <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                <div class="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold text-base border border-rose-200 dark:border-rose-800/60">
                     <i class="fa-solid fa-user-xmark"></i>
                 </div>
             </div>

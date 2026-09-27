@@ -243,48 +243,48 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <!-- 4 Khối Thống Kê Quỹ Lương -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between kpi-stripe-amber transition-all hover:shadow-md">
             <div>
-                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Tổng Quỹ Lương Tháng</span>
-                <div class="text-xl font-bold text-slate-800 font-mono mt-1"><?= format_money($total_fund) ?></div>
-                <div class="text-[11px] text-slate-400 mt-0.5"><?= count($payroll_items) ?> nhân sự trong danh sách</div>
+                <span class="kpi-label text-amber-600 dark:text-amber-400">Tổng Quỹ Lương Tháng</span>
+                <div class="kpi-value text-slate-900 dark:text-white font-mono mt-1"><?= format_money($total_fund) ?></div>
+                <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5"><?= count($payroll_items) ?> nhân sự trong danh sách</div>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+            <div class="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl font-bold border border-amber-200 dark:border-amber-800/60">
                 <i class="fa-solid fa-sack-dollar"></i>
             </div>
         </div>
 
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between kpi-stripe-emerald transition-all hover:shadow-md">
             <div>
-                <span class="text-[11px] font-semibold uppercase tracking-wider text-emerald-600">Đã Thanh Toán</span>
-                <div class="text-xl font-bold text-emerald-600 font-mono mt-1"><?= format_money($total_paid) ?></div>
-                <div class="text-[11px] text-emerald-600 mt-0.5"><?= $count_paid ?> / <?= count($payroll_items) ?> đã nhận lương</div>
+                <span class="kpi-label text-emerald-600 dark:text-emerald-400">Đã Thanh Toán</span>
+                <div class="kpi-value text-emerald-600 dark:text-emerald-400 font-mono mt-1"><?= format_money($total_paid) ?></div>
+                <div class="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 mt-0.5"><?= $count_paid ?> / <?= count($payroll_items) ?> đã nhận lương</div>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-bold border border-emerald-200 dark:border-emerald-800/60">
                 <i class="fa-solid fa-circle-check"></i>
             </div>
         </div>
 
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between kpi-stripe-rose transition-all hover:shadow-md">
             <div>
-                <span class="text-[11px] font-semibold uppercase tracking-wider text-rose-500">Chưa Chi Trả</span>
-                <div class="text-xl font-bold text-rose-600 font-mono mt-1"><?= format_money($total_pending) ?></div>
-                <div class="text-[11px] text-slate-400 mt-0.5"><?= (count($payroll_items) - $count_paid) ?> nhân sự đang chờ</div>
+                <span class="kpi-label text-rose-600 dark:text-rose-400">Chưa Chi Trả</span>
+                <div class="kpi-value text-rose-600 dark:text-rose-400 font-mono mt-1"><?= format_money($total_pending) ?></div>
+                <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5"><?= (count($payroll_items) - $count_paid) ?> nhân sự đang chờ</div>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl">
+            <div class="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center text-xl font-bold border border-rose-200 dark:border-rose-800/60">
                 <i class="fa-solid fa-clock"></i>
             </div>
         </div>
 
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between kpi-stripe-indigo transition-all hover:shadow-md">
             <div>
-                <span class="text-[11px] font-semibold uppercase tracking-wider text-indigo-600">Tỷ Lệ Hoàn Tất</span>
-                <div class="text-xl font-bold text-slate-800 font-mono mt-1">
+                <span class="kpi-label text-indigo-600 dark:text-indigo-400">Tỷ Lệ Hoàn Tất</span>
+                <div class="kpi-value text-slate-900 dark:text-white font-mono mt-1">
                     <?= count($payroll_items) > 0 ? round(($count_paid / count($payroll_items)) * 100) : 0 ?>%
                 </div>
-                <div class="text-[11px] text-slate-400 mt-0.5">Tiến độ chi lương</div>
+                <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">Tiến độ chi lương</div>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl font-bold border border-indigo-200 dark:border-indigo-800/60">
                 <i class="fa-solid fa-chart-pie"></i>
             </div>
         </div>
