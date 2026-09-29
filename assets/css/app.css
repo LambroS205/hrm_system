@@ -44,6 +44,8 @@
 }
 
 .dark {
+    color-scheme: dark;
+
     /* Brand Primary Accent (Dark) */
     --primary: #6366f1;         /* Indigo 500 */
     --primary-hover: #818cf8;   /* Indigo 400 */
@@ -102,6 +104,27 @@ body {
     border-color: var(--border-color) !important;
 }
 
+/* Dark mode fallback surface backgrounds */
+.dark .bg-slate-50 {
+    background-color: #0f172a !important;
+}
+.dark .bg-slate-100 {
+    background-color: #1e293b !important;
+}
+.dark .bg-slate-200 {
+    background-color: #334155 !important;
+}
+.dark .hover\:bg-slate-50:hover,
+.dark .hover\:bg-slate-50\/80:hover {
+    background-color: #1e293b !important;
+}
+.dark .hover\:bg-slate-100:hover {
+    background-color: #334155 !important;
+}
+.dark .hover\:bg-slate-200:hover {
+    background-color: #475569 !important;
+}
+
 /* Sharp Card Box-Shadow */
 .shadow-sm, .shadow-md, .shadow-lg {
     box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04) !important;
@@ -111,10 +134,15 @@ body {
 }
 
 /* Border visibility upgrade */
-.border-slate-100, .border-slate-200, .border-slate-200\/80 {
+.border-slate-50, .border-slate-100, .border-slate-200, .border-slate-200\/80 {
     border-color: #cbd5e1 !important;
 }
-.dark .border-slate-100, .dark .border-slate-200, .dark .border-slate-200\/80, .dark .border-slate-700, .dark .border-slate-700\/80 {
+.dark .border-slate-50, .dark .border-slate-100, .dark .border-slate-200, .dark .border-slate-200\/80, .dark .border-slate-300, .dark .border-slate-700, .dark .border-slate-700\/80 {
+    border-color: #334155 !important;
+}
+
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
     border-color: #334155 !important;
 }
 
@@ -274,6 +302,7 @@ input[type="password"],
 input[type="email"], 
 input[type="number"], 
 input[type="date"], 
+input[type="time"], 
 select, 
 textarea {
     border-color: #cbd5e1 !important;
@@ -287,6 +316,7 @@ textarea {
 .dark input[type="email"], 
 .dark input[type="number"], 
 .dark input[type="date"], 
+.dark input[type="time"], 
 .dark select, 
 .dark textarea {
     border-color: #475569 !important;

@@ -151,7 +151,6 @@ if ($active_tab === 'monthly') {
     $sumRows = $sumStmt->fetchAll();
 
     foreach ($sumRows as $row) {
-        // Công thức tính công tháng: Đi làm đủ (1) + Nghỉ phép (1) + Đi muộn/Về sớm (0.5)
         $total_work_days = $row['count_present'] + $row['count_leave'] + (($row['count_late'] + $row['count_early']) * 0.5);
         $row['total_work_days'] = $total_work_days;
         $monthly_summary[$row['employee_id']] = $row;
@@ -164,18 +163,18 @@ require_once __DIR__ . '/../../includes/header.php';
 <div class="space-y-6">
 
     <!-- Header Tiêu đề & Giới thiệu -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm">
         <div>
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 mb-2">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 mb-2">
                 <i class="fa-solid fa-calendar-check"></i> Quản Lý Công Tác & Điểm Danh
             </div>
-            <h2 class="text-xl font-bold text-slate-800">Chấm Công & Bảng Tổng Hợp Ngày Công</h2>
-            <p class="text-sm text-slate-500 mt-0.5">Theo dõi lịch trình có mặt, đi muộn, nghỉ phép và xuất dữ liệu công tổng hợp làm căn cứ tính lương.</p>
+            <h2 class="text-xl font-bold text-slate-800 dark:text-white">Chấm Công & Bảng Tổng Hợp Ngày Công</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Theo dõi lịch trình có mặt, đi muộn, nghỉ phép và xuất dữ liệu công tổng hợp làm căn cứ tính lương.</p>
         </div>
         <div class="flex items-center gap-2">
             <?php if ($active_tab === 'daily' && has_permission('attendance', 'create')): ?>
                 <button type="submit" form="dailyAttendanceForm" 
-                        class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-md shadow-emerald-100 transition flex items-center gap-2">
+                        class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-md shadow-emerald-100 dark:shadow-none transition flex items-center gap-2">
                     <i class="fa-solid fa-floppy-disk"></i>
                     <span>Lưu Bảng Điểm Danh</span>
                 </button>
@@ -184,14 +183,14 @@ require_once __DIR__ . '/../../includes/header.php';
     </div>
 
     <!-- Thanh Tabs Chuyển đổi chế độ xem -->
-    <div class="flex border-b border-slate-200">
+    <div class="flex border-b border-slate-200 dark:border-slate-700">
         <a href="?tab=daily&date=<?= urlencode($selected_date) ?>&department_id=<?= $selected_dept ?>" 
-           class="px-5 py-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition <?= $active_tab === 'daily' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-800' ?>">
+           class="px-5 py-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition <?= $active_tab === 'daily' ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200' ?>">
             <i class="fa-solid fa-clipboard-user"></i>
             <span>1. Điểm Danh Hàng Ngày (Theo Ngày)</span>
         </a>
         <a href="?tab=monthly&month=<?= $selected_month ?>&year=<?= $selected_year ?>&department_id=<?= $selected_dept ?>" 
-           class="px-5 py-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition <?= $active_tab === 'monthly' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-800' ?>">
+           class="px-5 py-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition <?= $active_tab === 'monthly' ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200' ?>">
             <i class="fa-solid fa-calendar-days"></i>
             <span>2. Bảng Tổng Hợp Công Tháng</span>
         </a>
@@ -202,7 +201,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
         <!-- 4 Khối Thống kê Trực quan Trong Ngày -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between kpi-stripe-emerald transition-all hover:shadow-md">
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between kpi-stripe-emerald transition-all hover:shadow-md">
                 <div>
                     <span class="kpi-label text-emerald-600 dark:text-emerald-400">Có Mặt Đầy Đủ</span>
                     <div class="kpi-value text-slate-900 dark:text-white mt-0.5"><?= $stat_present ?> <span class="text-xs font-semibold text-slate-400 dark:text-slate-500">/ <?= count($active_employees) ?></span></div>
@@ -212,7 +211,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
             </div>
 
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between kpi-stripe-amber transition-all hover:shadow-md">
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between kpi-stripe-amber transition-all hover:shadow-md">
                 <div>
                     <span class="kpi-label text-amber-600 dark:text-amber-400">Đi Muộn / Về Sớm</span>
                     <div class="kpi-value text-slate-900 dark:text-white mt-0.5"><?= $stat_late ?></div>
@@ -222,7 +221,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
             </div>
 
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between kpi-stripe-sky transition-all hover:shadow-md">
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between kpi-stripe-sky transition-all hover:shadow-md">
                 <div>
                     <span class="kpi-label text-sky-600 dark:text-sky-400">Nghỉ Có Phép</span>
                     <div class="kpi-value text-slate-900 dark:text-white mt-0.5"><?= $stat_leave ?></div>
@@ -232,7 +231,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
             </div>
 
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between kpi-stripe-rose transition-all hover:shadow-md">
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between kpi-stripe-rose transition-all hover:shadow-md">
                 <div>
                     <span class="kpi-label text-rose-600 dark:text-rose-400">Vắng Không Phép</span>
                     <div class="kpi-value text-slate-900 dark:text-white mt-0.5"><?= $stat_absent ?></div>
@@ -244,20 +243,20 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
 
         <!-- Bộ lọc ngày và phòng ban -->
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
             <form action="index.php" method="GET" class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                 <input type="hidden" name="tab" value="daily">
                 
                 <div class="flex items-center gap-2">
-                    <span class="text-xs font-semibold text-slate-600 whitespace-nowrap">Chọn Ngày:</span>
+                    <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Chọn Ngày:</span>
                     <input type="date" name="date" value="<?= e($selected_date) ?>" onchange="this.form.submit()"
-                           class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white">
+                           class="px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white dark:focus:bg-slate-900">
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <span class="text-xs font-semibold text-slate-600 whitespace-nowrap">Phòng Ban:</span>
+                    <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Phòng Ban:</span>
                     <select name="department_id" onchange="this.form.submit()"
-                            class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white">
+                            class="px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white dark:focus:bg-slate-900">
                         <option value="0">-- Tất cả phòng ban --</option>
                         <?php foreach ($departments as $d): ?>
                             <option value="<?= $d['id'] ?>" <?= ($selected_dept == $d['id']) ? 'selected' : '' ?>>
@@ -272,12 +271,12 @@ require_once __DIR__ . '/../../includes/header.php';
                 <!-- Thao tác chọn nhanh -->
                 <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
                     <button type="button" onclick="setAllAttendance('present')" 
-                            class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
+                            class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
                         <i class="fa-solid fa-check-double text-[10px]"></i>
                         <span>Tất Cả Đi Làm</span>
                     </button>
                     <button type="button" onclick="setAllAttendance('absent')" 
-                            class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
+                            class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/80 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
                         <i class="fa-solid fa-xmark text-[10px]"></i>
                         <span>Đặt Nghỉ Hết</span>
                     </button>
@@ -286,7 +285,7 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
 
         <!-- Bảng Nhập Liệu Điểm Danh Ngày -->
-        <form id="dailyAttendanceForm" action="index.php" method="POST" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <form id="dailyAttendanceForm" action="index.php" method="POST" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
             <?= csrf_field() ?>
             <input type="hidden" name="action_type" value="save_daily_attendance">
             <input type="hidden" name="attendance_date" value="<?= e($selected_date) ?>">
@@ -294,7 +293,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead>
-                        <tr class="border-b border-slate-200 bg-slate-50 text-slate-600 text-xs uppercase tracking-wider font-semibold">
+                        <tr class="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/70 text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider font-semibold">
                             <th class="py-3.5 px-6">Nhân Viên</th>
                             <th class="py-3.5 px-6">Trạng Thái Điểm Danh</th>
                             <th class="py-3.5 px-4 text-center">Giờ Vào (Check-in)</th>
@@ -302,10 +301,10 @@ require_once __DIR__ . '/../../includes/header.php';
                             <th class="py-3.5 px-6">Ghi Chú Công Tác</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60">
                         <?php if (empty($active_employees)): ?>
                             <tr>
-                                <td colspan="5" class="text-center py-12 text-slate-400 text-sm">
+                                <td colspan="5" class="text-center py-12 text-slate-400 dark:text-slate-500 text-sm">
                                     Không có nhân viên nào phù hợp với điều kiện lọc.
                                 </td>
                             </tr>
@@ -319,20 +318,20 @@ require_once __DIR__ . '/../../includes/header.php';
                             $cur_out = $rec ? $rec['check_out'] : '17:30';
                             $cur_note = $rec ? $rec['note'] : '';
                             ?>
-                            <tr class="hover:bg-slate-50/80 transition">
+                            <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition">
                                 <!-- Nhân viên -->
                                 <td class="py-4 px-6">
                                     <div class="flex items-center gap-3">
                                         <?php if (!empty($emp['avatar']) && file_exists(__DIR__ . '/../../assets/uploads/' . $emp['avatar'])): ?>
-                                            <img src="<?= base_url('assets/uploads/' . e($emp['avatar'])) ?>" class="w-9 h-9 rounded-xl object-cover border border-slate-200" alt="">
+                                            <img src="<?= base_url('assets/uploads/' . e($emp['avatar'])) ?>" class="w-9 h-9 rounded-xl object-cover border border-slate-200 dark:border-slate-700" alt="">
                                         <?php else: ?>
-                                            <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
+                                            <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center font-bold text-xs">
                                                 <?= strtoupper(mb_substr($emp['fullname'], 0, 1, 'UTF-8')) ?>
                                             </div>
                                         <?php endif; ?>
                                         <div>
-                                            <div class="font-bold text-slate-800 text-xs sm:text-sm"><?= e($emp['fullname']) ?></div>
-                                            <div class="text-[11px] text-slate-400 font-mono">
+                                            <div class="font-bold text-slate-800 dark:text-white text-xs sm:text-sm"><?= e($emp['fullname']) ?></div>
+                                            <div class="text-[11px] text-slate-400 dark:text-slate-400 font-mono">
                                                 <?= e($emp['employee_code']) ?> • <?= e($emp['department_name'] ?? 'Phòng ban') ?>
                                             </div>
                                         </div>
@@ -342,7 +341,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <!-- Lựa chọn trạng thái -->
                                 <td class="py-4 px-6">
                                     <select name="att[<?= $emp['id'] ?>][status]" 
-                                            class="att-status-select text-xs font-semibold px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none w-48 transition">
+                                            class="att-status-select text-xs font-semibold px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none w-48 transition">
                                         <option value="present" <?= ($cur_status === 'present') ? 'selected' : '' ?>>
                                             🟢 Có Mặt Đầy Đủ (1.0 Công)
                                         </option>
@@ -364,19 +363,19 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <!-- Giờ vào -->
                                 <td class="py-4 px-4 text-center">
                                     <input type="time" name="att[<?= $emp['id'] ?>][check_in]" value="<?= e($cur_in) ?>"
-                                           class="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                                           class="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-700 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none">
                                 </td>
 
                                 <!-- Giờ ra -->
                                 <td class="py-4 px-4 text-center">
                                     <input type="time" name="att[<?= $emp['id'] ?>][check_out]" value="<?= e($cur_out) ?>"
-                                           class="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                                           class="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-700 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none">
                                 </td>
 
                                 <!-- Ghi chú -->
                                 <td class="py-4 px-6">
                                     <input type="text" name="att[<?= $emp['id'] ?>][note]" value="<?= e($cur_note) ?>" placeholder="Lý do đi muộn, công tác ngoài..."
-                                           class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                                           class="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none">
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -386,9 +385,9 @@ require_once __DIR__ . '/../../includes/header.php';
 
             <!-- Nút Lưu Footer -->
             <?php if (has_permission('attendance', 'create')): ?>
-                <div class="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-                    <span class="text-xs text-slate-500">
-                        Nhớ nhấn <strong class="text-slate-700">"Lưu Bảng Điểm Danh"</strong> để ghi nhận số liệu ngày công vào hệ thống.
+                <div class="p-4 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <span class="text-xs text-slate-500 dark:text-slate-400">
+                        Nhớ nhấn <strong class="text-slate-700 dark:text-slate-200">"Lưu Bảng Điểm Danh"</strong> để ghi nhận số liệu ngày công vào hệ thống.
                     </span>
                     <button type="submit" class="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-md transition flex items-center gap-2">
                         <i class="fa-solid fa-floppy-disk"></i>
@@ -402,14 +401,14 @@ require_once __DIR__ . '/../../includes/header.php';
         <!-- ================= TAB 2: BẢNG TỔNG HỢP CÔNG THÁNG ================= -->
 
         <!-- Khung Lọc Tháng & Năm -->
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
             <form action="index.php" method="GET" class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                 <input type="hidden" name="tab" value="monthly">
 
                 <div class="flex items-center gap-2">
-                    <span class="text-xs font-semibold text-slate-600">Tháng:</span>
+                    <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">Tháng:</span>
                     <select name="month" onchange="this.form.submit()" 
-                            class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none">
+                            class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none">
                         <?php for ($m = 1; $m <= 12; $m++): ?>
                             <option value="<?= $m ?>" <?= ($selected_month == $m) ? 'selected' : '' ?>>Tháng <?= $m ?></option>
                         <?php endfor; ?>
@@ -417,9 +416,9 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <span class="text-xs font-semibold text-slate-600">Năm:</span>
+                    <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">Năm:</span>
                     <select name="year" onchange="this.form.submit()" 
-                            class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none">
+                            class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none">
                         <?php for ($y = 2024; $y <= 2027; $y++): ?>
                             <option value="<?= $y ?>" <?= ($selected_year == $y) ? 'selected' : '' ?>>Năm <?= $y ?></option>
                         <?php endfor; ?>
@@ -427,9 +426,9 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <span class="text-xs font-semibold text-slate-600">Phòng Ban:</span>
-                    <select name="department_id" onchange="this.form.submit()"
-                            class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none">
+                    <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">Phòng Ban:</span>
+                    <select name="department_id" onchange="this.form.submit()" 
+                            class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none">
                         <option value="0">-- Toàn bộ phòng ban --</option>
                         <?php foreach ($departments as $d): ?>
                             <option value="<?= $d['id'] ?>" <?= ($selected_dept == $d['id']) ? 'selected' : '' ?>>
@@ -452,20 +451,20 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
 
         <!-- Bảng Tổng Hợp Công Chi Tiết -->
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead>
-                        <tr class="border-b border-slate-200 bg-slate-50 text-slate-600 text-xs uppercase tracking-wider font-semibold">
+                        <tr class="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/70 text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider font-semibold">
                             <th class="py-3.5 px-6">Nhân Viên & Đơn Vị</th>
                             <th class="py-3.5 px-4 text-center">Đủ Công (Ngày)</th>
                             <th class="py-3.5 px-4 text-center">Nghỉ Có Phép</th>
                             <th class="py-3.5 px-4 text-center">Đi Muộn / Sớm</th>
                             <th class="py-3.5 px-4 text-center">Không Phép</th>
-                            <th class="py-3.5 px-6 text-center bg-emerald-50/50 text-emerald-800">Tổng Ngày Công Quy Đổi</th>
+                            <th class="py-3.5 px-6 text-center bg-emerald-50/50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300">Tổng Ngày Công Quy Đổi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60">
                         <?php foreach ($active_employees as $emp): ?>
                             <?php 
                             $m = $monthly_summary[$emp['id']] ?? [
@@ -477,32 +476,32 @@ require_once __DIR__ . '/../../includes/header.php';
                                 'total_work_days' => 0
                             ];
                             ?>
-                            <tr class="hover:bg-slate-50/80 transition">
+                            <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition">
                                 <td class="py-4 px-6">
-                                    <div class="font-bold text-slate-800 text-sm"><?= e($emp['fullname']) ?></div>
-                                    <div class="text-[11px] text-slate-400 font-mono">
+                                    <div class="font-bold text-slate-800 dark:text-white text-sm"><?= e($emp['fullname']) ?></div>
+                                    <div class="text-[11px] text-slate-400 dark:text-slate-400 font-mono">
                                         Mã: <?= e($emp['employee_code']) ?> • <?= e($emp['department_name'] ?? 'Phòng ban') ?>
                                     </div>
                                 </td>
 
-                                <td class="py-4 px-4 text-center font-semibold text-emerald-600">
+                                <td class="py-4 px-4 text-center font-semibold text-emerald-600 dark:text-emerald-400">
                                     <?= $m['count_present'] ?>
                                 </td>
 
-                                <td class="py-4 px-4 text-center font-semibold text-sky-600">
+                                <td class="py-4 px-4 text-center font-semibold text-sky-600 dark:text-sky-400">
                                     <?= $m['count_leave'] ?>
                                 </td>
 
-                                <td class="py-4 px-4 text-center font-semibold text-amber-600">
+                                <td class="py-4 px-4 text-center font-semibold text-amber-600 dark:text-amber-400">
                                     <?= ($m['count_late'] + $m['count_early']) ?>
                                 </td>
 
-                                <td class="py-4 px-4 text-center font-semibold text-rose-500">
+                                <td class="py-4 px-4 text-center font-semibold text-rose-500 dark:text-rose-400">
                                     <?= $m['count_absent'] ?>
                                 </td>
 
-                                <td class="py-4 px-6 text-center bg-emerald-50/40">
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 font-mono">
+                                <td class="py-4 px-6 text-center bg-emerald-50/40 dark:bg-emerald-950/20">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-mono">
                                         <?= number_format($m['total_work_days'], 1) ?> công
                                     </span>
                                 </td>
@@ -511,7 +510,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     </tbody>
                 </table>
             </div>
-            <div class="p-4 bg-slate-50 border-t border-slate-200 text-xs text-slate-500">
+            <div class="p-4 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400">
                 * Quy chuẩn tính công: 1 ngày Có mặt = 1.0 công; 1 ngày Nghỉ có phép = 1.0 công; 1 lần Đi muộn / Về sớm = 0.5 công; Vắng không phép = 0 công.
             </div>
         </div>
