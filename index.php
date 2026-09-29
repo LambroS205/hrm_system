@@ -102,6 +102,23 @@ $recent_employees = $pdo->query("
     LIMIT 5
 ")->fetchAll();
 
+// 7. Thống kê đề xuất chờ phê duyệt
+$pending_proposals_count = 0;
+$pending_proposals = [];
+if (has_permission('proposals', 'view') || has_permission('proposals', 'create')) {
+    $pending_proposals_count = (int)($pdo->query("SELECT COUNT(*) FROM proposals WHERE status = 'pending'")->fetchColumn() ?: 0);
+    $pending_stmt = $pdo->query("
+        SELECT p.*, e.fullname, e.employee_code, e.avatar, d.name AS department_name
+        FROM proposals p
+        JOIN employees e ON p.employee_id = e.id
+        LEFT JOIN departments d ON e.department_id = d.id
+        WHERE p.status = 'pending'
+        ORDER BY p.id DESC
+        LIMIT 5
+    ");
+    $pending_proposals = $pending_stmt->fetchAll();
+}
+
 require_once __DIR__ . '/includes/header.php';
 ?>
 
@@ -147,6 +164,17 @@ require_once __DIR__ . '/includes/header.php';
                    class="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 backdrop-blur-md transition">
                     <i class="fa-solid fa-network-wired"></i>
                     <span>Ma Trận Quyền</span>
+                </a>
+            <?php endif; ?>
+            
+            <?php if (has_permission('proposals', 'view') || has_permission('proposals', 'create')): ?>
+                <a href="<?= base_url('modules/proposals/index.php') ?>" 
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 backdrop-blur-md transition">
+                    <i class="fa-solid fa-paper-plane text-amber-300"></i>
+                    <span>Đề Xuất</span>
+                    <?php if ($pending_proposals_count > 0): ?>
+                        <span class="ml-1 px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-900 text-[10px] font-black"><?= $pending_proposals_count ?></span>
+                    <?php endif; ?>
                 </a>
             <?php endif; ?>
             
@@ -421,6 +449,120 @@ require_once __DIR__ . '/includes/header.php';
         </div>
 
     </div>
+
+    <?php if (has_permission('proposals', 'view') || has_permission('proposals', 'create')): ?>
+        <!-- Khối Đề Xuất Chờ Phê Duyệt -->
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-300 dark:border-slate-700 shadow-sm space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b-2 border-slate-200 dark:border-slate-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-md shadow-amber-200 dark:shadow-none">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Đề Xuất Chờ Phê Duyệt</h3>
+                            <?php if ($pending_proposals_count > 0): ?>
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700 animate-pulse">
+                                    <?= $pending_proposals_count ?> chờ duyệt
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Các yêu cầu nghỉ phép, làm thêm, công tác cần ban quản lý giải quyết</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <?php if (has_permission('proposals', 'create')): ?>
+                        <a href="<?= base_url('modules/proposals/create.php') ?>" class="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-bold rounded-xl transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus text-[10px]"></i>
+                            <span>Tạo đề xuất</span>
+                        </a>
+                    <?php endif; ?>
+                    <a href="<?= base_url('modules/proposals/index.php') ?>" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1 transition">
+                        <span>Xem tất cả đề xuất</span>
+                        <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </a>
+                </div>
+            </div>
+
+            <?php if (empty($pending_proposals)): ?>
+                <div class="text-center py-8 text-slate-400 dark:text-slate-500 text-xs">
+                    <i class="fa-regular fa-circle-check text-2xl text-emerald-500 mb-2 block"></i>
+                    Hiện không có đề xuất nào đang chờ phê duyệt.
+                </div>
+            <?php else: ?>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
+                                <th class="py-2.5 px-4">Mã & Nhân Viên</th>
+                                <th class="py-2.5 px-4">Loại Đề Xuất</th>
+                                <th class="py-2.5 px-4">Tiêu Đề</th>
+                                <th class="py-2.5 px-4">Thời Gian</th>
+                                <th class="py-2.5 px-4 text-center">Mức Ưu Tiên</th>
+                                <th class="py-2.5 px-4 text-right">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60">
+                            <?php 
+                            $type_badge_map = [
+                                'leave'         => ['Nghỉ phép',    'bg-sky-50 text-sky-700 border-sky-300 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800'],
+                                'overtime'      => ['Tăng ca',       'bg-violet-50 text-violet-700 border-violet-300 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800'],
+                                'business_trip' => ['Công tác',      'bg-teal-50 text-teal-700 border-teal-300 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800'],
+                                'salary_raise'  => ['Tăng lương',    'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800'],
+                                'equipment'     => ['Thiết bị',      'bg-indigo-50 text-indigo-700 border-indigo-300 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800'],
+                                'other'         => ['Khác',          'bg-slate-50 text-slate-700 border-slate-300 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700'],
+                            ];
+                            $prio_badge_map = [
+                                'low'    => ['Thấp',        'text-slate-500'],
+                                'normal' => ['Bình thường', 'text-sky-600 dark:text-sky-400 font-semibold'],
+                                'high'   => ['Cao',         'text-amber-600 dark:text-amber-400 font-bold'],
+                                'urgent' => ['Khẩn cấp',   'text-rose-600 dark:text-rose-400 font-extrabold'],
+                            ];
+                            ?>
+                            <?php foreach ($pending_proposals as $prop): ?>
+                                <?php 
+                                $tb = $type_badge_map[$prop['type']] ?? ['Khác', 'bg-slate-50 text-slate-700 border-slate-300'];
+                                $pb = $prio_badge_map[$prop['priority']] ?? ['Bình thường', 'text-slate-600'];
+                                ?>
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
+                                    <td class="py-3 px-4">
+                                        <div class="flex items-center gap-2.5">
+                                            <?= render_avatar($prop['fullname'], $prop['avatar'] ?? null, 8) ?>
+                                            <div>
+                                                <div class="font-bold text-slate-800 dark:text-white"><?= e($prop['fullname']) ?></div>
+                                                <span class="code-badge text-[10px]"><?= e($prop['proposal_code']) ?></span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border <?= $tb[1] ?>">
+                                            <?= $tb[0] ?>
+                                        </span>
+                                    </td>
+                                    <td class="py-3 px-4 font-medium text-slate-800 dark:text-slate-200 max-w-xs truncate" title="<?= e($prop['title']) ?>">
+                                        <?= e($prop['title']) ?>
+                                    </td>
+                                    <td class="py-3 px-4 text-slate-500 dark:text-slate-400 font-mono text-[11px]">
+                                        <?= format_date($prop['created_at']) ?>
+                                    </td>
+                                    <td class="py-3 px-4 text-center">
+                                        <span class="text-[11px] <?= $pb[1] ?>"><?= $pb[0] ?></span>
+                                    </td>
+                                    <td class="py-3 px-4 text-right">
+                                        <a href="<?= base_url('modules/proposals/view.php?id=' . $prop['id']) ?>" 
+                                           class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-bold text-[11px] transition inline-flex items-center gap-1">
+                                            <span>Xem</span>
+                                            <i class="fa-solid fa-arrow-right text-[9px]"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 
 </div>
 

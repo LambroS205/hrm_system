@@ -135,7 +135,7 @@ $getIconClass = function($isActive) {
             </a>
         <?php endif; ?>
 
-        <?php if (has_permission('employees', 'view') || has_permission('rewards', 'view') || has_permission('disciplines', 'view')): ?>
+        <?php if (has_permission('employees', 'view') || has_permission('rewards', 'view') || has_permission('disciplines', 'view') || has_permission('proposals', 'view') || has_permission('proposals', 'create')): ?>
             <div class="pt-5 px-3 pb-2 text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                 Quản Lý Nhân Sự
             </div>
@@ -146,6 +146,27 @@ $getIconClass = function($isActive) {
                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition <?= $getActiveClass($is_active) ?>">
                     <i class="fa-solid fa-address-card w-5 text-center text-sm <?= $getIconClass($is_active) ?>"></i>
                     <span>Hồ Sơ Nhân Viên</span>
+                </a>
+            <?php endif; ?>
+
+            <?php if (has_permission('proposals', 'view') || has_permission('proposals', 'create')): ?>
+                <?php $is_active = (strpos($current_uri, '/proposals/') !== false); ?>
+                <?php
+                // Đếm số đề xuất đang chờ duyệt
+                $pending_proposals_count = 0;
+                if (has_permission('proposals', 'approve')) {
+                    try {
+                        $pending_proposals_count = (int)($pdo->query("SELECT COUNT(*) FROM proposals WHERE status = 'pending'")->fetchColumn() ?: 0);
+                    } catch (Exception $e) { $pending_proposals_count = 0; }
+                }
+                ?>
+                <a href="<?= base_url('modules/proposals/index.php') ?>" 
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition <?= $getActiveClass($is_active) ?>">
+                    <i class="fa-solid fa-paper-plane w-5 text-center text-sm <?= $getIconClass($is_active) ?>"></i>
+                    <span>Trung Tâm Đề Xuất</span>
+                    <?php if ($pending_proposals_count > 0): ?>
+                        <span class="ml-auto px-1.5 py-0.5 text-[10px] font-extrabold rounded-md <?= $is_active ? 'bg-indigo-700 text-white' : 'bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700' ?>"><?= $pending_proposals_count ?></span>
+                    <?php endif; ?>
                 </a>
             <?php endif; ?>
 
