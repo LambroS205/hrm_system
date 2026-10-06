@@ -75,41 +75,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Lấy danh sách chi nhánh
-$branches = $pdo->query("SELECT id, name, code, is_headquarter FROM branches ORDER BY is_headquarter DESC, name ASC")->fetchAll();
+$branches = $pdo->query("SELECT id, name, code, is_headquarter FROM branches WHERE status = 'active' ORDER BY is_headquarter DESC, name ASC")->fetchAll();
 
 require_once __DIR__ . '/../../includes/header.php';
 ?>
 
 <div class="max-w-3xl mx-auto space-y-6">
 
-    <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm flex items-center justify-between gap-4">
+    <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between gap-4">
         <div>
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 mb-2">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 mb-2">
                 <i class="fa-solid fa-calendar-check"></i> Chiến Lược Định Biên
             </div>
-            <h2 class="text-xl font-bold text-slate-800"><?= $is_edit ? 'Chỉnh Sửa Kế Hoạch' : 'Lập Kế Hoạch Quy Hoạch Mới' ?></h2>
-            <p class="text-sm text-slate-500 mt-0.5">Xác định khung thời gian, mục tiêu và chi nhánh trọng điểm cho chiến dịch điều động nhân sự.</p>
+            <h2 class="text-xl font-bold text-slate-800 dark:text-white"><?= $is_edit ? 'Chỉnh Sửa Kế Hoạch' : 'Lập Kế Hoạch Quy Hoạch Mới' ?></h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Xác định khung thời gian, mục tiêu và chi nhánh trọng điểm cho chiến dịch điều động nhân sự.</p>
         </div>
-        <a href="index.php" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 flex-shrink-0">
+        <a href="index.php?tab=plans" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 flex-shrink-0">
             <i class="fa-solid fa-arrow-left"></i>
             <span>Quay Lại</span>
         </a>
     </div>
 
-    <form action="form.php<?= $is_edit ? '?id=' . $id : '' ?>" method="POST" class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-5">
+    <form action="form.php<?= $is_edit ? '?id=' . $id : '' ?>" method="POST" class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
         <?= csrf_field() ?>
         
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Mã Kế Hoạch (Plan Code) *</label>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Mã Kế Hoạch (Plan Code) *</label>
                 <input type="text" name="plan_code" value="<?= e($plan['plan_code']) ?>" required
-                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                       class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
 
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Loại Hình Chiến Dịch *</label>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Loại Hình Chiến Dịch *</label>
                 <select name="plan_type" required
-                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <option value="quarterly" <?= $plan['plan_type'] === 'quarterly' ? 'selected' : '' ?>>Quy hoạch định kỳ theo Quý</option>
                     <option value="annual" <?= $plan['plan_type'] === 'annual' ? 'selected' : '' ?>>Kế hoạch định biên Hàng Năm</option>
                     <option value="branch_expansion" <?= $plan['plan_type'] === 'branch_expansion' ? 'selected' : '' ?>>Mở rộng & Khai trương Chi nhánh mới</option>
@@ -119,16 +119,16 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
 
         <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Tiêu Đề Kế Hoạch *</label>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Tiêu Đề Kế Hoạch *</label>
             <input type="text" name="title" value="<?= e($plan['title']) ?>" required placeholder="VD: Kế Hoạch Luân Chuyển Cán Bộ Quý 2/2026 Toàn Hệ Thống..."
-                   class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                   class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Chi Nhánh Trọng Điểm Cần Tăng Cường</label>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Chi Nhánh Trọng Điểm Cần Tăng Cường</label>
                 <select name="target_branch_id"
-                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <option value="">-- Toàn Bộ Các Chi Nhánh (Không cố định) --</option>
                     <?php foreach ($branches as $br): ?>
                         <option value="<?= $br['id'] ?>" <?= $plan['target_branch_id'] == $br['id'] ? 'selected' : '' ?>>
@@ -139,9 +139,9 @@ require_once __DIR__ . '/../../includes/header.php';
             </div>
 
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Trạng Thái Kế Hoạch</label>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Trạng Thái Kế Hoạch</label>
                 <select name="status"
-                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <option value="draft" <?= $plan['status'] === 'draft' ? 'selected' : '' ?>>Bản Thảo (Đang xây dựng nháp)</option>
                     <option value="active" <?= $plan['status'] === 'active' ? 'selected' : '' ?>>Đang Kích Hoạt Triển Khai</option>
                     <option value="completed" <?= $plan['status'] === 'completed' ? 'selected' : '' ?>>Đã Hoàn Thành</option>
@@ -151,26 +151,26 @@ require_once __DIR__ . '/../../includes/header.php';
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Ngày Bắt Đầu Hiệu Lực</label>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Ngày Bắt Đầu Hiệu Lực</label>
                 <input type="date" name="start_date" value="<?= e($plan['start_date']) ?>" required
-                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                       class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
 
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Ngày Kết Thúc / Hoàn Tất</label>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Ngày Kết Thúc / Hoàn Tất</label>
                 <input type="date" name="end_date" value="<?= e($plan['end_date']) ?>" required
-                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                       class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
         </div>
 
         <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Mục Tiêu & Thuyết Minh Chiến Lược</label>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Mục Tiêu & Thuyết Minh Chiến Lược</label>
             <textarea name="description" rows="3" placeholder="Nêu rõ lý do và mục đích điều động nhân sự của kế hoạch..."
-                      class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"><?= e($plan['description']) ?></textarea>
+                      class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"><?= e($plan['description']) ?></textarea>
         </div>
 
-        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-            <a href="index.php" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <a href="index.php?tab=plans" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition">
                 Hủy
             </a>
             <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-md transition flex items-center gap-1.5">

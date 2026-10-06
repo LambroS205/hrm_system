@@ -119,6 +119,55 @@ if (has_permission('proposals', 'view') || has_permission('proposals', 'create')
     $pending_proposals = $pending_stmt->fetchAll();
 }
 
+// 8. Thống kê KPI & Hiệu suất nhân sự
+$kpi_stats = [
+    'total' => 0,
+    'completed' => 0,
+    'pending_review' => 0,
+    'avg_score' => 0,
+    'outstanding_count' => 0,
+    'excellent_count' => 0,
+    'good_count' => 0,
+    'average_count' => 0,
+    'below_average_count' => 0,
+    'poor_count' => 0
+];
+try {
+    $kpi_data = $pdo->query("
+        SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
+            COUNT(CASE WHEN status IN ('manager_review', 'self_review') THEN 1 END) as pending_review,
+            AVG(CASE WHEN status = 'completed' THEN final_score END) as avg_score,
+            COUNT(CASE WHEN rating = 'outstanding' THEN 1 END) as outstanding_count,
+            COUNT(CASE WHEN rating = 'excellent' THEN 1 END) as excellent_count,
+            COUNT(CASE WHEN rating = 'good' THEN 1 END) as good_count,
+            COUNT(CASE WHEN rating = 'average' THEN 1 END) as average_count,
+            COUNT(CASE WHEN rating = 'below_average' THEN 1 END) as below_average_count,
+            COUNT(CASE WHEN rating = 'poor' THEN 1 END) as poor_count
+        FROM evaluations
+    ")->fetch();
+    if ($kpi_data) {
+        $kpi_stats = array_merge($kpi_stats, $kpi_data);
+    }
+} catch (Exception $e) {}
+
+// Top 5 Nhân sự xuất sắc nhất theo KPI
+$top_performers = [];
+try {
+    $top_performers = $pdo->query("
+        SELECT e.final_score, e.rating, emp.fullname, emp.employee_code, emp.avatar,
+               d.name AS department_name, p.name AS position_name, e.id AS eval_id
+        FROM evaluations e
+        JOIN employees emp ON e.employee_id = emp.id
+        LEFT JOIN departments d ON emp.department_id = d.id
+        LEFT JOIN positions p ON emp.position_id = p.id
+        WHERE e.status = 'completed'
+        ORDER BY e.final_score DESC
+        LIMIT 5
+    ")->fetchAll();
+} catch (Exception $e) {}
+
 require_once __DIR__ . '/includes/header.php';
 ?>
 
@@ -178,6 +227,17 @@ require_once __DIR__ . '/includes/header.php';
                 </a>
             <?php endif; ?>
             
+            <?php if (has_permission('evaluations', 'view')): ?>
+                <a href="<?= base_url('modules/evaluations/index.php') ?>" 
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 backdrop-blur-md transition">
+                    <i class="fa-solid fa-bullseye text-violet-300"></i>
+                    <span>Đánh Giá & KPI</span>
+                    <?php if ($kpi_stats['pending_review'] > 0): ?>
+                        <span class="ml-1 px-1.5 py-0.5 rounded-full bg-violet-400 text-slate-900 text-[10px] font-black"><?= $kpi_stats['pending_review'] ?></span>
+                    <?php endif; ?>
+                </a>
+            <?php endif; ?>
+
             <?php if (has_permission('attendance', 'create')): ?>
                 <a href="<?= base_url('modules/attendance/index.php') ?>" 
                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-indigo-700 hover:bg-indigo-50 font-semibold text-xs shadow-md transition">
@@ -188,8 +248,8 @@ require_once __DIR__ . '/includes/header.php';
         </div>
     </div>
 
-    <!-- 4 Khối Chỉ Số KPI Trọng Điểm -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- 5 Khối Chỉ Số KPI Trọng Điểm -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <!-- KPI 1: Tổng số nhân sự -->
         <div class="kpi-stripe-indigo bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-300 dark:border-slate-700 shadow-sm flex items-center justify-between card-hover">
             <div>
@@ -197,10 +257,10 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="kpi-value mt-1"><?= $total_employees ?></div>
                 <div class="text-xs text-emerald-700 dark:text-emerald-300 font-bold mt-1.5 flex items-center gap-1.5">
                     <i class="fa-solid fa-circle-check text-emerald-600 dark:text-emerald-400"></i>
-                    <span><?= $total_official ?> chính thức • <?= $total_probation ?> thử việc</span>
+                    <span><?= $total_official ?> chính thức</span>
                 </div>
             </div>
-            <div class="w-13 h-13 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xl shadow-md shadow-indigo-300 dark:shadow-none p-3">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-lg shadow-md shadow-indigo-300 dark:shadow-none p-3">
                 <i class="fa-solid fa-users"></i>
             </div>
         </div>
@@ -212,10 +272,10 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="kpi-value text-emerald-600 dark:text-emerald-400 mt-1 font-mono"><?= $attendance_rate ?>%</div>
                 <div class="text-xs text-slate-700 dark:text-slate-300 font-bold mt-1.5 flex items-center gap-1.5">
                     <i class="fa-regular fa-clock text-slate-500 dark:text-slate-400"></i>
-                    <span><?= $att_today['present_count'] ?>/<?= $total_employees ?> nhân sự có mặt</span>
+                    <span><?= $att_today['present_count'] ?>/<?= $total_employees ?> có mặt</span>
                 </div>
             </div>
-            <div class="w-13 h-13 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-xl shadow-md shadow-emerald-300 dark:shadow-none p-3">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg shadow-md shadow-emerald-300 dark:shadow-none p-3">
                 <i class="fa-solid fa-calendar-check"></i>
             </div>
         </div>
@@ -226,13 +286,13 @@ require_once __DIR__ . '/includes/header.php';
                 <span class="kpi-label">
                     <?= $is_projected_fund ? 'Dự Toán Quỹ Lương' : 'Tổng Quỹ Lương T' . $current_month ?>
                 </span>
-                <div class="kpi-value text-xl mt-1 font-mono"><?= format_money($current_fund) ?></div>
+                <div class="kpi-value text-lg mt-1 font-mono"><?= format_money($current_fund) ?></div>
                 <div class="text-xs <?= $is_projected_fund ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300' ?> mt-1.5 font-bold flex items-center gap-1.5">
                     <i class="fa-solid fa-coins text-amber-500"></i>
-                    <span><?= $is_projected_fund ? 'Theo định mức chức vụ' : ('Đã chi: ' . format_money($paid_fund)) ?></span>
+                    <span><?= $is_projected_fund ? 'Định mức ngạch bậc' : ('Đã chi: ' . format_money($paid_fund)) ?></span>
                 </div>
             </div>
-            <div class="w-13 h-13 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-xl shadow-md shadow-amber-300 dark:shadow-none p-3">
+            <div class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-md shadow-amber-300 dark:shadow-none p-3">
                 <i class="fa-solid fa-sack-dollar"></i>
             </div>
         </div>
@@ -244,11 +304,29 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="kpi-value mt-1"><?= $total_departments ?></div>
                 <div class="text-xs text-sky-700 dark:text-sky-300 mt-1.5 font-bold flex items-center gap-1.5">
                     <i class="fa-solid fa-sitemap text-sky-600 dark:text-sky-400"></i>
-                    <span><?= count($dept_stats) ?> đơn vị có nhân sự</span>
+                    <span><?= count($dept_stats) ?> đơn vị</span>
                 </div>
             </div>
-            <div class="w-13 h-13 rounded-2xl bg-sky-600 text-white flex items-center justify-center text-xl shadow-md shadow-sky-300 dark:shadow-none p-3">
+            <div class="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center text-lg shadow-md shadow-sky-300 dark:shadow-none p-3">
                 <i class="fa-solid fa-building"></i>
+            </div>
+        </div>
+
+        <!-- KPI 5: Điểm Hiệu Suất & Đánh Giá KPI -->
+        <div class="kpi-stripe-violet bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-300 dark:border-slate-700 shadow-sm flex items-center justify-between card-hover">
+            <div>
+                <span class="kpi-label">Điểm KPI Trung Bình</span>
+                <div class="kpi-value text-violet-600 dark:text-violet-400 mt-1 font-mono">
+                    <?= $kpi_stats['avg_score'] ? round($kpi_stats['avg_score'], 1) : '---' ?>
+                    <span class="text-xs font-normal text-slate-400">/100</span>
+                </div>
+                <div class="text-xs text-violet-700 dark:text-violet-300 mt-1.5 font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-bullseye text-violet-500"></i>
+                    <span><?= $kpi_stats['completed'] ?> xong • <?= $kpi_stats['pending_review'] ?> đang chấm</span>
+                </div>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-violet-600 text-white flex items-center justify-center text-lg shadow-md shadow-violet-300 dark:shadow-none p-3">
+                <i class="fa-solid fa-award"></i>
             </div>
         </div>
     </div>
@@ -440,6 +518,120 @@ require_once __DIR__ . '/includes/header.php';
                                     <?php else: ?>
                                         <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-700">Đã nghỉ</span>
                                     <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Khối Đánh Giá Hiệu Suất & Phân Bố KPI Toàn Tập Đoàn -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Cột 1: Biểu đồ phân bổ xếp loại KPI (Bar Chart) -->
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-300 dark:border-slate-700 shadow-sm space-y-4 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Phân Bổ Xếp Loại KPI</h3>
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Tỷ trọng các bậc xếp loại hiệu suất</p>
+                    </div>
+                    <div class="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center text-sm shadow-xs">
+                        <i class="fa-solid fa-chart-column"></i>
+                    </div>
+                </div>
+
+                <div class="relative w-full h-56 mt-2">
+                    <canvas id="kpiRatingChart"></canvas>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 dark:border-slate-700 text-center text-[11px]">
+                <div class="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 font-bold">
+                    Xuất sắc: <?= $kpi_stats['outstanding_count'] ?>
+                </div>
+                <div class="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-bold">
+                    Tốt: <?= $kpi_stats['excellent_count'] ?>
+                </div>
+                <div class="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 font-bold">
+                    Khá: <?= $kpi_stats['good_count'] ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cột 2 & 3: Top 5 Nhân Sự Dẫn Đầu Hiệu Suất & KPI (Top Performers) -->
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-300 dark:border-slate-700 shadow-sm space-y-4 lg:col-span-2">
+            <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
+                <div>
+                    <h3 class="font-extrabold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                        <span>Top Nhân Sự Xuất Sắc Kỳ Này</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700">AURA Leaders</span>
+                    </h3>
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Nhân sự đạt điểm KPI cao nhất được cấp quản lý chứng nhận</p>
+                </div>
+                <?php if (has_permission('evaluations', 'view')): ?>
+                    <a href="<?= base_url('modules/evaluations/index.php') ?>" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1 transition">
+                        <span>Tất cả đánh giá</span>
+                        <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </a>
+                <?php endif; ?>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-400 font-bold">
+                            <th class="py-2.5 px-3">Thứ Hạng & Cán Bộ</th>
+                            <th class="py-2.5 px-3">Khối Phòng Ban</th>
+                            <th class="py-2.5 px-3 text-center">Điểm KPI</th>
+                            <th class="py-2.5 px-3 text-center">Xếp Loại</th>
+                            <th class="py-2.5 px-3 text-right">Chi Tiết</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        <?php if (empty($top_performers)): ?>
+                            <tr>
+                                <td colspan="5" class="py-6 text-center text-slate-400">Chưa có kết quả hoàn tất đánh giá trong kỳ.</td>
+                            </tr>
+                        <?php endif; ?>
+                        <?php foreach ($top_performers as $rank => $tp): ?>
+                            <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-700/40 transition">
+                                <td class="py-3 px-3">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-6 h-6 rounded-full <?= $rank === 0 ? 'bg-amber-500 text-white shadow-xs' : ($rank === 1 ? 'bg-slate-400 text-white' : ($rank === 2 ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300')) ?> flex items-center justify-center font-black text-xs flex-shrink-0">
+                                            <?= $rank + 1 ?>
+                                        </div>
+                                        <?= render_avatar($tp['fullname'], $tp['avatar'], 8) ?>
+                                        <div>
+                                            <div class="font-bold text-slate-900 dark:text-white"><?= e($tp['fullname']) ?></div>
+                                            <div class="text-[11px] text-slate-400"><?= e($tp['position_name'] ?: '---') ?></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-3 text-slate-600 dark:text-slate-300">
+                                    <?= e($tp['department_name'] ?: '---') ?>
+                                </td>
+                                <td class="py-3 px-3 text-center font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
+                                    <?= round($tp['final_score'], 1) ?>
+                                </td>
+                                <td class="py-3 px-3 text-center">
+                                    <?php if ($tp['rating'] === 'outstanding'): ?>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700">Xuất Sắc</span>
+                                    <?php elseif ($tp['rating'] === 'excellent'): ?>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">Tốt</span>
+                                    <?php else: ?>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300">Khá</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="py-3 px-3 text-right">
+                                    <a href="<?= base_url('modules/evaluations/view.php?id=' . $tp['eval_id']) ?>" 
+                                       class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold text-[11px] transition inline-flex items-center gap-1">
+                                        <span>Xem Phiếu</span>
+                                        <i class="fa-solid fa-arrow-right text-[9px]"></i>
+                                    </a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -645,6 +837,56 @@ new Chart(ctxTrend, {
         }
     }
 });
+
+// 3. Vẽ biểu đồ Cột: Phân bổ xếp loại KPI & Hiệu suất
+const ctxKpi = document.getElementById('kpiRatingChart');
+if (ctxKpi) {
+    new Chart(ctxKpi.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ['Xuất sắc', 'Tốt', 'Khá', 'Trung bình', 'Yếu', 'Kém'],
+            datasets: [{
+                label: 'Số lượng nhân sự',
+                data: [
+                    <?= (int)$kpi_stats['outstanding_count'] ?>,
+                    <?= (int)$kpi_stats['excellent_count'] ?>,
+                    <?= (int)$kpi_stats['good_count'] ?>,
+                    <?= (int)$kpi_stats['average_count'] ?>,
+                    <?= (int)$kpi_stats['below_average_count'] ?>,
+                    <?= (int)$kpi_stats['poor_count'] ?>
+                ],
+                backgroundColor: [
+                    '#f59e0b', // Xuất sắc (Amber)
+                    '#10b981', // Tốt (Emerald)
+                    '#6366f1', // Khá (Indigo)
+                    '#94a3b8', // Trung bình (Slate)
+                    '#f97316', // Yếu (Orange)
+                    '#ef4444'  // Kém (Rose)
+                ],
+                borderRadius: 8,
+                barThickness: 24
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0, font: { size: 10 } },
+                    grid: { color: isDarkMode ? '#334155' : '#f1f5f9' }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { size: 10, weight: '600' } }
+                }
+            }
+        }
+    });
+}
 </script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

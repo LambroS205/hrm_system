@@ -25,9 +25,20 @@ $employees = $pdo->query("
     ORDER BY e.fullname ASC
 ")->fetchAll();
 
+// Lấy danh sách phiếu đánh giá KPI để liên kết khen thưởng
+$evaluations_list = $pdo->query("
+    SELECT e.id, e.evaluation_code, e.final_score, e.rating, e.employee_id,
+           ep.name AS period_name, emp.fullname AS employee_name
+    FROM evaluations e
+    JOIN evaluation_periods ep ON e.period_id = ep.id
+    JOIN employees emp ON e.employee_id = emp.id
+    ORDER BY e.id DESC
+")->fetchAll();
+
 $reward = [
     'reward_code'     => '',
     'employee_id'     => isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : '',
+    'evaluation_id'   => isset($_GET['evaluation_id']) ? (int)$_GET['evaluation_id'] : '',
     'reward_type'     => 'bonus',
     'title'           => '',
     'description'     => '',
@@ -37,6 +48,20 @@ $reward = [
     'status'          => 'pending',
     'attachment'      => ''
 ];
+
+// Nếu có evaluation_id từ URL và chưa có tiêu đề, tự gợi ý tiêu đề
+if (!empty($reward['evaluation_id'])) {
+    foreach ($evaluations_list as $ev) {
+        if ($ev['id'] == $reward['evaluation_id']) {
+            if (empty($reward['employee_id'])) {
+                $reward['employee_id'] = $ev['employee_id'];
+            }
+            $reward['title'] = "Khen thưởng thành tích xuất sắc theo kết quả đánh giá KPI [{$ev['evaluation_code']}]";
+            $reward['amount'] = '2000000';
+            break;
+        }
+    }
+}
 
 if ($is_edit) {
     $stmt = $pdo->prepare("SELECT * FROM rewards WHERE id = ?");
@@ -64,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
 
     $employee_id     = (int)($_POST['employee_id'] ?? 0);
+    $evaluation_id   = !empty($_POST['evaluation_id']) ? (int)$_POST['evaluation_id'] : null;
     $reward_type     = $_POST['reward_type'] ?? 'bonus';
     $title           = trim($_POST['title'] ?? '');
     $description     = trim($_POST['description'] ?? '');
@@ -75,6 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Cập nhật lại mảng dữ liệu giữ state form
     $reward = array_merge($reward, [
         'employee_id'     => $employee_id,
+        'evaluation_id'   => $evaluation_id,
         'reward_type'     => $reward_type,
         'title'           => $title,
         'description'     => $description,
@@ -133,6 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($is_edit) {
                 $upSql = "UPDATE rewards SET 
                             employee_id = :employee_id,
+                            evaluation_id = :evaluation_id,
                             reward_type = :reward_type,
                             title = :title,
                             description = :description,
@@ -144,6 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $params = [
                     ':employee_id'     => $employee_id,
+                    ':evaluation_id'   => $evaluation_id,
                     ':reward_type'     => $reward_type,
                     ':title'           => $title,
                     ':description'     => $description,
@@ -176,9 +205,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 set_flash('success', "Đã cập nhật quyết định khen thưởng '{$reward['reward_code']}' thành công.");
             } else {
                 $inSql = "INSERT INTO rewards 
-                            (reward_code, employee_id, reward_type, title, description, amount, decision_number, reward_date, status, attachment, created_by, approved_by, approved_at, executed_at)
+                            (reward_code, employee_id, evaluation_id, reward_type, title, description, amount, decision_number, reward_date, status, attachment, created_by, approved_by, approved_at, executed_at)
                           VALUES 
-                            (:reward_code, :employee_id, :reward_type, :title, :description, :amount, :decision_number, :reward_date, :status, :attachment, :created_by, :approved_by, :approved_at, :executed_at)";
+                            (:reward_code, :employee_id, :evaluation_id, :reward_type, :title, :description, :amount, :decision_number, :reward_date, :status, :attachment, :created_by, :approved_by, :approved_at, :executed_at)";
                 
                 $approved_by = null;
                 $approved_at = null;
@@ -196,6 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([
                     ':reward_code'     => $reward['reward_code'],
                     ':employee_id'     => $employee_id,
+                    ':evaluation_id'   => $evaluation_id,
                     ':reward_type'     => $reward_type,
                     ':title'           => $title,
                     ':description'     => $description,
@@ -300,6 +330,22 @@ require_once __DIR__ . '/../../includes/header.php';
                             <option value="certificate" <?= $reward['reward_type'] === 'certificate' ? 'selected' : '' ?>>📜 Giấy Khen / Bằng Khen</option>
                             <option value="promotion_bonus" <?= $reward['reward_type'] === 'promotion_bonus' ? 'selected' : '' ?>>🚀 Thưởng Bổ Nhiệm / Thăng Cấp</option>
                             <option value="achievement" <?= $reward['reward_type'] === 'achievement' ? 'selected' : '' ?>>⭐ Thành Tích Xuất Sắc / Sáng Kiến Đột Phá</option>
+                        </select>
+                    </div>
+
+                    <!-- Căn cứ hồ sơ đánh giá KPI -->
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                            <span>Căn Cứ Hồ Sơ Đánh Giá KPI (Tùy Chọn Liên Kết)</span>
+                            <span class="text-[11px] text-emerald-600 font-normal">Tự động gắn mã hồ sơ KPI vào quyết định</span>
+                        </label>
+                        <select name="evaluation_id" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition">
+                            <option value="">-- Không liên kết trực tiếp (Khen thưởng thông thường) --</option>
+                            <?php foreach ($evaluations_list as $ev): ?>
+                                <option value="<?= $ev['id'] ?>" <?= ($reward['evaluation_id'] == $ev['id']) ? 'selected' : '' ?>>
+                                    [<?= e($ev['evaluation_code']) ?>] <?= e($ev['employee_name']) ?> — <?= e($ev['period_name']) ?> (Điểm: <?= round($ev['final_score'], 1) ?> đ • <?= ucfirst($ev['rating'] ?? '') ?>)
+                                </option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                 </div>

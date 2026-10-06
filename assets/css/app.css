@@ -352,6 +352,9 @@ input:focus, select:focus, textarea:focus {
 .kpi-stripe-rose {
     border-left: 4px solid #f43f5e !important;
 }
+.kpi-stripe-violet {
+    border-left: 4px solid #8b5cf6 !important;
+}
 
 .kpi-value {
     font-size: 1.85rem;
