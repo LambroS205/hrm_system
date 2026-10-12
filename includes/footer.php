@@ -104,10 +104,12 @@
     </div>
 </div>
 
+<?php require_once __DIR__ . '/help_modal.php'; ?>
+
 <!-- ==================================================== -->
 <!-- SCRIPTS & CONTROLLERS -->
 <!-- ==================================================== -->
-<script src="<?= asset('js/app.js') ?>"></script>
+<script src="<?= asset('js/app.js') ?>?v=<?= @filemtime(__DIR__ . '/../assets/js/app.js') ?>"></script>
 <script src="<?= asset('js/drag_drop.js') ?>"></script>
 
 <script>
@@ -127,6 +129,20 @@ if (mobileMenuBtn && sidebar && sidebarOverlay) {
         sidebarOverlay.classList.add('hidden');
     });
 }
+
+// Xử lý thu gọn / mở rộng Mini Sidebar (Desktop)
+window.toggleSidebarCollapse = function() {
+    const isCollapsed = document.documentElement.classList.toggle('sidebar-collapsed');
+    localStorage.setItem('hrms_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+};
+
+// Phím tắt Alt+S để thu gọn / mở rộng sidebar
+document.addEventListener('keydown', function(e) {
+    if (e.altKey && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        window.toggleSidebarCollapse();
+    }
+});
 
 // Xử lý bật tắt Dropdown Menu của User Profile trên Topbar
 const userMenuBtn = document.getElementById('userMenuBtn');

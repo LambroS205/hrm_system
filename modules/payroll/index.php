@@ -296,6 +296,56 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
     </div>
 
+    <!-- Hướng Dẫn Quy Trình Chốt Lương Từng Bước (Interactive Workflow Guide) -->
+    <div class="workflow-guide-banner p-4 text-xs space-y-3">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5 font-bold text-indigo-900 dark:text-indigo-200">
+                <span class="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-list-check"></i>
+                </span>
+                <span class="text-sm">Quy Trình 4 Bước Tính & Chốt Bảng Lương Chuẩn Doanh Nghiệp</span>
+            </div>
+            <button type="button" onclick="toggleWorkflowBanner('payrollWorkflowGuide')" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                <span id="payrollWorkflowGuide-toggleText">Thu gọn</span>
+                <i id="payrollWorkflowGuide-toggleIcon" class="fa-solid fa-chevron-up text-[10px]"></i>
+            </button>
+        </div>
+
+        <div id="payrollWorkflowGuide" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div class="workflow-step-item">
+                <div class="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100">
+                    <span class="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-[10px] font-black">1</span>
+                    <span>Chốt Bảng Công</span>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Đảm bảo công nhân viên đã đủ dữ liệu chấm công và ngày công chuẩn T2-T6.</p>
+            </div>
+
+            <div class="workflow-step-item">
+                <div class="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100">
+                    <span class="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-[10px] font-black">2</span>
+                    <span>Duyệt Đề Xuất & Kỷ Luật</span>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Duyệt nghỉ phép năm/ốm đau, tăng ca OT và các biên bản bồi thường thiệt hại.</p>
+            </div>
+
+            <div class="workflow-step-item">
+                <div class="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100">
+                    <span class="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center text-[10px] font-black">3</span>
+                    <span>Bấm "Tính Lương Toàn Bộ"</span>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Hệ thống áp dụng biểu thuế 5 bậc 2026, trần BHXH 20x và miễn thuế cho phần OT.</p>
+            </div>
+
+            <div class="workflow-step-item">
+                <div class="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100">
+                    <span class="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center text-[10px] font-black">4</span>
+                    <span>Kiểm Tra & "Chốt Lương"</span>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">In phiếu lương 5 mục chi tiết cho nhân viên và khóa vĩnh viễn kỳ lương.</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Banner Thông Số Pháp Lý Áp Dụng -->
     <div class="bg-indigo-50/70 dark:bg-indigo-950/40 p-4 rounded-2xl border border-indigo-200/60 dark:border-indigo-800/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-indigo-900 dark:text-indigo-200">
         <div class="flex items-center gap-2 font-semibold">
@@ -408,11 +458,11 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <!-- Bảng Danh Sách Lương Chi Tiết -->
     <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
+        <div class="overflow-x-auto table-sticky-container">
+            <table class="w-full min-w-[1280px] text-left text-sm table-enterprise">
                 <thead>
                     <tr class="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider font-semibold">
-                        <th class="py-3.5 px-6">Cán Bộ / Nhân Viên</th>
+                        <th class="py-3.5 px-6 sticky-col-code bg-slate-50 dark:bg-slate-900/90 shadow-xs">Cán Bộ / Nhân Viên</th>
                         <th class="py-3.5 px-4 text-right">Lương Cơ Bản</th>
                         <th class="py-3.5 px-4 text-center">Ngày Công</th>
                         <th class="py-3.5 px-4 text-right">GROSS</th>
@@ -427,12 +477,28 @@ require_once __DIR__ . '/../../includes/header.php';
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
                     <?php if (empty($payroll_items)): ?>
                         <tr>
-                            <td colspan="10" class="text-center py-12 text-slate-400 text-sm">
-                                <i class="fa-solid fa-calculator text-3xl mb-2 block text-slate-300"></i>
-                                Bảng lương Tháng <?= $selected_month ?>/<?= $selected_year ?> chưa được khởi tạo. 
-                                <?php if (has_permission('payroll', 'create')): ?>
-                                    <br>Hãy nhấn nút <strong class="text-amber-600">"Tính Lương Toàn Bộ"</strong> ở trên để tạo bảng tính tự động.
-                                <?php endif; ?>
+                            <td colspan="10" class="py-12">
+                                <div class="empty-state-box max-w-md mx-auto">
+                                    <div class="w-14 h-14 mx-auto rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl mb-3 shadow-xs border border-amber-200 dark:border-amber-800">
+                                        <i class="fa-solid fa-calculator"></i>
+                                    </div>
+                                    <h4 class="text-sm font-extrabold text-slate-800 dark:text-white">Bảng Lương Tháng <?= $selected_month ?>/<?= $selected_year ?> Chưa Được Tạo</h4>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">
+                                        Hệ thống sẽ tổng hợp tự động công chuẩn, OT, BHXH và Thuế TNCN khi bạn bấm tính lương.
+                                    </p>
+                                    <?php if (has_permission('payroll', 'create')): ?>
+                                        <form action="index.php" method="POST" class="mt-4">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="action_type" value="calculate_payroll">
+                                            <input type="hidden" name="calc_month" value="<?= $selected_month ?>">
+                                            <input type="hidden" name="calc_year" value="<?= $selected_year ?>">
+                                            <button type="submit" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md transition inline-flex items-center gap-2">
+                                                <i class="fa-solid fa-play text-xs"></i>
+                                                <span>Tính Lương Ngay</span>
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                     <?php endif; ?>
@@ -445,7 +511,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     ?>
                         <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/40 transition">
                             <!-- Nhân viên -->
-                            <td class="py-4 px-6">
+                            <td class="py-4 px-6 sticky-col-code bg-white dark:bg-slate-800">
                                 <div class="flex items-center gap-3">
                                     <?php if (!empty($item['avatar']) && file_exists(__DIR__ . '/../../assets/uploads/' . $item['avatar'])): ?>
                                         <img src="<?= base_url('assets/uploads/' . e($item['avatar'])) ?>" class="w-9 h-9 rounded-xl object-cover border border-slate-200" alt="">

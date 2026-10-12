@@ -13,12 +13,15 @@ $flash = get_flash();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($page_title ?? 'Quản Trị Nhân Sự') ?> - AURA HRM - Tập Đoàn Aura</title>
     
-    <!-- Script đồng bộ theme Dark/Light ngay lập tức để tránh chớp màn hình -->
+    <!-- Script đồng bộ theme Dark/Light & trạng thái Mini Sidebar ngay lập tức để tránh chớp màn hình -->
     <script>
         if (localStorage.getItem('hrms_theme') === 'dark' || (!('hrms_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         } else {
             document.documentElement.classList.remove('dark');
+        }
+        if (localStorage.getItem('hrms_sidebar_collapsed') === 'true') {
+            document.documentElement.classList.add('sidebar-collapsed');
         }
     </script>
 
@@ -60,28 +63,47 @@ $flash = get_flash();
 <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
     
     <!-- Topbar Điều Hướng Trên Cùng -->
-    <header class="h-16 bg-white dark:bg-slate-800 border-b-2 border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 z-10 flex-shrink-0 transition-colors duration-200 shadow-xs">
-        <!-- Nút menu mobile & Tiêu đề trang -->
-        <div class="flex items-center gap-4">
-            <button id="mobileMenuBtn" class="lg:hidden text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+    <header class="h-16 bg-white dark:bg-slate-800 border-b-2 border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 sm:px-6 z-10 flex-shrink-0 transition-colors duration-200 shadow-xs">
+        <!-- Nút menu mobile, Toggle Mini Sidebar & Breadcrumb Tiêu Đề -->
+        <div class="flex items-center gap-2 sm:gap-3.5 min-w-0">
+            <button id="mobileMenuBtn" class="lg:hidden text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Mở menu">
                 <i class="fa-solid fa-bars text-lg"></i>
             </button>
-            <div>
-                <h1 class="text-lg font-extrabold text-slate-900 dark:text-white leading-tight flex items-center gap-2.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-indigo-600 dark:bg-indigo-400 shadow-xs"></span>
+
+            <!-- Nút Toggle Thu Gọn / Mở Rộng Sidebar (Desktop) -->
+            <button type="button" id="toggleSidebarBtn" onclick="toggleSidebarCollapse()" 
+                    class="hidden lg:flex w-9 h-9 rounded-xl items-center justify-center text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/80 transition border border-transparent hover:border-slate-200 dark:hover:border-slate-600 shadow-2xs flex-shrink-0" 
+                    title="Thu gọn / Mở rộng Sidebar (Alt+S)">
+                <i class="fa-solid fa-bars-staggered text-sm"></i>
+            </button>
+
+            <div class="hidden lg:block w-px h-6 bg-slate-200 dark:bg-slate-700 flex-shrink-0"></div>
+
+            <div class="flex flex-col min-w-0">
+                <?= render_breadcrumbs($breadcrumbs ?? null) ?>
+                <h1 class="text-sm sm:text-base md:text-lg font-extrabold text-slate-900 dark:text-white leading-tight flex items-center gap-2 truncate mt-0.5">
                     <?= e($page_title ?? 'Bảng Điều Khiển') ?>
                 </h1>
             </div>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <!-- Nút Tìm Kiếm Toàn Cục (Ctrl+K) -->
             <button type="button" id="openSearchModalBtn" 
-                    class="hidden sm:flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-700/80 hover:bg-indigo-50/70 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition group border border-slate-300 dark:border-slate-600 shadow-2xs"
+                    class="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-700/80 hover:bg-indigo-50/70 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition group border border-slate-300 dark:border-slate-600 shadow-2xs"
                     title="Tìm kiếm toàn cục (Ctrl+K)">
                 <i class="fa-solid fa-magnifying-glass text-sm text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform"></i>
-                <span class="text-slate-600 dark:text-slate-300 font-medium">Tìm kiếm toàn cục...</span>
-                <kbd class="ml-2 px-1.5 py-0.5 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 rounded text-[10px] font-extrabold border border-slate-300 dark:border-slate-500 shadow-xs">⌘K</kbd>
+                <span class="text-slate-600 dark:text-slate-300 font-medium">Tìm kiếm...</span>
+                <kbd class="ml-1 px-1.5 py-0.5 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 rounded text-[10px] font-extrabold border border-slate-300 dark:border-slate-500 shadow-xs">⌘K</kbd>
+            </button>
+
+            <!-- Nút Trợ Giúp & Cẩm Nang Đào Tạo (F1) -->
+            <button type="button" onclick="openHelpModal()" 
+                    class="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50/80 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold transition border border-indigo-200/80 dark:border-indigo-800/80 shadow-2xs group"
+                    title="Cẩm nang hướng dẫn sử dụng & đào tạo nhân viên (F1)">
+                <i class="fa-solid fa-circle-question text-sm text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform"></i>
+                <span class="hidden md:inline">Trợ Giúp</span>
+                <kbd class="ml-1 px-1.5 py-0.5 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 rounded text-[10px] font-extrabold border border-indigo-300 dark:border-indigo-700 shadow-xs">F1</kbd>
             </button>
             <button type="button" id="openSearchModalBtnMobile" 
                     class="sm:hidden w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 flex items-center justify-center transition shadow-2xs"

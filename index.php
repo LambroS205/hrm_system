@@ -168,6 +168,38 @@ try {
     ")->fetchAll();
 } catch (Exception $e) {}
 
+// 8. Thống kê Trung tâm Hành động cần xử lý ngay trong ngày (Enterprise Daily Ops)
+$pending_disciplines_count = 0;
+try {
+    $pending_disciplines_count = (int)$pdo->query("SELECT COUNT(*) FROM disciplines WHERE status = 'pending'")->fetchColumn();
+} catch (Exception $e) {}
+
+$expiring_contracts_count = 0;
+try {
+    $expiring_contracts_count = (int)$pdo->query("
+        SELECT COUNT(*) FROM employee_contracts 
+        WHERE status = 'active' 
+          AND end_date IS NOT NULL 
+          AND end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+    ")->fetchColumn();
+} catch (Exception $e) {}
+
+$payroll_status_info = ['status' => 'not_created', 'label' => 'Chưa tính bảng lương', 'class' => 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'];
+try {
+    $pay_check = $pdo->prepare("SELECT COUNT(*) as total, COUNT(CASE WHEN locked_at IS NOT NULL THEN 1 END) as locked, COUNT(CASE WHEN payment_status = 'paid' THEN 1 END) as paid FROM payrolls WHERE month = ? AND year = ?");
+    $pay_check->execute([$current_month, $current_year]);
+    $pay_row = $pay_check->fetch();
+    if ($pay_row && (int)$pay_row['total'] > 0) {
+        if ((int)$pay_row['paid'] > 0) {
+            $payroll_status_info = ['status' => 'paid', 'label' => 'Đã chi trả lương', 'class' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300'];
+        } elseif ((int)$pay_row['locked'] > 0) {
+            $payroll_status_info = ['status' => 'locked', 'label' => 'Đã chốt & khóa lương', 'class' => 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-300'];
+        } else {
+            $payroll_status_info = ['status' => 'draft', 'label' => 'Bảng lương đang tính nháp', 'class' => 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300'];
+        }
+    }
+} catch (Exception $e) {}
+
 require_once __DIR__ . '/includes/header.php';
 ?>
 
@@ -245,6 +277,82 @@ require_once __DIR__ . '/includes/header.php';
                     <span>Chấm Công Hôm Nay</span>
                 </a>
             <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- Khối Trung Tâm Hành Động Cần Xử Lý Ngay (Enterprise Action Required Center) -->
+    <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200/90 dark:border-slate-700/90 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <span class="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xs shadow-sm">
+                    <i class="fa-solid fa-bell-concierge"></i>
+                </span>
+                <div>
+                    <h3 class="text-sm font-extrabold text-slate-900 dark:text-white leading-tight">Trung Tâm Xử Lý Công Việc Trong Ngày</h3>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400">Các hạng mục quan trọng cần bộ phận Nhân sự & Quản lý duyệt hoặc kiểm tra hôm nay</p>
+                </div>
+            </div>
+            <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 hidden sm:inline">Cập nhật thời gian thực</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <!-- Mục 1: Đề xuất chờ duyệt -->
+            <a href="<?= base_url('modules/proposals/index.php') ?>" 
+               class="p-3.5 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/80 flex items-center justify-between hover:bg-amber-100/60 dark:hover:bg-amber-950/50 transition group">
+                <div>
+                    <div class="text-[11px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider">Đề Xuất Nghỉ & OT</div>
+                    <div class="text-lg font-black text-amber-950 dark:text-amber-100 mt-0.5">
+                        <?= $pending_proposals_count ?> <span class="text-xs font-semibold text-amber-700 dark:text-amber-400">chờ duyệt</span>
+                    </div>
+                </div>
+                <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xs group-hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-arrow-right"></i>
+                </div>
+            </a>
+
+            <!-- Mục 2: Kỷ luật chờ phê duyệt -->
+            <a href="<?= base_url('modules/disciplines/index.php') ?>" 
+               class="p-3.5 rounded-2xl bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-800/80 flex items-center justify-between hover:bg-rose-100/60 dark:hover:bg-rose-950/50 transition group">
+                <div>
+                    <div class="text-[11px] font-bold text-rose-800 dark:text-rose-300 uppercase tracking-wider">Vi Phẩm & Kỷ Luật</div>
+                    <div class="text-lg font-black text-rose-950 dark:text-rose-100 mt-0.5">
+                        <?= $pending_disciplines_count ?> <span class="text-xs font-semibold text-rose-700 dark:text-rose-400">chờ xử lý</span>
+                    </div>
+                </div>
+                <div class="w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center text-xs group-hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-arrow-right"></i>
+                </div>
+            </a>
+
+            <!-- Mục 3: Hợp đồng sắp hết hạn -->
+            <a href="<?= base_url('modules/employees/index.php') ?>" 
+               class="p-3.5 rounded-2xl bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200/80 dark:border-sky-800/80 flex items-center justify-between hover:bg-sky-100/60 dark:hover:bg-sky-950/50 transition group">
+                <div>
+                    <div class="text-[11px] font-bold text-sky-800 dark:text-sky-300 uppercase tracking-wider">HĐLĐ Sắp Hết Hạn</div>
+                    <div class="text-lg font-black text-sky-950 dark:text-sky-100 mt-0.5">
+                        <?= $expiring_contracts_count ?> <span class="text-xs font-semibold text-sky-700 dark:text-sky-400">(trong 30 ngày)</span>
+                    </div>
+                </div>
+                <div class="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center text-xs group-hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-arrow-right"></i>
+                </div>
+            </a>
+
+            <!-- Mục 4: Trạng thái kỳ lương hiện tại -->
+            <a href="<?= base_url('modules/payroll/index.php') ?>" 
+               class="p-3.5 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-between hover:bg-indigo-100/60 dark:hover:bg-indigo-950/50 transition group">
+                <div>
+                    <div class="text-[11px] font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-wider">Kỳ Lương Tháng <?= $current_month ?>/<?= $current_year ?></div>
+                    <div class="text-xs font-bold text-indigo-900 dark:text-indigo-100 mt-1">
+                        <span class="inline-block px-2 py-0.5 rounded-lg <?= $payroll_status_info['class'] ?> text-[11px] font-extrabold">
+                            <?= $payroll_status_info['label'] ?>
+                        </span>
+                    </div>
+                </div>
+                <div class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xs group-hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-arrow-right"></i>
+                </div>
+            </a>
         </div>
     </div>
 

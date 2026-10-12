@@ -475,4 +475,128 @@
         }
     });
 
+    // 7. SIDEBAR SCROLL POSITION PERSISTENCE & SMART VISIBILITY
+    (function initSidebarScrollPersistence() {
+        const sidebarNav = document.getElementById('sidebarNav');
+        if (!sidebarNav) return;
+
+        // Lưu vị trí cuộn khi người dùng cuộn sidebar (throttled)
+        let scrollTimer = null;
+        sidebarNav.addEventListener('scroll', function() {
+            clearTimeout(scrollTimer);
+            scrollTimer = setTimeout(function() {
+                const pos = sidebarNav.scrollTop;
+                try {
+                    sessionStorage.setItem('hrms_sidebar_scroll', pos);
+                    localStorage.setItem('hrms_sidebar_scroll', pos);
+                } catch (e) {}
+            }, 60);
+        }, { passive: true });
+
+        // Lưu ngay lập tức khi click bất kỳ liên kết nào trong sidebar
+        sidebarNav.addEventListener('click', function(e) {
+            const link = e.target.closest('a');
+            if (link) {
+                const pos = sidebarNav.scrollTop;
+                try {
+                    sessionStorage.setItem('hrms_sidebar_scroll', pos);
+                    localStorage.setItem('hrms_sidebar_scroll', pos);
+                } catch (e) {}
+            }
+        });
+
+        // Lưu vị trí khi chuẩn bị rời trang (beforeunload & pagehide)
+        function saveCurrentPos() {
+            if (sidebarNav) {
+                const pos = sidebarNav.scrollTop;
+                try {
+                    sessionStorage.setItem('hrms_sidebar_scroll', pos);
+                    localStorage.setItem('hrms_sidebar_scroll', pos);
+                } catch (e) {}
+            }
+        }
+        window.addEventListener('beforeunload', saveCurrentPos);
+        window.addEventListener('pagehide', saveCurrentPos);
+
+        // Khôi phục vị trí khi chuyển sang tab trình duyệt khác rồi quay lại
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible' && sidebarNav) {
+                try {
+                    const pos = sessionStorage.getItem('hrms_sidebar_scroll') ?? localStorage.getItem('hrms_sidebar_scroll');
+                    if (pos !== null) {
+                        sidebarNav.scrollTop = parseInt(pos, 10);
+                    }
+                } catch (e) {}
+            }
+        });
+
+        // Kiểm tra và bảo đảm mục đang active hiển thị trọn vẹn trong khung nhìn
+        function ensureActiveItemVisible() {
+            try {
+                const savedPos = sessionStorage.getItem('hrms_sidebar_scroll') ?? localStorage.getItem('hrms_sidebar_scroll');
+                if (savedPos !== null) {
+                    sidebarNav.scrollTop = parseInt(savedPos, 10);
+                }
+            } catch (e) {}
+
+            const activeItem = sidebarNav.querySelector('.sidebar-active-item') || 
+                               sidebarNav.querySelector('a.bg-indigo-600');
+            if (!activeItem) return;
+
+            const navRect = sidebarNav.getBoundingClientRect();
+            const itemRect = activeItem.getBoundingClientRect();
+
+            // Nếu mục active bị khuất phía trên hoặc phía dưới của khung cuộn
+            if (itemRect.top < navRect.top + 8 || itemRect.bottom > navRect.bottom - 8) {
+                activeItem.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+                try {
+                    sessionStorage.setItem('hrms_sidebar_scroll', sidebarNav.scrollTop);
+                    localStorage.setItem('hrms_sidebar_scroll', sidebarNav.scrollTop);
+                } catch (e) {}
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', ensureActiveItemVisible);
+        } else {
+            ensureActiveItemVisible();
+        }
+    })();
+
+    // 8. ENTERPRISE WORKFLOW BANNER CONTROLLER
+    window.toggleWorkflowBanner = function(bannerId) {
+        const el = document.getElementById(bannerId);
+        const textEl = document.getElementById(bannerId + '-toggleText');
+        const iconEl = document.getElementById(bannerId + '-toggleIcon');
+        if (!el) return;
+        const isHidden = el.classList.toggle('hidden');
+        if (textEl) textEl.textContent = isHidden ? 'Mở rộng' : 'Thu gọn';
+        if (iconEl) {
+            iconEl.classList.toggle('fa-chevron-up', !isHidden);
+            iconEl.classList.toggle('fa-chevron-down', isHidden);
+        }
+        try {
+            localStorage.setItem(bannerId + '_collapsed', isHidden ? 'true' : 'false');
+        } catch (e) {}
+    };
+
+    // Tự động khôi phục trạng thái thu gọn của các workflow banner
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('[id$="WorkflowGuide"]').forEach(el => {
+            const id = el.id;
+            try {
+                if (localStorage.getItem(id + '_collapsed') === 'true') {
+                    el.classList.add('hidden');
+                    const textEl = document.getElementById(id + '-toggleText');
+                    const iconEl = document.getElementById(id + '-toggleIcon');
+                    if (textEl) textEl.textContent = 'Mở rộng';
+                    if (iconEl) {
+                        iconEl.classList.remove('fa-chevron-up');
+                        iconEl.classList.add('fa-chevron-down');
+                    }
+                }
+            } catch (e) {}
+        });
+    });
+
 })();

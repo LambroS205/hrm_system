@@ -36,10 +36,13 @@ function base_url($path = '') {
 }
 
 /**
- * Đường dẫn nhanh tới thư mục assets
+ * Đường dẫn nhanh tới thư mục assets (tự động gắn version cache-busting)
  */
 function asset($path = '') {
-    return base_url('assets/' . ltrim($path, '/'));
+    $cleanPath = ltrim($path, '/');
+    $fullPath = dirname(__DIR__) . '/assets/' . $cleanPath;
+    $v = file_exists($fullPath) ? '?v=' . filemtime($fullPath) : '';
+    return base_url('assets/' . $cleanPath) . $v;
 }
 
 /**
@@ -171,4 +174,86 @@ function render_avatar($name, $avatar_file = null, $size = 10) {
         return '<img src="' . asset('uploads/' . e($avatar_file)) . '" class="w-' . $size . ' h-' . $size . ' rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-sm" alt="' . e($name) . '">';
     }
     return '<div class="w-' . $size . ' h-' . $size . ' rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0">' . e($first_letter) . '</div>';
+}
+
+/**
+ * Render Breadcrumbs điều hướng phân cấp chuẩn Enterprise
+ */
+function render_breadcrumbs($custom_breadcrumbs = null) {
+    if (!empty($custom_breadcrumbs) && is_array($custom_breadcrumbs)) {
+        $crumbs = $custom_breadcrumbs;
+    } else {
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        $crumbs = [
+            ['title' => 'Tổng Quan', 'url' => base_url('index.php'), 'icon' => 'fa-house']
+        ];
+
+        if (strpos($uri, '/orgchart/') !== false || strpos($uri, '/branches/') !== false || strpos($uri, '/departments/') !== false) {
+            $crumbs[] = ['title' => 'Cơ Cấu Tổ Chức', 'url' => base_url('modules/branches/index.php')];
+            if (strpos($uri, '/orgchart/') !== false) $crumbs[] = ['title' => 'Sơ Đồ Tổ Chức'];
+            elseif (strpos($uri, '/branches/') !== false) $crumbs[] = ['title' => 'Mạng Lưới Chi Nhánh'];
+            elseif (strpos($uri, '/departments/') !== false) $crumbs[] = ['title' => 'Phòng Ban & Chức Vụ'];
+        } elseif (strpos($uri, '/employees/') !== false || strpos($uri, '/recruitment/') !== false || strpos($uri, '/transfers/') !== false || strpos($uri, '/planning/') !== false) {
+            $crumbs[] = ['title' => 'Nhân Sự & Tuyển Dụng', 'url' => base_url('modules/employees/index.php')];
+            if (strpos($uri, '/employees/view.php') !== false) {
+                $crumbs[] = ['title' => 'Hồ Sơ Nhân Viên', 'url' => base_url('modules/employees/index.php')];
+                $crumbs[] = ['title' => 'Chi Tiết Hồ Sơ'];
+            } elseif (strpos($uri, '/employees/') !== false) {
+                $crumbs[] = ['title' => 'Danh Sách Nhân Viên'];
+            } elseif (strpos($uri, '/recruitment/jobs.php') !== false) {
+                $crumbs[] = ['title' => 'Vị Trí Tuyển Dụng'];
+            } elseif (strpos($uri, '/recruitment/') !== false) {
+                $crumbs[] = ['title' => 'Pipeline Tuyển Dụng'];
+            } elseif (strpos($uri, '/transfers/') !== false) {
+                $crumbs[] = ['title' => 'Thuyên Chuyển Công Tác'];
+            } elseif (strpos($uri, '/planning/') !== false) {
+                $crumbs[] = ['title' => 'Kế Hoạch Tối Ưu'];
+            }
+        } elseif (strpos($uri, '/attendance/') !== false || strpos($uri, '/payroll/') !== false) {
+            $crumbs[] = ['title' => 'Công & Tiền Lương', 'url' => base_url('modules/payroll/index.php')];
+            if (strpos($uri, '/attendance/') !== false) {
+                $crumbs[] = ['title' => 'Bảng Chấm Công'];
+            } elseif (strpos($uri, '/payroll/holidays.php') !== false) {
+                $crumbs[] = ['title' => 'Bảng Lương Tháng', 'url' => base_url('modules/payroll/index.php')];
+                $crumbs[] = ['title' => 'Danh Mục Ngày Lễ'];
+            } elseif (strpos($uri, '/payroll/') !== false) {
+                $crumbs[] = ['title' => 'Bảng Lương Doanh Nghiệp'];
+            }
+        } elseif (strpos($uri, '/proposals/') !== false) {
+            $crumbs[] = ['title' => 'Đề Xuất & Xét Duyệt', 'url' => base_url('modules/proposals/index.php')];
+            $crumbs[] = ['title' => 'Trung Tâm Đề Xuất'];
+        } elseif (strpos($uri, '/rewards/') !== false || strpos($uri, '/disciplines/') !== false || strpos($uri, '/evaluations/') !== false) {
+            $crumbs[] = ['title' => 'Đãi Ngộ & Kỷ Luật', 'url' => base_url('modules/evaluations/index.php')];
+            if (strpos($uri, '/rewards/') !== false) $crumbs[] = ['title' => 'Khen Thưởng'];
+            elseif (strpos($uri, '/disciplines/') !== false) $crumbs[] = ['title' => 'Kỷ Luật & Vi Phạm'];
+            elseif (strpos($uri, '/evaluations/') !== false) $crumbs[] = ['title' => 'Đánh Giá & KPI'];
+        } elseif (strpos($uri, '/matrix/') !== false) {
+            $crumbs[] = ['title' => 'Hệ Thống', 'url' => base_url('modules/matrix/index.php')];
+            $crumbs[] = ['title' => 'Ma Trận Phân Quyền'];
+        } elseif (strpos($uri, 'profile.php') !== false) {
+            $crumbs[] = ['title' => 'Cá Nhân'];
+            $crumbs[] = ['title' => 'Hồ Sơ & Bảo Mật'];
+        } elseif (strpos($uri, '/search/') !== false) {
+            $crumbs[] = ['title' => 'Công Cụ'];
+            $crumbs[] = ['title' => 'Tìm Kiếm Toàn Cục'];
+        }
+    }
+
+    $html = '<nav class="breadcrumb-nav hidden md:flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400" aria-label="Breadcrumb">';
+    $total = count($crumbs);
+    foreach ($crumbs as $idx => $crumb) {
+        $is_last = ($idx === $total - 1);
+        if ($idx > 0) {
+            $html .= '<i class="fa-solid fa-chevron-right text-[8px] text-slate-400 dark:text-slate-500 mx-0.5"></i>';
+        }
+        if (!$is_last && !empty($crumb['url'])) {
+            $icon = !empty($crumb['icon']) ? '<i class="fa-solid ' . e($crumb['icon']) . ' mr-1 text-[11px]"></i>' : '';
+            $html .= '<a href="' . e($crumb['url']) . '" class="hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition flex items-center">' . $icon . e($crumb['title']) . '</a>';
+        } else {
+            $icon = !empty($crumb['icon']) ? '<i class="fa-solid ' . e($crumb['icon']) . ' mr-1 text-[11px]"></i>' : '';
+            $html .= '<span class="font-bold text-slate-800 dark:text-slate-200 flex items-center">' . $icon . e($crumb['title']) . '</span>';
+        }
+    }
+    $html .= '</nav>';
+    return $html;
 }

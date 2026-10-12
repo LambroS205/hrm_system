@@ -276,6 +276,48 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
     </div>
 
+    <!-- Hướng Dẫn Quy Trình Chấm Công & Ký Hiệu Chuẩn Doanh Nghiệp -->
+    <div class="workflow-guide-banner p-4 text-xs space-y-3">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5 font-bold text-emerald-900 dark:text-emerald-200">
+                <span class="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </span>
+                <span class="text-sm">Quy Trình Quản Lý & Chốt Công Doanh Nghiệp</span>
+            </div>
+            <button type="button" onclick="toggleWorkflowBanner('attendanceWorkflowGuide')" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1">
+                <span id="attendanceWorkflowGuide-toggleText">Thu gọn</span>
+                <i id="attendanceWorkflowGuide-toggleIcon" class="fa-solid fa-chevron-up text-[10px]"></i>
+            </button>
+        </div>
+
+        <div id="attendanceWorkflowGuide" class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+            <div class="workflow-step-item">
+                <div class="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100">
+                    <span class="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center text-[10px] font-black">1</span>
+                    <span>1. Điểm Danh Hàng Ngày</span>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Ghi nhận Check-in/out thực tế. Đi muộn/về sớm được tính theo phút, vẫn giữ đủ 1 ngày công (Điều 102 BLLĐ).</p>
+            </div>
+
+            <div class="workflow-step-item">
+                <div class="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100">
+                    <span class="w-5 h-5 rounded-full bg-sky-100 dark:bg-sky-900/60 text-sky-700 dark:text-sky-300 flex items-center justify-center text-[10px] font-black">2</span>
+                    <span>2. Đồng Bộ Phép & Tăng Ca</span>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Các đề xuất nghỉ phép năm, nghỉ ốm đau, OT được duyệt tự động cập nhật vào ngày công của nhân viên.</p>
+            </div>
+
+            <div class="workflow-step-item">
+                <div class="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100">
+                    <span class="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-[10px] font-black">3</span>
+                    <span>3. Tổng Hợp & Đưa Sang Lương</span>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Tổng hợp công tháng tự động đẩy dữ liệu sang Phân hệ Lương. Khóa kỳ lương sẽ khóa chỉnh sửa chấm công.</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Thanh Tabs Chuyển đổi chế độ xem -->
     <div class="flex border-b border-slate-200 dark:border-slate-700">
         <a href="?tab=daily&date=<?= urlencode($selected_date) ?>&department_id=<?= $selected_dept ?>" 

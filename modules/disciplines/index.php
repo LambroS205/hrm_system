@@ -171,6 +171,56 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
     </div>
 
+    <!-- Hướng Dẫn Quy Trình Xử Lý Kỷ Luật Hợp Pháp (Điều 124 & 129 BLLĐ 2019) -->
+    <div class="workflow-guide-banner p-4 text-xs space-y-3">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5 font-bold text-rose-900 dark:text-rose-200">
+                <span class="w-6 h-6 rounded-lg bg-rose-600 text-white flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-scale-unbalanced"></i>
+                </span>
+                <span class="text-sm">Quy Trình 4 Bước Xử Lý Kỷ Luật & Bồi Thường Hợp Pháp (BLLĐ 2019)</span>
+            </div>
+            <button type="button" onclick="toggleWorkflowBanner('disciplineWorkflowGuide')" class="text-xs font-semibold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1">
+                <span id="disciplineWorkflowGuide-toggleText">Thu gọn</span>
+                <i id="disciplineWorkflowGuide-toggleIcon" class="fa-solid fa-chevron-up text-[10px]"></i>
+            </button>
+        </div>
+
+        <div id="disciplineWorkflowGuide" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div class="workflow-step-item">
+                <div class="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100">
+                    <span class="w-5 h-5 rounded-full bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300 flex items-center justify-center text-[10px] font-black">1</span>
+                    <span>1. Lập Biên Bản Vi Phạm</span>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Ghi nhận sự việc, thiệt hại tài sản thực tế và lấy giải trình của nhân viên.</p>
+            </div>
+
+            <div class="workflow-step-item">
+                <div class="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100">
+                    <span class="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center text-[10px] font-black">2</span>
+                    <span>2. Thẩm Tra & Họp Xử Lý</span>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Ban Giám Đốc & Công đoàn họp xem xét lỗi và xác định mức trách nhiệm vật chất.</p>
+            </div>
+
+            <div class="workflow-step-item">
+                <div class="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100">
+                    <span class="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-[10px] font-black">3</span>
+                    <span>3. Quyết Định Kỷ Luật</span>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Áp dụng 4 hình thức hợp pháp: Khiển trách, Kéo dài nâng lương ≤ 6 tháng, Cách chức hoặc Sa thải.</p>
+            </div>
+
+            <div class="workflow-step-item">
+                <div class="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100">
+                    <span class="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center text-[10px] font-black">4</span>
+                    <span>4. Khấu Trừ Bồi Thường (≤ 30%)</span>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Khấu trừ tiền bồi thường vào bảng lương NET hàng tháng tối đa không quá 30% lương (Điều 102 BLLĐ).</p>
+            </div>
+        </div>
+    </div>
+
     <!-- 4 Khối Chỉ Số KPI -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs card-hover flex items-center justify-between">
@@ -390,7 +440,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
         <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs overflow-hidden">
             <div class="table-responsive">
-                <table class="w-full text-left border-collapse text-xs">
+                <table class="w-full text-left border-collapse text-xs table-enterprise">
                     <thead>
                         <tr class="border-b border-slate-200 dark:border-slate-700 bg-slate-50/75 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold">
                             <th class="py-3.5 px-4">Mã BB</th>

@@ -551,6 +551,225 @@ mark {
     border: 1px solid rgba(255,255,255,0.2);
 }
 
+/* ==================================================== */
+/* ENTERPRISE WORKSPACE & MINI SIDEBAR STYLES           */
+/* ==================================================== */
+
+/* Mini Sidebar transitions */
+#sidebar {
+    transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s ease;
+}
+
+.sidebar-collapsed #sidebar {
+    width: 4.5rem !important; /* 72px */
+}
+
+/* Hide text labels in collapsed mode */
+.sidebar-collapsed #sidebar .sidebar-text,
+.sidebar-collapsed #sidebar .sidebar-section-header,
+.sidebar-collapsed #sidebar .sidebar-badge-text,
+.sidebar-collapsed #sidebar .sidebar-user-details,
+.sidebar-collapsed #sidebar .sidebar-logo-text {
+    display: none !important;
+}
+
+.sidebar-collapsed #sidebar .sidebar-link {
+    justify-content: center !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    position: relative;
+}
+
+.sidebar-collapsed #sidebar .sidebar-link i {
+    margin: 0 !important;
+    font-size: 1.1rem;
+}
+
+.sidebar-collapsed #sidebar .sidebar-section-divider {
+    display: block;
+    height: 1px;
+    background-color: var(--border-subtle);
+    margin: 8px 12px;
+}
+
+/* Floating Tooltip in collapsed mode */
+.sidebar-collapsed #sidebar .sidebar-link[data-tooltip] {
+    position: relative;
+}
+
+.sidebar-collapsed #sidebar .sidebar-link[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: #0f172a;
+    color: #ffffff;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    border-radius: 8px;
+    white-space: nowrap;
+    box-shadow: 0 8px 24px -4px rgba(0,0,0,0.3);
+    z-index: 999;
+    pointer-events: none;
+    animation: fadeIn 0.15s ease-out;
+    border: 1px solid rgba(255,255,255,0.15);
+}
+
+.dark .sidebar-collapsed #sidebar .sidebar-link[data-tooltip]:hover::after {
+    background: #1e293b;
+    border-color: rgba(255,255,255,0.2);
+}
+
+.sidebar-collapsed #sidebar .sidebar-link[data-tooltip]:hover::before {
+    content: '';
+    position: absolute;
+    left: calc(100% + 4px);
+    top: 50%;
+    transform: translateY(-50%);
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent #0f172a transparent transparent;
+    z-index: 999;
+    pointer-events: none;
+}
+
+.dark .sidebar-collapsed #sidebar .sidebar-link[data-tooltip]:hover::before {
+    border-color: transparent #1e293b transparent transparent;
+}
+
+/* ==================================================== */
+/* ENTERPRISE DATA TABLE & STICKY COLUMNS               */
+/* ==================================================== */
+
+.table-sticky-container {
+    overflow-x: auto;
+    position: relative;
+    scrollbar-gutter: stable;
+}
+
+.sticky-col-code {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    background-color: var(--bg-surface);
+    box-shadow: 3px 0 8px -2px rgba(0, 0, 0, 0.15);
+}
+
+.sticky-col-name {
+    position: sticky;
+    left: 95px;
+    z-index: 10;
+    background-color: var(--bg-surface);
+    box-shadow: 4px 0 8px -2px rgba(0, 0, 0, 0.18);
+}
+
+thead th.sticky-col-code,
+thead th.sticky-col-name {
+    z-index: 20;
+}
+
+/* Zebra striping for large data tables */
+.table-enterprise tbody tr:nth-child(even) {
+    background-color: rgba(248, 250, 252, 0.6);
+}
+
+.dark .table-enterprise tbody tr:nth-child(even) {
+    background-color: rgba(30, 41, 59, 0.35);
+}
+
+.table-enterprise tbody tr:hover {
+    background-color: rgba(238, 242, 255, 0.7) !important;
+}
+
+.dark .table-enterprise tbody tr:hover {
+    background-color: rgba(79, 70, 229, 0.15) !important;
+}
+
+/* ==================================================== */
+/* WORKFLOW STEP GUIDE & ONBOARDING BANNERS             */
+/* ==================================================== */
+
+.workflow-guide-banner {
+    background: linear-gradient(135deg, rgba(238, 242, 255, 0.9) 0%, rgba(245, 243, 255, 0.9) 100%);
+    border: 1px solid rgba(199, 210, 254, 0.8);
+    border-radius: 1.25rem;
+    transition: all 0.3s ease;
+}
+
+.dark .workflow-guide-banner {
+    background: linear-gradient(135deg, rgba(30, 27, 75, 0.45) 0%, rgba(46, 16, 101, 0.35) 100%);
+    border-color: rgba(99, 102, 241, 0.35);
+}
+
+.workflow-step-item {
+    position: relative;
+    padding: 0.75rem 1rem;
+    border-radius: 0.875rem;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    transition: all 0.2s ease;
+}
+
+.dark .workflow-step-item {
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(51, 65, 85, 0.8);
+}
+
+.workflow-step-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px -2px rgba(79, 70, 229, 0.12);
+    border-color: rgba(99, 102, 241, 0.5);
+}
+
+/* ==================================================== */
+/* ENTERPRISE EMPTY STATE COMPONENT                     */
+/* ==================================================== */
+
+.empty-state-box {
+    padding: 3.5rem 1.5rem;
+    text-align: center;
+    border-radius: 1.5rem;
+    background: rgba(255, 255, 255, 0.5);
+    border: 2px dashed #cbd5e1;
+    margin: 1rem 0;
+}
+
+.dark .empty-state-box {
+    background: rgba(15, 23, 42, 0.4);
+    border-color: #334155;
+}
+
+/* ==================================================== */
+/* BREADCRUMB COMPONENT                                 */
+/* ==================================================== */
+
+.breadcrumb-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.dark .breadcrumb-nav {
+    color: #94a3b8;
+}
+
+.breadcrumb-nav a {
+    transition: color 0.15s ease;
+}
+
+.breadcrumb-nav a:hover {
+    color: #4f46e5;
+}
+
+.dark .breadcrumb-nav a:hover {
+    color: #818cf8;
+}
+
 /* Print Styling */
 @media print {
     #sidebar, header, .no-print, button, #toastContainer, #themeToggleBtn {
@@ -565,3 +784,4 @@ mark {
         overflow: visible !important;
     }
 }
+
