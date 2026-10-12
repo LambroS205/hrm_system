@@ -28,26 +28,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
 
         if ($proposal_id > 0) {
             $user = current_user();
+
+            $propStmt = $pdo->prepare("SELECT * FROM proposals WHERE id = ?");
+            $propStmt->execute([$proposal_id]);
+            $proposal = $propStmt->fetch();
+
+            if (!$proposal) {
+                set_flash('danger', 'Không tìm thấy đề xuất.');
+                redirect('modules/proposals/index.php');
+            }
+
+            // Kiểm tra xem tháng có bị khóa bảng lương không
+            require_once __DIR__ . '/../../core/PayrollService.php';
+            if ($proposal['start_date']) {
+                $p_m = (int)date('m', strtotime($proposal['start_date']));
+                $p_y = (int)date('Y', strtotime($proposal['start_date']));
+                if (PayrollService::isMonthLocked($pdo, $p_m, $p_y)) {
+                    set_flash('danger', "Không thể phê duyệt đề xuất do bảng lương Tháng {$p_m}/{$p_y} đã được chốt và khóa sổ.");
+                    redirect('modules/proposals/index.php');
+                }
+            }
+
             $pdo->beginTransaction();
             try {
                 // Cập nhật trạng thái
                 $stmt = $pdo->prepare("UPDATE proposals SET status = 'approved', approved_by = ?, approved_at = NOW() WHERE id = ? AND status = 'pending'");
                 $stmt->execute([$user['id'], $proposal_id]);
 
-                // Nếu là đề xuất nghỉ phép → tự động tạo bản ghi attendance
-                $propStmt = $pdo->prepare("SELECT * FROM proposals WHERE id = ?");
-                $propStmt->execute([$proposal_id]);
-                $proposal = $propStmt->fetch();
-
-                if ($proposal && $proposal['type'] === 'leave' && $proposal['start_date'] && $proposal['end_date']) {
+                // Nếu là đề xuất nghỉ phép → tự động tạo bản ghi attendance kèm loại nghỉ
+                if ($proposal['type'] === 'leave' && $proposal['start_date'] && $proposal['end_date']) {
                     $start = new DateTime($proposal['start_date']);
                     $end = new DateTime($proposal['end_date']);
                     $end->modify('+1 day'); // Inclusive
 
+                    // Lấy danh sách ngày lễ để không trừ ngày phép vào ngày lễ
+                    $holStmt = $pdo->prepare("SELECT holiday_date FROM public_holidays WHERE holiday_date BETWEEN ? AND ?");
+                    $holStmt->execute([$proposal['start_date'], $proposal['end_date']]);
+                    $holidaysList = $holStmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
                     $attInsert = $pdo->prepare("
-                        INSERT INTO attendance (employee_id, date, check_in, check_out, status, note, proposal_id)
-                        VALUES (?, ?, NULL, NULL, 'leave_with_permit', ?, ?)
-                        ON DUPLICATE KEY UPDATE status = 'leave_with_permit', note = VALUES(note), proposal_id = VALUES(proposal_id)
+                        INSERT INTO attendance (employee_id, date, check_in, check_out, status, leave_type, note, proposal_id)
+                        VALUES (?, ?, NULL, NULL, 'leave_with_permit', ?, ?, ?)
+                        ON DUPLICATE KEY UPDATE status = 'leave_with_permit', leave_type = VALUES(leave_type), note = VALUES(note), proposal_id = VALUES(proposal_id)
                     ");
 
                     $interval = new DateInterval('P1D');
@@ -55,12 +77,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
 
                     foreach ($period as $dt) {
                         $dayOfWeek = (int)$dt->format('N');
-                        // Bỏ qua T7 (6) và CN (7)
-                        if ($dayOfWeek >= 6) continue;
+                        $dateStr = $dt->format('Y-m-d');
+                        // Bỏ qua T7 (6), CN (7) và ngày lễ (đã được hưởng lương lễ theo Điều 112)
+                        if ($dayOfWeek >= 6 || in_array($dateStr, $holidaysList)) continue;
 
                         $attInsert->execute([
                             $proposal['employee_id'],
-                            $dt->format('Y-m-d'),
+                            $dateStr,
+                            $proposal['leave_type'] ?: 'annual',
                             'Nghỉ phép theo đề xuất #' . $proposal['proposal_code'],
                             $proposal_id
                         ]);
@@ -100,6 +124,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         $proposal_id = (int)($_POST['proposal_id'] ?? 0);
 
         if ($proposal_id > 0) {
+            $propStmt = $pdo->prepare("SELECT start_date FROM proposals WHERE id = ?");
+            $propStmt->execute([$proposal_id]);
+            $startDate = $propStmt->fetchColumn();
+
+            if ($startDate) {
+                require_once __DIR__ . '/../../core/PayrollService.php';
+                $p_m = (int)date('m', strtotime($startDate));
+                $p_y = (int)date('Y', strtotime($startDate));
+                if (PayrollService::isMonthLocked($pdo, $p_m, $p_y)) {
+                    set_flash('danger', "Không thể xóa đề xuất do bảng tính lương Tháng {$p_m}/{$p_y} đã bị khóa.");
+                    redirect('modules/proposals/index.php');
+                }
+            }
+
             // Xóa attendance records liên kết (nếu có)
             $pdo->prepare("DELETE FROM attendance WHERE proposal_id = ?")->execute([$proposal_id]);
             $pdo->prepare("DELETE FROM proposals WHERE id = ?")->execute([$proposal_id]);

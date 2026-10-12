@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         $email = trim($_POST['email'] ?? '');
         $manager_id = !empty($_POST['manager_id']) ? (int)$_POST['manager_id'] : null;
         $target_headcount = max(1, (int)($_POST['target_headcount'] ?? 30));
+        $wage_region = in_array((int)($_POST['wage_region'] ?? 1), [1, 2, 3, 4]) ? (int)$_POST['wage_region'] : 1;
         $is_headquarter = isset($_POST['is_headquarter']) ? 1 : 0;
         $status = $_POST['status'] ?? 'active';
         $notes = trim($_POST['notes'] ?? '');
@@ -32,10 +33,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
                 }
 
                 $stmt = $pdo->prepare("
-                    INSERT INTO branches (code, name, address, phone, email, manager_id, target_headcount, is_headquarter, status, notes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO branches (code, name, address, phone, email, manager_id, target_headcount, is_headquarter, status, notes, wage_region)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
-                $stmt->execute([$code, $name, $address, $phone, $email, $manager_id, $target_headcount, $is_headquarter, $status, $notes]);
+                $stmt->execute([$code, $name, $address, $phone, $email, $manager_id, $target_headcount, $is_headquarter, $status, $notes, $wage_region]);
 
                 set_flash('success', "Đã thêm thành công chi nhánh mới: {$name} ({$code})");
                 redirect('modules/branches/index.php');
@@ -58,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         $email = trim($_POST['email'] ?? '');
         $manager_id = !empty($_POST['manager_id']) ? (int)$_POST['manager_id'] : null;
         $target_headcount = max(1, (int)($_POST['target_headcount'] ?? 30));
+        $wage_region = in_array((int)($_POST['wage_region'] ?? 1), [1, 2, 3, 4]) ? (int)$_POST['wage_region'] : 1;
         $is_headquarter = isset($_POST['is_headquarter']) ? 1 : 0;
         $status = $_POST['status'] ?? 'active';
         $notes = trim($_POST['notes'] ?? '');
@@ -71,10 +73,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
                 $stmt = $pdo->prepare("
                     UPDATE branches 
                     SET code = ?, name = ?, address = ?, phone = ?, email = ?, manager_id = ?, 
-                        target_headcount = ?, is_headquarter = ?, status = ?, notes = ?
+                        target_headcount = ?, is_headquarter = ?, status = ?, notes = ?, wage_region = ?
                     WHERE id = ?
                 ");
-                $stmt->execute([$code, $name, $address, $phone, $email, $manager_id, $target_headcount, $is_headquarter, $status, $notes, $branch_id]);
+                $stmt->execute([$code, $name, $address, $phone, $email, $manager_id, $target_headcount, $is_headquarter, $status, $notes, $wage_region, $branch_id]);
 
                 set_flash('success', "Đã cập nhật thông tin chi nhánh: {$name}");
                 redirect('modules/branches/index.php');
@@ -254,6 +256,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <?php if ($b['is_headquarter']): ?>
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase">Trụ Sở Chính</span>
                                     <?php endif; ?>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">Vùng Lương <?= (int)($b['wage_region'] ?: 1) ?></span>
                                 </div>
                                 <div class="text-xs text-slate-400 font-mono mt-0.5">Mã: <strong class="text-indigo-600 font-semibold"><?= e($b['code']) ?></strong></div>
                             </div>
@@ -416,6 +419,17 @@ require_once __DIR__ . '/../../includes/header.php';
                 </select>
             </div>
 
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Vùng Lương Tối Thiểu (NĐ 293/2025/NĐ-CP) *</label>
+                <select name="wage_region" id="branchWageRegion" required
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+                    <option value="1">Vùng I - 5.310.000 ₫/tháng (Hà Nội, TP.HCM, Đà Nẵng, Cần Thơ...)</option>
+                    <option value="2">Vùng II - 4.730.000 ₫/tháng</option>
+                    <option value="3">Vùng III - 4.140.000 ₫/tháng</option>
+                    <option value="4">Vùng IV - 3.700.000 ₫/tháng</option>
+                </select>
+            </div>
+
             <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between">
                 <div>
                     <span class="text-xs font-semibold text-slate-800 block">Thiết lập Trụ Sở Chính (HQ)</span>
@@ -477,6 +491,7 @@ function openCreateBranchModal() {
     document.getElementById('branchPhone').value = '';
     document.getElementById('branchEmail').value = '';
     document.getElementById('branchManagerId').value = '';
+    document.getElementById('branchWageRegion').value = '1';
     document.getElementById('branchTargetHeadcount').value = '30';
     document.getElementById('branchIsHq').checked = false;
     document.getElementById('branchModal').classList.remove('hidden');
@@ -492,6 +507,7 @@ function openEditBranchModal(b) {
     document.getElementById('branchPhone').value = b.phone || '';
     document.getElementById('branchEmail').value = b.email || '';
     document.getElementById('branchManagerId').value = b.manager_id || '';
+    document.getElementById('branchWageRegion').value = b.wage_region || '1';
     document.getElementById('branchTargetHeadcount').value = b.target_headcount || '30';
     document.getElementById('branchIsHq').checked = parseInt(b.is_headquarter) === 1;
     document.getElementById('branchModal').classList.remove('hidden');

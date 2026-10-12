@@ -100,32 +100,32 @@ foreach ($disciplines as $d_item) {
     }
 }
 
-// Cấu hình nhãn và icon các hình thức kỷ luật
+// Cấu hình nhãn và icon các hình thức kỷ luật theo Điều 124 Bộ luật Lao động 2019
 $type_meta = [
-    'warning' => [
-        'label' => 'Nhắc Nhở / Phê Bình',
-        'icon'  => 'fa-triangle-exclamation',
-        'class' => 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-    ],
     'reprimand' => [
         'label' => 'Khiển Trách',
         'icon'  => 'fa-clipboard-question',
         'class' => 'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300'
     ],
-    'salary_cut' => [
-        'label' => 'Khấu Trừ / Hạ Lương',
-        'icon'  => 'fa-circle-dollar-to-slot',
-        'class' => 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+    'salary_raise_delay' => [
+        'label' => 'Kéo Dài Thời Hạn Nâng Lương (≤ 6 tháng)',
+        'icon'  => 'fa-clock-rotate-left',
+        'class' => 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
     ],
     'demotion' => [
-        'label' => 'Giáng Chức',
+        'label' => 'Cách Chức',
         'icon'  => 'fa-arrow-down-wide-short',
         'class' => 'bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300'
     ],
     'termination' => [
-        'label' => 'Sa Thải / Buộc Thôi Việc',
+        'label' => 'Sa Thải',
         'icon'  => 'fa-ban',
         'class' => 'bg-red-200 text-red-900 dark:bg-red-950 dark:text-red-300'
+    ],
+    'warning' => [
+        'label' => 'Nhắc Nhở / Phê Bình Nội Bộ',
+        'icon'  => 'fa-triangle-exclamation',
+        'class' => 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
     ]
 ];
 
@@ -186,9 +186,9 @@ require_once __DIR__ . '/../../includes/header.php';
 
         <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs card-hover flex items-center justify-between">
             <div>
-                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Tổng Khấu Trừ Phạt</span>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Tổng Bồi Thường Thiệt Hại</span>
                 <span class="text-2xl font-extrabold text-rose-600 dark:text-rose-400 font-mono mt-1 block"><?= format_money($stats['total_penalty']) ?></span>
-                <span class="text-[11px] text-slate-400 mt-0.5 block">Đã duyệt & thi hành</span>
+                <span class="text-[11px] text-slate-400 mt-0.5 block">Điều 129 BLLĐ (Đã duyệt & thi hành)</span>
             </div>
             <div class="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center text-xl shadow-xs">
                 <i class="fa-solid fa-hand-holding-dollar"></i>
@@ -210,7 +210,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <div>
                 <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Đã Thi Hành</span>
                 <span class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 block"><?= number_format($stats['executed_count']) ?></span>
-                <span class="text-[11px] text-slate-400 mt-0.5 block">Đã trừ lương / hoàn tất</span>
+                <span class="text-[11px] text-slate-400 mt-0.5 block">Đã thi hành / hoàn tất</span>
             </div>
             <div class="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl shadow-xs">
                 <i class="fa-solid fa-shield-halved"></i>
@@ -232,12 +232,12 @@ require_once __DIR__ . '/../../includes/header.php';
 
             <div>
                 <select name="type" onchange="this.form.submit()" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 transition">
-                    <option value="">-- Tất cả mức độ --</option>
-                    <option value="warning" <?= $filter_type === 'warning' ? 'selected' : '' ?>>Nhắc Nhở / Phê Bình</option>
+                    <option value="">-- Tất cả hình thức --</option>
                     <option value="reprimand" <?= $filter_type === 'reprimand' ? 'selected' : '' ?>>Khiển Trách</option>
-                    <option value="salary_cut" <?= $filter_type === 'salary_cut' ? 'selected' : '' ?>>Khấu Trừ / Hạ Lương</option>
-                    <option value="demotion" <?= $filter_type === 'demotion' ? 'selected' : '' ?>>Giáng Chức</option>
-                    <option value="termination" <?= $filter_type === 'termination' ? 'selected' : '' ?>>Sa Thải / Thôi Việc</option>
+                    <option value="salary_raise_delay" <?= $filter_type === 'salary_raise_delay' ? 'selected' : '' ?>>Kéo Dài Nâng Lương (≤ 6 th)</option>
+                    <option value="demotion" <?= $filter_type === 'demotion' ? 'selected' : '' ?>>Cách Chức</option>
+                    <option value="termination" <?= $filter_type === 'termination' ? 'selected' : '' ?>>Sa Thải</option>
+                    <option value="warning" <?= $filter_type === 'warning' ? 'selected' : '' ?>>Nhắc Nhở Nội Bộ</option>
                 </select>
             </div>
 

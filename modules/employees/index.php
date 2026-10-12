@@ -18,6 +18,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type']) && $_P
         $emp = $stmt->fetch();
 
         if ($emp) {
+            // Kiểm tra ràng buộc chứng từ tiền lương
+            $checkPayroll = $pdo->prepare("SELECT COUNT(*) FROM payrolls WHERE employee_id = ?");
+            $checkPayroll->execute([$emp_id]);
+            if ((int)$checkPayroll->fetchColumn() > 0) {
+                set_flash('danger', "Không thể xóa vĩnh viễn nhân sự '{$emp['fullname']}' vì đã có lịch sử bảng lương & chứng từ thanh toán lưu trữ. Để bảo toàn hồ sơ kế toán, vui lòng chỉnh sửa trạng thái nhân sự thành 'Đã thôi việc' thay vì xóa.");
+                redirect('modules/employees/index.php');
+            }
+
             if (!empty($emp['avatar'])) {
                 $avatar_path = __DIR__ . '/../../assets/uploads/' . $emp['avatar'];
                 if (file_exists($avatar_path)) {

@@ -40,7 +40,7 @@ $att_today = $att_today_stmt->fetch() ?: [
 $attendance_rate = $total_employees > 0 ? round(($att_today['present_count'] / $total_employees) * 100) : 0;
 
 // 3. Thống kê quỹ lương tháng hiện tại
-$payroll_fund_stmt = $pdo->prepare("SELECT SUM(final_salary) as total_fund, SUM(CASE WHEN payment_status = 'paid' THEN final_salary ELSE 0 END) as paid_fund FROM payrolls WHERE month = ? AND year = ?");
+$payroll_fund_stmt = $pdo->prepare("SELECT SUM(COALESCE(gross_salary, final_salary)) as total_fund, SUM(CASE WHEN payment_status = 'paid' THEN final_salary ELSE 0 END) as paid_fund FROM payrolls WHERE month = ? AND year = ?");
 $payroll_fund_stmt->execute([$current_month, $current_year]);
 $fund_data = $payroll_fund_stmt->fetch();
 
@@ -86,7 +86,7 @@ for ($i = 5; $i >= 0; $i--) {
     $t_y = (int)date('Y', $t_time);
     $trend_labels[] = "T{$t_m}/" . substr((string)$t_y, 2);
 
-    $t_stmt = $pdo->prepare("SELECT SUM(final_salary) FROM payrolls WHERE month = ? AND year = ?");
+    $t_stmt = $pdo->prepare("SELECT SUM(COALESCE(gross_salary, final_salary)) FROM payrolls WHERE month = ? AND year = ?");
     $t_stmt->execute([$t_m, $t_y]);
     $trend_val = (float)($t_stmt->fetchColumn() ?: 0);
     $trend_values[] = round($trend_val / 1000000, 1); // Đơn vị Triệu VNĐ

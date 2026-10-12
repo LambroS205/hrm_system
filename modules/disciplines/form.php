@@ -294,11 +294,11 @@ require_once __DIR__ . '/../../includes/header.php';
                             Hình Thức Kỷ Luật <span class="text-rose-500">*</span>
                         </label>
                         <select name="discipline_type" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition">
+                            <option value="reprimand" <?= $discipline['discipline_type'] === 'reprimand' ? 'selected' : '' ?>>📜 Khiển Trách (Điều 124 BLLĐ)</option>
+                            <option value="salary_raise_delay" <?= in_array($discipline['discipline_type'], ['salary_raise_delay', 'salary_cut']) ? 'selected' : '' ?>>⏳ Kéo Dài Thời Hạn Nâng Lương Không Quá 06 Tháng</option>
+                            <option value="demotion" <?= $discipline['discipline_type'] === 'demotion' ? 'selected' : '' ?>>🔻 Cách Chức</option>
+                            <option value="termination" <?= $discipline['discipline_type'] === 'termination' ? 'selected' : '' ?>>⛔ Sa Thải</option>
                             <option value="warning" <?= $discipline['discipline_type'] === 'warning' ? 'selected' : '' ?>>⚠️ Nhắc Nhở / Phê Bình Nội Bộ</option>
-                            <option value="reprimand" <?= $discipline['discipline_type'] === 'reprimand' ? 'selected' : '' ?>>📜 Khiển Trách Toàn Cơ Quan</option>
-                            <option value="salary_cut" <?= $discipline['discipline_type'] === 'salary_cut' ? 'selected' : '' ?>>📉 Trừ Lương / Kéo Dài Nâng Bậc Lương</option>
-                            <option value="demotion" <?= $discipline['discipline_type'] === 'demotion' ? 'selected' : '' ?>>🔻 Giáng Chức / Cách Chức</option>
-                            <option value="termination" <?= $discipline['discipline_type'] === 'termination' ? 'selected' : '' ?>>⛔ Buộc Thôi Việc / Sa Thải</option>
                         </select>
                     </div>
                 </div>
@@ -317,15 +317,15 @@ require_once __DIR__ . '/../../includes/header.php';
                             Hành Vi Vi Phạm / Tiêu Đề Biên Bản <span class="text-rose-500">*</span>
                         </label>
                         <input type="text" name="title" required value="<?= e($discipline['title']) ?>" 
-                               placeholder="Ví dụ: Vi phạm quy định bảo mật thông tin nội bộ / Đi muộn không phép quá số lần"
+                               placeholder="Ví dụ: Vi phạm quy định bảo mật thông tin nội bộ / Làm hư hỏng thiết bị doanh nghiệp"
                                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition">
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <!-- Mức phạt / Khấu trừ lương -->
+                        <!-- Mức bồi thường thiệt hại (Điều 129 BLLĐ) -->
                         <div>
                             <label class="block text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider mb-1.5">
-                                Mức Phạt Tiền / Khấu Trừ (VNĐ)
+                                Bồi Thường Thiệt Hại (Điều 129 BLLĐ) VNĐ
                             </label>
                             <div class="relative">
                                 <input type="number" name="penalty_amount" id="penaltyAmountInput" step="50000" min="0" 
@@ -335,7 +335,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <span class="absolute right-3.5 top-2.5 text-xs text-slate-400 font-semibold">₫</span>
                             </div>
                             <p id="penaltyFormattedPreview" class="text-[11px] text-rose-600 font-semibold mt-1">
-                                <?= format_money($discipline['penalty_amount']) ?>
+                                <?= format_money($discipline['penalty_amount']) ?> (Khấu trừ tối đa 30% lương/tháng)
                             </p>
                         </div>
 

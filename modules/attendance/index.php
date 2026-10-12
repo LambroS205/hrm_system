@@ -25,6 +25,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         $att_date = $_POST['attendance_date'] ?? date('Y-m-d');
         $records = $_POST['att'] ?? []; // Mảng [emp_id => ['status', 'check_in', 'check_out', 'note']]
 
+        // Kiểm tra xem kỳ lương của ngày này đã bị khóa hay chưa
+        $att_m = (int)date('m', strtotime($att_date));
+        $att_y = (int)date('Y', strtotime($att_date));
+        require_once __DIR__ . '/../../core/PayrollService.php';
+        if (PayrollService::isMonthLocked($pdo, $att_m, $att_y)) {
+            set_flash('danger', "Không thể cập nhật chấm công ngày " . format_date($att_date) . " do bảng tính lương Tháng {$att_m}/{$att_y} đã được chốt và khóa sổ.");
+            redirect("modules/attendance/index.php?tab=daily&date=" . urlencode($att_date) . ($selected_dept ? "&department_id={$selected_dept}" : ''));
+        }
+
         try {
             $pdo->beginTransaction();
 
@@ -97,6 +106,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         require_permission('attendance', 'delete');
         $att_id = (int)($_POST['attendance_id'] ?? 0);
         if ($att_id > 0) {
+            $stmt = $pdo->prepare("SELECT date FROM attendance WHERE id = ?");
+            $stmt->execute([$att_id]);
+            $date = $stmt->fetchColumn();
+            if ($date) {
+                require_once __DIR__ . '/../../core/PayrollService.php';
+                $att_m = (int)date('m', strtotime($date));
+                $att_y = (int)date('Y', strtotime($date));
+                if (PayrollService::isMonthLocked($pdo, $att_m, $att_y)) {
+                    set_flash('danger', "Không thể xóa bản ghi chấm công do bảng lương Tháng {$att_m}/{$att_y} đã bị khóa.");
+                    redirect("modules/attendance/index.php?tab=daily&date=" . urlencode($selected_date));
+                }
+            }
+
             $delStmt = $pdo->prepare("DELETE FROM attendance WHERE id = ?");
             $delStmt->execute([$att_id]);
             set_flash('success', 'Đã xóa bản ghi chấm công thành công.');
@@ -173,9 +195,12 @@ if ($active_tab === 'monthly') {
             COUNT(CASE WHEN status = 'present' THEN 1 END) AS count_present,
             COUNT(CASE WHEN status = 'late' THEN 1 END) AS count_late,
             COUNT(CASE WHEN status = 'early_leave' THEN 1 END) AS count_early,
-            COUNT(CASE WHEN status = 'leave_with_permit' THEN 1 END) AS count_leave,
+            COUNT(CASE WHEN status = 'leave_with_permit' AND (leave_type IS NULL OR leave_type IN ('annual', 'personal')) THEN 1 END) AS count_leave,
+            COUNT(CASE WHEN status = 'leave_with_permit' AND leave_type = 'unpaid' THEN 1 END) AS count_unpaid_leave,
             COUNT(CASE WHEN status = 'absent' THEN 1 END) AS count_absent,
             COALESCE(SUM(overtime_hours), 0) AS total_ot,
+            COALESCE(SUM(late_minutes), 0) AS total_late_minutes,
+            COALESCE(SUM(early_minutes), 0) AS total_early_minutes,
             COUNT(CASE WHEN late_minutes > 0 THEN 1 END) AS late_count
         FROM attendance
         WHERE date BETWEEN ? AND ?
@@ -186,7 +211,9 @@ if ($active_tab === 'monthly') {
     $sumRows = $sumStmt->fetchAll();
 
     foreach ($sumRows as $row) {
-        $total_work_days = $row['count_present'] + $row['count_leave'] + (($row['count_late'] + $row['count_early']) * 0.5);
+        // Tuân thủ BLLĐ: Người lao động đi làm (kể cả đi muộn hoặc về sớm) vẫn được ghi nhận đủ ngày công làm việc,
+        // khoản trừ đi muộn/về sớm được tính theo số phút thực tế ở bảng lương chứ không cắt nửa ngày công.
+        $total_work_days = (float)($row['count_present'] + $row['count_late'] + $row['count_early'] + $row['count_leave']);
         $row['total_work_days'] = $total_work_days;
         $monthly_summary[$row['employee_id']] = $row;
     }

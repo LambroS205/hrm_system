@@ -252,6 +252,11 @@ $dep_stmt->execute([$id]);
 $employee_dependents = $dep_stmt->fetchAll();
 
 // Đếm số người giảm trừ gia cảnh & người khẩn cấp
+require_once __DIR__ . '/../../config/payroll_rules.php';
+$payroll_rules_now = payroll_rules_for((int)date('Y'), (int)date('m'));
+$dep_rate = (float)($payroll_rules_now['dependent_deduction'] ?? 6200000);
+$self_rate = (float)($payroll_rules_now['personal_deduction'] ?? 15500000);
+
 $tax_deductible_count = 0;
 $emergency_contacts = [];
 foreach ($employee_dependents as $d) {
@@ -424,7 +429,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 <div class="text-sm sm:text-base font-bold text-indigo-600 dark:text-indigo-400 mt-1">
                     <?= $tax_deductible_count ?> người phụ thuộc
                 </div>
-                <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">-<?= format_money($tax_deductible_count * 4400000) ?> / tháng</div>
+                <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">-<?= format_money($tax_deductible_count * $dep_rate) ?> / tháng</div>
             </div>
 
             <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700/60">
@@ -966,7 +971,7 @@ require_once __DIR__ . '/../../includes/header.php';
                         <span class="text-[11px] font-bold text-teal-700 dark:text-teal-300 uppercase tracking-wider block">Người Phụ Thuộc Giảm Trừ Thuế</span>
                         <div class="text-2xl font-extrabold text-teal-900 dark:text-teal-100 mt-1"><?= $tax_deductible_count ?> người</div>
                         <div class="text-xs text-teal-700 dark:text-teal-300 font-mono mt-0.5 font-bold">
-                            Mức giảm trừ: <?= format_money($tax_deductible_count * 4400000) ?> / tháng
+                            Mức giảm trừ: <?= format_money($tax_deductible_count * $dep_rate) ?> / tháng
                         </div>
                     </div>
                     <div class="w-12 h-12 rounded-2xl bg-teal-100 dark:bg-teal-900/60 text-teal-600 dark:text-teal-300 flex items-center justify-center text-xl shadow-xs">
