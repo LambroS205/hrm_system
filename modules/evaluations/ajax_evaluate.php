@@ -1,5 +1,5 @@
 <?php
-// modules/evaluations/ajax_evaluate.php - Xử lý AJAX chấm điểm và tính toán KPI tự động
+// modules/evaluations/ajax_evaluate.php - Xử lý AJAX chấm điểm và tính toán KPI khoa học (BSC & SMART Link Power)
 header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../core/auth.php';
@@ -58,13 +58,10 @@ if (!$eval) {
 $user = current_user();
 
 // Kiểm tra quyền chấm điểm:
-// - Self review: người chấm phải là chính nhân viên đó (user_id của employee hoặc employee_id khớp), hoặc admin
-// - Manager review: người chấm phải là reviewer (user_id của reviewer), hoặc có quyền evaluations:manager_review / evaluations:approve, hoặc admin
 if ($review_type === 'self') {
     $can_self = is_superadmin() || 
                 (has_permission('evaluations', 'self_review') && ($user['id'] == $eval['emp_user_id'] || $user['id'] == $eval['employee_id']));
     
-    // Nếu là admin hoặc có quyền edit thì cũng cho phép chấm thử/hỗ trợ
     if (!$can_self && !has_permission('evaluations', 'edit')) {
         echo json_encode(['success' => false, 'message' => 'Bạn không có quyền thực hiện tự đánh giá trên hồ sơ này.']);
         exit;
@@ -81,46 +78,113 @@ if ($review_type === 'self') {
     }
 }
 
-// Lấy danh sách tiêu chí của template để tính điểm theo trọng số
-$items_stmt = $pdo->prepare("SELECT * FROM kpi_template_items WHERE template_id = ? ORDER BY sort_order ASC");
-$items_stmt->execute([$eval['template_id']]);
-$template_items = $items_stmt->fetchAll();
+// Lấy danh sách tiêu chí (ưu tiên custom_items_json được thiết lập riêng theo vị trí & mục tiêu)
+if (!empty($eval['custom_items_json'])) {
+    $parsed_custom = json_decode($eval['custom_items_json'], true);
+    $template_items = is_array($parsed_custom) && !empty($parsed_custom) ? $parsed_custom : [];
+} else {
+    $items_stmt = $pdo->prepare("SELECT * FROM kpi_template_items WHERE template_id = ? ORDER BY sort_order ASC");
+    $items_stmt->execute([$eval['template_id']]);
+    $template_items = $items_stmt->fetchAll();
+}
 
 $items_map = [];
 foreach ($template_items as $ti) {
     $items_map[$ti['id']] = $ti;
 }
 
-// Xử lý tính điểm theo trọng số chuẩn xác
+// Xử lý tính điểm theo trọng số và phân tích Nhóm ưu tiên Link Power (A, B, C)
 $total_weighted_score = 0;
 $total_weight_accounted = 0;
 $scores_json_array = [];
+
+$priority_weights = ['A' => 0, 'B' => 0, 'C' => 0];
+$priority_scores = ['A' => 0, 'B' => 0, 'C' => 0];
+
+$bsc_weights = ['financial' => 0, 'customer' => 0, 'internal_process' => 0, 'learning_growth' => 0];
+$bsc_scores = ['financial' => 0, 'customer' => 0, 'internal_process' => 0, 'learning_growth' => 0];
 
 foreach ($scores_input as $sc) {
     $item_id = (int)($sc['item_id'] ?? 0);
     if (!isset($items_map[$item_id])) continue;
 
     $item = $items_map[$item_id];
-    $score_val = max(0, min(100, (float)($sc['score'] ?? 0)));
-    $comment_val = trim($sc['comment'] ?? '');
     $weight = (float)$item['weight'];
+    $comment_val = trim($sc['comment'] ?? '');
+    $actual_val = trim($sc['actual'] ?? ($sc['actual_value'] ?? ''));
+    
+    // Tính % hoàn thành và điểm quy đổi khoa học
+    $score_val = max(0, min(120, (float)($sc['score'] ?? 0)));
+    $completion_rate = isset($sc['completion_rate']) ? (float)$sc['completion_rate'] : $score_val;
+
+    // Nếu người dùng nhập số thực tế và chưa nhập score thủ công, tính tự động
+    if ($actual_val !== '' && is_numeric($actual_val)) {
+        $num_act = (float)$actual_val;
+        // Trích xuất số từ target nếu có (ví dụ '>= 95%' -> 95)
+        if (preg_match('/(\d+(?:\.\d+)?)/', $item['target_value'] ?? '', $matches)) {
+            $num_tgt = (float)$matches[1];
+            if ($num_tgt > 0) {
+                if ($item['calc_direction'] === 'higher_better') {
+                    $completion_rate = ($num_act / $num_tgt) * 100.0;
+                } elseif ($item['calc_direction'] === 'lower_better') {
+                    $completion_rate = (1.0 + ($num_tgt - $num_act) / $num_tgt) * 100.0;
+                }
+                // Khống chế trần sàn
+                $max_cap = (float)($item['max_cap'] ?? 120.0);
+                $min_thresh = (float)($item['min_threshold'] ?? 0.0);
+                $completion_rate = max($min_thresh, min($max_cap, $completion_rate));
+                $score_val = round($completion_rate, 2);
+            }
+        }
+    }
 
     $total_weighted_score += ($score_val * $weight / 100);
     $total_weight_accounted += $weight;
 
+    // Phân tích theo nhóm ưu tiên Link Power
+    $p_group = $item['priority_group'] ?? 'B';
+    if (isset($priority_weights[$p_group])) {
+        $priority_weights[$p_group] += $weight;
+        $priority_scores[$p_group] += ($score_val * $weight / 100);
+    }
+
+    // Phân tích theo trụ cột BSC
+    $pillar = $item['bsc_pillar'] ?? 'internal_process';
+    if (isset($bsc_weights[$pillar])) {
+        $bsc_weights[$pillar] += $weight;
+        $bsc_scores[$pillar] += ($score_val * $weight / 100);
+    }
+
     $scores_json_array[] = [
-        'item_id'       => $item_id,
-        'criteria'      => $item['criteria_name'],
-        'weight'        => $weight,
-        'score'         => $score_val,
-        'comment'       => $comment_val,
-        'target'        => $item['target_value'] ?? ''
+        'item_id'         => $item_id,
+        'criteria'        => $item['criteria_name'],
+        'priority_group'  => $p_group,
+        'bsc_pillar'      => $pillar,
+        'weight'          => $weight,
+        'target'          => $item['target_value'] ?? '',
+        'unit'            => $item['unit'] ?? '%',
+        'actual'          => $actual_val,
+        'completion_rate' => round($completion_rate, 1),
+        'score'           => $score_val,
+        'comment'         => $comment_val
     ];
 }
 
 // Chuẩn hóa điểm thang 100 theo tổng trọng số đã chấm
 $calculated_score = $total_weight_accounted > 0 ? round(($total_weighted_score / $total_weight_accounted) * 100, 2) : 0;
 $scores_json_encoded = json_encode($scores_json_array, JSON_UNESCAPED_UNICODE);
+
+// Tính % hoàn thành trung bình theo nhóm A, B, C
+$priority_avg = [];
+foreach (['A', 'B', 'C'] as $pg) {
+    $priority_avg[$pg] = $priority_weights[$pg] > 0 ? round(($priority_scores[$pg] / $priority_weights[$pg]) * 100, 1) : 0;
+}
+
+// Tính điểm theo 4 trụ cột BSC
+$bsc_avg = [];
+foreach (['financial', 'customer', 'internal_process', 'learning_growth'] as $b) {
+    $bsc_avg[$b] = $bsc_weights[$b] > 0 ? round(($bsc_scores[$b] / $bsc_weights[$b]) * 100, 1) : 0;
+}
 
 try {
     $pdo->beginTransaction();
@@ -151,7 +215,9 @@ try {
             'data' => [
                 'self_score' => $calculated_score,
                 'status' => $new_status,
-                'is_submitted' => $is_submit_final
+                'is_submitted' => $is_submit_final,
+                'priority_avg' => $priority_avg,
+                'bsc_avg' => $bsc_avg
             ]
         ]);
         exit;
@@ -169,20 +235,33 @@ try {
             $final_score = $mgr_score;
         }
 
-        // Tự động xếp loại theo thang điểm AURA HRM
+        // Tự động xếp loại & tính Hệ số thưởng Total Rewards theo Link Power
         $rating = 'average';
+        $bonus_multiplier = 0.60;
+
         if ($final_score >= 95.0) {
-            $rating = 'outstanding'; // Xuất sắc
+            $rating = 'outstanding'; // Xuất sắc (A+)
+            $bonus_multiplier = 1.50; // Thưởng 150%
+            if ($promotion_rec === 'none') $promotion_rec = 'bonus';
         } elseif ($final_score >= 85.0) {
-            $rating = 'excellent';   // Tốt
+            $rating = 'excellent';   // Tốt (A)
+            $bonus_multiplier = 1.20; // Thưởng 120%
+            if ($promotion_rec === 'none') $promotion_rec = 'salary_increase';
         } elseif ($final_score >= 70.0) {
-            $rating = 'good';        // Khá
+            $rating = 'good';        // Khá (B)
+            $bonus_multiplier = 1.00; // Thưởng 100%
         } elseif ($final_score >= 55.0) {
-            $rating = 'average';     // Trung bình
+            $rating = 'average';     // Trung bình (C)
+            $bonus_multiplier = 0.60; // Thưởng 60%
+            if ($promotion_rec === 'none') $promotion_rec = 'training';
         } elseif ($final_score >= 40.0) {
-            $rating = 'below_average';// Yếu
+            $rating = 'below_average';// Yếu (D)
+            $bonus_multiplier = 0.00; // Không thưởng
+            if ($promotion_rec === 'none') $promotion_rec = 'warning';
         } else {
-            $rating = 'poor';        // Kém
+            $rating = 'poor';        // Kém (E)
+            $bonus_multiplier = 0.00; // Không thưởng
+            if ($promotion_rec === 'none') $promotion_rec = 'warning';
         }
 
         $new_status = $is_submit_final ? 'completed' : 'manager_review';
@@ -195,6 +274,7 @@ try {
                 manager_submitted_at = NOW(),
                 final_score = ?,
                 rating = ?,
+                bonus_multiplier = ?,
                 promotion_recommendation = ?,
                 status = ?
             WHERE id = ?
@@ -205,6 +285,7 @@ try {
             $notes,
             $final_score,
             $rating,
+            $bonus_multiplier,
             $promotion_rec,
             $new_status,
             $evaluation_id
@@ -216,11 +297,14 @@ try {
             'success' => true,
             'message' => $is_submit_final ? 'Đã hoàn tất đánh giá quản lý và chốt kết quả xếp loại!' : 'Đã lưu tạm bảng chấm điểm quản lý thành công.',
             'data' => [
-                'manager_score' => $mgr_score,
-                'final_score' => $final_score,
-                'rating' => $rating,
-                'status' => $new_status,
-                'is_submitted' => $is_submit_final
+                'manager_score'    => $mgr_score,
+                'final_score'      => $final_score,
+                'rating'           => $rating,
+                'bonus_multiplier' => $bonus_multiplier,
+                'status'           => $new_status,
+                'is_submitted'     => $is_submit_final,
+                'priority_avg'     => $priority_avg,
+                'bsc_avg'          => $bsc_avg
             ]
         ]);
         exit;

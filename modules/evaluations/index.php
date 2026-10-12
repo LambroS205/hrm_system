@@ -1,17 +1,26 @@
 <?php
-// modules/evaluations/index.php - Trung Tâm Quản Trị Đánh Giá & KPI (Aura Performance Management)
-$page_title = 'Đánh Giá Nhân Viên & Quản Lý KPI';
+// modules/evaluations/index.php - Trung Tâm Quản Trị Đánh Giá & KPI Phân Tầng Cấp Bậc (Aura Smart KPI)
+$page_title = 'Đánh Giá Nhân Viên & Quản Lý KPI Phân Tầng';
 
 require_once __DIR__ . '/../../core/auth.php';
 require_permission('evaluations', 'view');
 
+// Cấu hình Cấp bậc Quản trị Nhân sự
+$hierarchy_levels = [
+    'executive'   => ['label' => 'Lãnh Đạo (C-Level)', 'badge' => 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800', 'icon' => 'fa-crown'],
+    'manager'     => ['label' => 'Quản Lý (Manager)', 'badge' => 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800', 'icon' => 'fa-user-tie'],
+    'specialist'  => ['label' => 'Chuyên Viên (Specialist)', 'badge' => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800', 'icon' => 'fa-laptop-code'],
+    'operational' => ['label' => 'Tuyến Đầu (Frontline)', 'badge' => 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800', 'icon' => 'fa-person-walking-luggage']
+];
+
 // Tham số bộ lọc
 $filter_period = !empty($_GET['period_id']) ? (int)$_GET['period_id'] : 0;
+$filter_level  = $_GET['hierarchy_level'] ?? '';
 $filter_dept   = !empty($_GET['department_id']) ? (int)$_GET['department_id'] : 0;
 $filter_status = $_GET['status'] ?? '';
 $filter_rating = $_GET['rating'] ?? '';
 $search        = trim($_GET['search'] ?? '');
-$view_mode     = $_GET['view'] ?? 'kanban'; // 'kanban' hoặc 'table'
+$view_mode     = $_GET['view'] ?? 'kanban';
 
 // Lấy danh sách kỳ đánh giá cho dropdown lọc
 $periods = $pdo->query("SELECT * FROM evaluation_periods ORDER BY status = 'active' DESC, year DESC, quarter DESC")->fetchAll();
@@ -38,7 +47,7 @@ $sql = "
            emp.employee_code, emp.fullname AS employee_name, emp.avatar AS employee_avatar,
            d.name AS department_name, p.name AS position_name,
            rev.employee_code AS reviewer_code, rev.fullname AS reviewer_name, rev.avatar AS reviewer_avatar,
-           t.name AS template_name, t.code AS template_code
+           t.name AS template_name, t.code AS template_code, t.hierarchy_level AS template_level
     FROM evaluations e
     JOIN evaluation_periods ep ON e.period_id = ep.id
     JOIN employees emp ON e.employee_id = emp.id
@@ -53,6 +62,11 @@ $params = [];
 if ($filter_period > 0) {
     $sql .= " AND e.period_id = ?";
     $params[] = $filter_period;
+}
+
+if (!empty($filter_level) && isset($hierarchy_levels[$filter_level])) {
+    $sql .= " AND t.hierarchy_level = ?";
+    $params[] = $filter_level;
 }
 
 if ($filter_dept > 0) {
@@ -109,6 +123,22 @@ $stats = $stat_stmt->fetch() ?: [
 
 $completion_rate = $stats['total_count'] > 0 ? round(($stats['completed_count'] / $stats['total_count']) * 100) : 0;
 
+// Thống kê theo 4 Cấp Bậc
+$level_stats = [];
+foreach ($hierarchy_levels as $lk => $lv) {
+    $level_stats[$lk] = ['total' => 0, 'completed' => 0, 'scores' => []];
+}
+foreach ($evaluations as $ev) {
+    $tl = $ev['template_level'] ?? 'specialist';
+    if (isset($level_stats[$tl])) {
+        $level_stats[$tl]['total']++;
+        if ($ev['status'] === 'completed') {
+            $level_stats[$tl]['completed']++;
+            if ($ev['final_score'] !== null) $level_stats[$tl]['scores'][] = (float)$ev['final_score'];
+        }
+    }
+}
+
 // Phân nhóm cho Kanban View
 $kanban_columns = [
     'pending' => [
@@ -119,43 +149,44 @@ $kanban_columns = [
         'items' => []
     ],
     'self_review' => [
-        'title' => 'NV Tự Đánh Giá',
-        'badge' => 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300',
+        'title' => 'Nhân Viên Tự Đánh Giá',
+        'badge' => 'bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300',
         'border' => 'border-t-sky-500',
         'icon' => 'fa-user-pen',
         'items' => []
     ],
     'manager_review' => [
-        'title' => 'Quản Lý Đang Chấm',
-        'badge' => 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300',
+        'title' => 'Quản Lý Thẩm Định',
+        'badge' => 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300',
         'border' => 'border-t-amber-500',
         'icon' => 'fa-user-tie',
         'items' => []
     ],
     'completed' => [
         'title' => 'Đã Hoàn Tất & Xếp Loại',
-        'badge' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300',
+        'badge' => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300',
         'border' => 'border-t-emerald-500',
         'icon' => 'fa-circle-check',
         'items' => []
     ]
 ];
 
-foreach ($evaluations as $item) {
-    $st = $item['status'];
+foreach ($evaluations as $e) {
+    $st = $e['status'];
     if (isset($kanban_columns[$st])) {
-        $kanban_columns[$st]['items'][] = $item;
+        $kanban_columns[$st]['items'][] = $e;
+    } else {
+        $kanban_columns['pending']['items'][] = $e;
     }
 }
 
-// Cấu hình nhãn xếp loại
 $rating_labels = [
-    'outstanding'   => ['label' => 'Xuất Sắc', 'class' => 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700'],
-    'excellent'     => ['label' => 'Tốt', 'class' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'],
-    'good'          => ['label' => 'Khá', 'class' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700'],
-    'average'       => ['label' => 'Trung Bình', 'class' => 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600'],
-    'below_average' => ['label' => 'Yếu', 'class' => 'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300 border border-orange-300 dark:border-orange-700'],
-    'poor'          => ['label' => 'Kém', 'class' => 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300 dark:border-rose-700']
+    'outstanding'   => ['label' => 'Xuất Sắc (A+)', 'class' => 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300'],
+    'excellent'     => ['label' => 'Tốt (A)', 'class' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300'],
+    'good'          => ['label' => 'Khá (B)', 'class' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-300'],
+    'average'       => ['label' => 'Trung Bình (C)', 'class' => 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200 border border-slate-300'],
+    'below_average' => ['label' => 'Yếu (D)', 'class' => 'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300 border border-orange-300'],
+    'poor'          => ['label' => 'Kém (E)', 'class' => 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300']
 ];
 
 require_once __DIR__ . '/../../includes/header.php';
@@ -163,30 +194,30 @@ require_once __DIR__ . '/../../includes/header.php';
 
 <div class="space-y-6">
 
-    <!-- Header & Action Toolbar -->
+    <!-- Header Navigation & Action Bar -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-1">
-                <span>Quản Trị Nhân Sự</span>
+                <a href="<?= base_url('dashboard.php') ?>" class="hover:underline">Tổng Quan</a>
                 <span>/</span>
-                <span class="text-slate-500 dark:text-slate-400">Đánh Giá & KPI</span>
+                <span class="text-slate-500 dark:text-slate-400">Đánh Giá Hiệu Suất</span>
             </div>
             <h1 class="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
                 <div class="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-lg shadow-md shadow-indigo-200 dark:shadow-none">
-                    <i class="fa-solid fa-bullseye"></i>
+                    <i class="fa-solid fa-chart-line"></i>
                 </div>
-                <span>Trung Tâm Đánh Giá & Quản Lý KPI</span>
+                <span>Quản Trị Đánh Giá & KPI Phân Tầng</span>
             </h1>
             <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Hệ thống đánh giá hiệu suất 2 chiều (Nhân viên tự chấm & Quản lý chấm) tích hợp biểu đồ mạng nhện và tự động xếp loại.
+                Hệ thống đánh giá hiệu suất định lượng theo 4 cấp bậc nhân sự &bull; Liên kết chính sách thưởng Total Rewards.
             </p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2.5">
             <a href="<?= base_url('modules/evaluations/kpi_templates.php') ?>" 
                class="px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-semibold rounded-xl text-xs transition flex items-center gap-2 shadow-sm">
-                <i class="fa-solid fa-layer-group text-indigo-500"></i>
-                <span>Bộ Tiêu Chí KPI</span>
+                <i class="fa-solid fa-sitemap text-indigo-500"></i>
+                <span>Bộ Tiêu Chí 4 Cấp Bậc</span>
             </a>
 
             <a href="<?= base_url('modules/evaluations/periods.php') ?>" 
@@ -234,7 +265,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
                 <div class="text-xs text-emerald-700 dark:text-emerald-300 font-semibold mt-1 flex items-center gap-1.5">
                     <i class="fa-solid fa-circle-check"></i>
-                    <span>Tỷ lệ hoàn thành: <?= $completion_rate ?>%</span>
+                    <span>Tỷ lệ hoàn tất: <?= $completion_rate ?>%</span>
                 </div>
             </div>
             <div class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg shadow-md shadow-emerald-200 dark:shadow-none">
@@ -245,13 +276,13 @@ require_once __DIR__ . '/../../includes/header.php';
         <!-- Thống kê 3: Đang chờ quản lý chấm -->
         <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
             <div>
-                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">Chờ Quản Lý Chấm Điểm</span>
+                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">Chờ Quản Lý Thẩm Định</span>
                 <div class="text-2xl font-black font-mono text-amber-600 dark:text-amber-400 mt-1">
                     <?= $stats['mgr_review_count'] ?>
                 </div>
                 <div class="text-xs text-amber-700 dark:text-amber-300 font-semibold mt-1 flex items-center gap-1.5">
                     <i class="fa-solid fa-clock"></i>
-                    <span><?= $stats['self_review_count'] ?> nhân viên đang tự chấm</span>
+                    <span><?= $stats['self_review_count'] ?> nhân sự đang tự chấm</span>
                 </div>
             </div>
             <div class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-md shadow-amber-200 dark:shadow-none">
@@ -279,6 +310,47 @@ require_once __DIR__ . '/../../includes/header.php';
 
     </div>
 
+    <!-- Thống kê 4 Cấp Bậc Nhân Sự (Hierarchy Progress Bar) -->
+    <div class="bg-white dark:bg-slate-800 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-layer-group text-indigo-500"></i>
+                <span>Tiến Độ & Điểm KPI Trung Bình Theo Cấp Bậc</span>
+            </h3>
+            <span class="text-[11px] text-slate-400 font-mono">Dữ liệu theo bộ lọc hiện tại</span>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <?php foreach ($hierarchy_levels as $hl_key => $hl): ?>
+                <?php 
+                    $st_lvl = $level_stats[$hl_key];
+                    $avg_lvl = count($st_lvl['scores']) > 0 ? round(array_sum($st_lvl['scores']) / count($st_lvl['scores']), 1) : null;
+                    $pct_lvl = $st_lvl['total'] > 0 ? round(($st_lvl['completed'] / $st_lvl['total']) * 100) : 0;
+                ?>
+                <div class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                            <i class="fa-solid <?= $hl['icon'] ?> text-slate-400 text-xs"></i>
+                            <?= e($hl['label']) ?>
+                        </span>
+                        <span class="text-[11px] font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                            <?= $st_lvl['completed'] ?>/<?= $st_lvl['total'] ?>
+                        </span>
+                    </div>
+
+                    <div class="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                        <div class="bg-indigo-600 h-full rounded-full" style="width: <?= $pct_lvl ?>%"></div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                        <span>Hoàn thành: <b><?= $pct_lvl ?>%</b></span>
+                        <span>Điểm TB: <b class="text-emerald-600"><?= $avg_lvl !== null ? $avg_lvl . 'đ' : '---' ?></b></span>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+
     <!-- Thanh Lọc & Bộ Công Cụ Tìm Kiếm + Chuyển Chế Độ Xem (Kanban / Table) -->
     <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
         <form method="GET" class="flex flex-wrap items-center justify-between gap-3">
@@ -286,7 +358,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
             <div class="flex flex-wrap items-center gap-2.5 flex-1">
                 <!-- Search input -->
-                <div class="relative min-w-[200px] sm:min-w-[240px]">
+                <div class="relative min-w-[200px] sm:min-w-[220px]">
                     <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                     <input type="text" name="search" value="<?= e($search) ?>" placeholder="Tên NV, mã NV hoặc mã phiếu..."
                            class="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -300,6 +372,15 @@ require_once __DIR__ . '/../../includes/header.php';
                         <option value="<?= $p['id'] ?>" <?= $filter_period == $p['id'] ? 'selected' : '' ?>>
                             <?= e($p['name']) ?> (<?= $p['status'] === 'active' ? 'Đang mở' : 'Đã đóng' ?>)
                         </option>
+                    <?php endforeach; ?>
+                </select>
+
+                <!-- Lọc Cấp bậc nhân sự -->
+                <select name="hierarchy_level" onchange="this.form.submit()"
+                        class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500">
+                    <option value="">-- Tất cả cấp bậc --</option>
+                    <?php foreach ($hierarchy_levels as $lk => $lv): ?>
+                        <option value="<?= $lk ?>" <?= $filter_level === $lk ? 'selected' : '' ?>><?= e($lv['label']) ?></option>
                     <?php endforeach; ?>
                 </select>
 
@@ -328,9 +409,9 @@ require_once __DIR__ . '/../../includes/header.php';
                     Lọc
                 </button>
 
-                <?php if ($filter_dept > 0 || !empty($filter_status) || !empty($filter_rating) || !empty($search)): ?>
+                <?php if ($filter_dept > 0 || !empty($filter_level) || !empty($filter_status) || !empty($filter_rating) || !empty($search)): ?>
                     <a href="<?= base_url('modules/evaluations/index.php?period_id=' . $filter_period) ?>" class="text-xs text-rose-500 hover:underline">
-                        Xóa bộ lọc
+                        Xóa lọc
                     </a>
                 <?php endif; ?>
             </div>
@@ -379,20 +460,23 @@ require_once __DIR__ . '/../../includes/header.php';
                         <?php endif; ?>
 
                         <?php foreach ($col['items'] as $item): ?>
-                            <?php $rt = $rating_labels[$item['rating'] ?? ''] ?? null; ?>
+                            <?php 
+                                $rt = $rating_labels[$item['rating'] ?? ''] ?? null;
+                                $lvl_card = $hierarchy_levels[$item['template_level'] ?? 'specialist'] ?? $hierarchy_levels['specialist'];
+                                $k_mult = (float)($item['bonus_multiplier'] ?? 1.00);
+                            ?>
                             <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700/80 shadow-sm hover:shadow-md transition space-y-3">
                                 
-                                <!-- Top: Code + Rating -->
-                                <div class="flex items-center justify-between gap-2">
+                                <!-- Top: Code + Level Badge + Rating -->
+                                <div class="flex items-center justify-between gap-1.5 flex-wrap">
                                     <span class="text-[11px] font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">
                                         <?= e($item['evaluation_code']) ?>
                                     </span>
 
-                                    <?php if ($rt): ?>
-                                        <span class="text-[10px] font-black px-2 py-0.5 rounded-full <?= $rt['class'] ?>">
-                                            <?= $rt['label'] ?>
-                                        </span>
-                                    <?php endif; ?>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border <?= $lvl_card['badge'] ?>" title="<?= e($lvl_card['label']) ?>">
+                                        <i class="fa-solid <?= $lvl_card['icon'] ?> mr-0.5"></i>
+                                        <?= e($lvl_card['label']) ?>
+                                    </span>
                                 </div>
 
                                 <!-- Employee Profile -->
@@ -405,7 +489,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                             <?= e($item['employee_name']) ?>
                                         </h4>
                                         <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                                            <?= e($item['position_name'] ?: '---') ?> • <?= e($item['department_name'] ?: '---') ?>
+                                            <?= e($item['position_name'] ?: '---') ?> &bull; <?= e($item['department_name'] ?: '---') ?>
                                         </p>
                                     </div>
                                 </div>
@@ -431,6 +515,18 @@ require_once __DIR__ . '/../../includes/header.php';
                                         </strong>
                                     </div>
                                 </div>
+
+                                <!-- Xếp loại & Hệ số thưởng -->
+                                <?php if ($rt): ?>
+                                    <div class="flex items-center justify-between text-[11px] p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60">
+                                        <span class="text-[10px] font-black px-2 py-0.5 rounded-full <?= $rt['class'] ?>">
+                                            <?= $rt['label'] ?>
+                                        </span>
+                                        <span class="font-mono font-bold text-amber-600 dark:text-amber-400 text-[11px]">
+                                            Thưởng K = x<?= number_format($k_mult, 2) ?>
+                                        </span>
+                                    </div>
+                                <?php endif; ?>
 
                                 <!-- Footer: Reviewer & Action -->
                                 <div class="flex items-center justify-between pt-1 text-[11px] text-slate-500">
@@ -464,13 +560,14 @@ require_once __DIR__ . '/../../includes/header.php';
                         <tr class="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
                             <th class="py-3.5 px-4">Mã Phiếu</th>
                             <th class="py-3.5 px-4">Nhân Sự Được Đánh Giá</th>
+                            <th class="py-3.5 px-4">Cấp Bậc Nhân Sự</th>
                             <th class="py-3.5 px-4">Khối Phòng Ban</th>
-                            <th class="py-3.5 px-4">Kỳ Đánh Giá</th>
-                            <th class="py-3.5 px-4">Quản Lý Chấm</th>
+                            <th class="py-3.5 px-4">Quản Lý Thẩm Tra</th>
                             <th class="py-3.5 px-4 text-center">Tự Chấm</th>
                             <th class="py-3.5 px-4 text-center">QL Chấm</th>
                             <th class="py-3.5 px-4 text-center">Điểm Tổng</th>
                             <th class="py-3.5 px-4 text-center">Xếp Loại</th>
+                            <th class="py-3.5 px-4 text-center">Hệ Số Thưởng K</th>
                             <th class="py-3.5 px-4 text-center">Trạng Thái</th>
                             <th class="py-3.5 px-4 text-right">Thao Tác</th>
                         </tr>
@@ -478,14 +575,18 @@ require_once __DIR__ . '/../../includes/header.php';
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                         <?php if (empty($evaluations)): ?>
                             <tr>
-                                <td colspan="11" class="py-12 text-center text-slate-400">
+                                <td colspan="12" class="py-12 text-center text-slate-400">
                                     Không tìm thấy hồ sơ đánh giá nào phù hợp với bộ lọc.
                                 </td>
                             </tr>
                         <?php endif; ?>
 
                         <?php foreach ($evaluations as $item): ?>
-                            <?php $rt = $rating_labels[$item['rating'] ?? ''] ?? null; ?>
+                            <?php 
+                                $rt = $rating_labels[$item['rating'] ?? ''] ?? null;
+                                $lvl_tbl = $hierarchy_levels[$item['template_level'] ?? 'specialist'] ?? $hierarchy_levels['specialist'];
+                                $k_mult = (float)($item['bonus_multiplier'] ?? 1.00);
+                            ?>
                             <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition">
                                 
                                 <td class="py-3 px-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">
@@ -499,17 +600,19 @@ require_once __DIR__ . '/../../includes/header.php';
                                         <?= render_avatar($item['employee_name'], $item['employee_avatar'], 8) ?>
                                         <div>
                                             <div class="font-bold text-slate-900 dark:text-white"><?= e($item['employee_name']) ?></div>
-                                            <div class="text-[11px] text-slate-400"><?= e($item['employee_code']) ?> • <?= e($item['position_name'] ?: '---') ?></div>
+                                            <div class="text-[11px] text-slate-400"><?= e($item['employee_code']) ?> &bull; <?= e($item['position_name'] ?: '---') ?></div>
                                         </div>
                                     </div>
                                 </td>
 
-                                <td class="py-3 px-4 text-slate-600 dark:text-slate-300">
-                                    <?= e($item['department_name'] ?: '---') ?>
+                                <td class="py-3 px-4">
+                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border <?= $lvl_tbl['badge'] ?>">
+                                        <i class="fa-solid <?= $lvl_tbl['icon'] ?> mr-1"></i><?= e($lvl_tbl['label']) ?>
+                                    </span>
                                 </td>
 
                                 <td class="py-3 px-4 text-slate-600 dark:text-slate-300">
-                                    <?= e($item['period_name']) ?>
+                                    <?= e($item['department_name'] ?: '---') ?>
                                 </td>
 
                                 <td class="py-3 px-4 text-slate-600 dark:text-slate-300">
@@ -536,6 +639,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <?php else: ?>
                                         <span class="text-slate-400 text-[11px]">---</span>
                                     <?php endif; ?>
+                                </td>
+
+                                <td class="py-3 px-4 text-center font-mono font-bold text-amber-600 dark:text-amber-400">
+                                    <?= $item['status'] === 'completed' ? 'x' . number_format($k_mult, 2) : '---' ?>
                                 </td>
 
                                 <td class="py-3 px-4 text-center">
