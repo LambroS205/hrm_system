@@ -262,7 +262,11 @@ require_once __DIR__ . '/../../includes/header.php';
 
             <?php if (!empty($payroll_items) && has_permission('payroll', 'edit')): ?>
                 <?php if (!$is_month_locked): ?>
-                    <form action="index.php?month=<?= $selected_month ?>&year=<?= $selected_year ?>" method="POST" onsubmit="return confirm('Bạn có chắc muốn chốt và khóa bảng lương Tháng <?= $selected_month ?>/<?= $selected_year ?>? Thao tác này sẽ khóa chấm công và ngăn tính lại.')">
+                    <form action="index.php?month=<?= $selected_month ?>&year=<?= $selected_year ?>" method="POST"
+                          data-confirm="Bạn có chắc muốn chốt và khóa bảng lương Tháng <?= $selected_month ?>/<?= $selected_year ?>? Thao tác này sẽ khóa chấm công và ngăn tính lại."
+                          data-confirm-title="Xác Nhận Chốt & Khóa Sổ Lương"
+                          data-confirm-btn="Chốt Lương"
+                          data-confirm-danger="false">
                         <?= csrf_field() ?>
                         <input type="hidden" name="action_type" value="lock_monthly_payroll">
                         <input type="hidden" name="month" value="<?= $selected_month ?>">
@@ -273,7 +277,11 @@ require_once __DIR__ . '/../../includes/header.php';
                         </button>
                     </form>
                 <?php elseif ($count_paid === 0): ?>
-                    <form action="index.php?month=<?= $selected_month ?>&year=<?= $selected_year ?>" method="POST" onsubmit="return confirm('Mở khóa bảng lương để điều chỉnh lại?')">
+                    <form action="index.php?month=<?= $selected_month ?>&year=<?= $selected_year ?>" method="POST"
+                          data-confirm="Mở khóa bảng lương để điều chỉnh lại? Dữ liệu tính lương có thể được tính lại sau khi mở."
+                          data-confirm-title="Xác Nhận Mở Khóa Bảng Lương"
+                          data-confirm-btn="Mở Khóa"
+                          data-confirm-danger="true">
                         <?= csrf_field() ?>
                         <input type="hidden" name="action_type" value="unlock_monthly_payroll">
                         <input type="hidden" name="month" value="<?= $selected_month ?>">

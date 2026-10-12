@@ -120,7 +120,11 @@ require_once __DIR__ . '/../../includes/header.php';
                     <?= csrf_field() ?>
                     <input type="hidden" name="action_type" value="approve_proposal">
                     <input type="hidden" name="proposal_id" value="<?= $p['id'] ?>">
-                    <button type="submit" onclick="return confirm('Xác nhận PHÊ DUYỆT đề xuất <?= e($p['proposal_code']) ?>?')"
+                    <button type="submit" 
+                            data-confirm="Xác nhận PHÊ DUYỆT đề xuất <?= e($p['proposal_code']) ?>?"
+                            data-confirm-title="Xác Nhận Phê Duyệt Đề Xuất"
+                            data-confirm-btn="Phê Duyệt"
+                            data-confirm-danger="false"
                             class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-md transition flex items-center gap-2">
                         <i class="fa-solid fa-check"></i>
                         <span>Phê Duyệt</span>

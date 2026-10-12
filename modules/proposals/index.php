@@ -497,7 +497,11 @@ require_once __DIR__ . '/../../includes/header.php';
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="action_type" value="approve_proposal">
                                             <input type="hidden" name="proposal_id" value="<?= $p['id'] ?>">
-                                            <button type="submit" onclick="return confirm('Bạn xác nhận PHÊ DUYỆT đề xuất này?')"
+                                            <button type="submit" 
+                                                    data-confirm="Bạn xác nhận PHÊ DUYỆT đề xuất <?= e($p['proposal_code']) ?>?"
+                                                    data-confirm-title="Xác Nhận Phê Duyệt Đề Xuất"
+                                                    data-confirm-btn="Phê Duyệt"
+                                                    data-confirm-danger="false"
                                                     class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center transition"
                                                     title="Phê duyệt">
                                                 <i class="fa-solid fa-check text-xs"></i>
@@ -516,7 +520,11 @@ require_once __DIR__ . '/../../includes/header.php';
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="action_type" value="delete_proposal">
                                             <input type="hidden" name="proposal_id" value="<?= $p['id'] ?>">
-                                            <button type="submit" onclick="return confirm('Xóa vĩnh viễn đề xuất <?= e($p['proposal_code']) ?>?')"
+                                            <button type="submit" 
+                                                    data-confirm="Xóa vĩnh viễn đề xuất <?= e($p['proposal_code']) ?>? Thao tác này không thể khôi phục."
+                                                    data-confirm-title="Xác Nhận Xóa Đề Xuất"
+                                                    data-confirm-btn="Xóa Vĩnh Viễn"
+                                                    data-confirm-danger="true"
                                                     class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 flex items-center justify-center transition"
                                                     title="Xóa đề xuất">
                                                 <i class="fa-solid fa-trash-can text-xs"></i>

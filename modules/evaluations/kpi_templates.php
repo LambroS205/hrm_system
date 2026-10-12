@@ -428,7 +428,10 @@ require_once __DIR__ . '/../../includes/header.php';
                 <div class="px-5 py-3 bg-slate-50/80 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-end gap-2">
                     <?php if (has_permission('evaluations', 'create')): ?>
                         <!-- Nút Clone -->
-                        <form method="POST" onsubmit="return confirm('Bạn có chắc muốn nhân bản bộ tiêu chí [<?= e($t['code']) ?>]?')">
+                        <form method="POST"
+                              data-confirm="Bạn có chắc muốn nhân bản bộ tiêu chí [<?= e($t['code']) ?>]?"
+                              data-confirm-title="Xác Nhận Nhân Bản Bộ Tiêu Chí"
+                              data-confirm-danger="false">
                             <?= csrf_field() ?>
                             <input type="hidden" name="action_type" value="clone_template">
                             <input type="hidden" name="source_id" value="<?= $t['id'] ?>">
@@ -449,7 +452,10 @@ require_once __DIR__ . '/../../includes/header.php';
 
                     <?php if (has_permission('evaluations', 'delete') && $t['evaluations_count'] == 0): ?>
                         <!-- Nút Delete -->
-                        <form method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa bộ tiêu chí [<?= e($t['code']) ?>]?')">
+                        <form method="POST"
+                              data-confirm="Bạn có chắc muốn xóa bộ tiêu chí [<?= e($t['code']) ?>]?"
+                              data-confirm-title="Xác Nhận Xóa Bộ Tiêu Chí"
+                              data-confirm-danger="true">
                             <?= csrf_field() ?>
                             <input type="hidden" name="action_type" value="delete_template">
                             <input type="hidden" name="template_id" value="<?= $t['id'] ?>">

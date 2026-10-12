@@ -79,34 +79,94 @@
             .replace(/'/g, '&#039;');
     }
 
-    // 3. GLOBAL CONFIRM MODAL (Thay thế confirm browser cổ điển)
+    // Ghi đè window.alert mặc định của trình duyệt để loại bỏ vĩnh viễn popup "localhost says"
+    window.alert = function(message) {
+        if (typeof window.showToast === 'function') {
+            window.showToast('info', message);
+        } else {
+            console.info('[App Alert]', message);
+        }
+    };
+
+    // 3. GLOBAL CONFIRM MODAL (Thay thế toàn bộ confirm browser cổ điển)
     let pendingConfirmCallback = null;
+    let pendingCancelCallback = null;
+
+    function ensureConfirmModalDOM() {
+        let modal = document.getElementById('globalConfirmModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'globalConfirmModal';
+            modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm hidden animate-fade-in';
+            modal.innerHTML = `
+                <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-md w-full p-6 border-2 border-slate-200 dark:border-slate-700 animate-scale-up">
+                    <div class="flex items-start gap-4">
+                        <div id="confirmModalIconBox" class="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 text-xl shadow-xs">
+                            <i id="confirmModalIcon" class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 id="confirmModalTitle" class="text-base font-extrabold text-slate-900 dark:text-white">
+                                Xác Nhận Thao Tác
+                            </h3>
+                            <p id="confirmModalMessage" class="text-sm font-medium text-slate-600 dark:text-slate-300 mt-1.5 leading-relaxed">
+                                Bạn có chắc chắn muốn thực hiện hành động này không?
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex items-center justify-end gap-3 pt-4 border-t-2 border-slate-200 dark:border-slate-700">
+                        <button type="button" onclick="closeConfirmModal()" class="px-4 py-2.5 rounded-xl border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-bold transition">
+                            Hủy Bỏ
+                        </button>
+                        <button type="button" id="confirmModalSubmitBtn" onclick="triggerConfirmModalAction()" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-sm font-bold transition shadow-sm">
+                            Đồng Ý
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        return modal;
+    }
 
     window.openConfirmModal = function(options = {}) {
         const title = options.title || 'Xác Nhận Thao Tác';
         const message = options.message || 'Bạn có chắc chắn muốn thực hiện hành động này không? Dữ liệu có thể không thể khôi phục.';
         const confirmText = options.confirmText || 'Đồng Ý';
-        const cancelText = options.cancelText || 'Hủy Bỏ';
         const isDanger = options.isDanger !== false; // Mặc định là nút đỏ danger nếu không chỉ định
 
-        const modal = document.getElementById('globalConfirmModal');
-        if (!modal) {
-            console.error('Confirm Modal element not found in DOM.');
-            return;
+        const modal = ensureConfirmModalDOM();
+
+        const titleEl = document.getElementById('confirmModalTitle');
+        const messageEl = document.getElementById('confirmModalMessage');
+        const iconBox = document.getElementById('confirmModalIconBox');
+        const iconEl = document.getElementById('confirmModalIcon');
+        const confirmBtn = document.getElementById('confirmModalSubmitBtn');
+
+        if (titleEl) titleEl.textContent = title;
+        if (messageEl) messageEl.textContent = message;
+        
+        if (confirmBtn) {
+            confirmBtn.textContent = confirmText;
+            if (isDanger) {
+                confirmBtn.className = 'px-4 py-2.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-semibold rounded-xl text-sm transition shadow-sm';
+            } else {
+                confirmBtn.className = 'px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-xl text-sm transition shadow-sm';
+            }
         }
 
-        document.getElementById('confirmModalTitle').textContent = title;
-        document.getElementById('confirmModalMessage').textContent = message;
-        
-        const confirmBtn = document.getElementById('confirmModalSubmitBtn');
-        confirmBtn.textContent = confirmText;
-        if (isDanger) {
-            confirmBtn.className = 'px-4 py-2.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-semibold rounded-xl text-sm transition shadow-sm';
-        } else {
-            confirmBtn.className = 'px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-xl text-sm transition shadow-sm';
+        if (iconBox && iconEl) {
+            if (isDanger) {
+                iconBox.className = 'w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 text-xl shadow-xs';
+                iconEl.className = 'fa-solid fa-triangle-exclamation';
+            } else {
+                iconBox.className = 'w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 text-xl shadow-xs';
+                iconEl.className = 'fa-solid fa-circle-question';
+            }
         }
 
         pendingConfirmCallback = options.onConfirm || null;
+        pendingCancelCallback = options.onCancel || null;
         modal.classList.remove('hidden');
     };
 
@@ -115,38 +175,69 @@
         if (modal) {
             modal.classList.add('hidden');
         }
-        pendingConfirmCallback = null;
-    };
-
-    window.triggerConfirmModalAction = function() {
-        if (typeof pendingConfirmCallback === 'function') {
-            const cb = pendingConfirmCallback;
-            closeConfirmModal();
-            cb();
+        if (typeof pendingCancelCallback === 'function') {
+            const cancelCb = pendingCancelCallback;
+            pendingCancelCallback = null;
+            pendingConfirmCallback = null;
+            cancelCb();
         } else {
-            closeConfirmModal();
+            pendingConfirmCallback = null;
+            pendingCancelCallback = null;
         }
     };
 
-    // 4. INTERCEPT DATA-CONFIRM ATTRIBUTES ON FORMS & BUTTONS
+    window.triggerConfirmModalAction = function() {
+        const confirmCb = pendingConfirmCallback;
+        pendingConfirmCallback = null;
+        pendingCancelCallback = null;
+        
+        const modal = document.getElementById('globalConfirmModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+
+        if (typeof confirmCb === 'function') {
+            confirmCb();
+        }
+    };
+
+    // Hỗ trợ Promise-based modal xác nhận bất đồng bộ (thay thế async confirm)
+    window.confirmAsync = function(options = {}) {
+        return new Promise((resolve) => {
+            const opts = typeof options === 'string' ? { message: options } : options;
+            window.openConfirmModal({
+                ...opts,
+                onConfirm: () => resolve(true),
+                onCancel: () => resolve(false)
+            });
+        });
+    };
+
+    // 4. INTERCEPT DATA-CONFIRM ATTRIBUTES ON BUTTONS, LINKS & FORMS
     document.addEventListener('click', function(e) {
         const btn = e.target.closest('[data-confirm]');
         if (!btn) return;
 
+        // Nếu phần tử đã được đánh dấu confirmed thì để sự kiện diễn ra tự nhiên
+        if (btn.dataset.isConfirmed === 'true') {
+            return;
+        }
+
         e.preventDefault();
         const message = btn.getAttribute('data-confirm') || 'Bạn có chắc chắn muốn tiếp tục?';
-        const title = btn.getAttribute('data-confirm-title') || 'Xác Nhận';
+        const title = btn.getAttribute('data-confirm-title') || 'Xác Nhận Thao Tác';
+        const confirmText = btn.getAttribute('data-confirm-btn') || 'Đồng Ý';
         const isDanger = btn.getAttribute('data-confirm-danger') !== 'false';
 
         openConfirmModal({
             title: title,
             message: message,
+            confirmText: confirmText,
             isDanger: isDanger,
             onConfirm: function() {
                 if (btn.tagName === 'A') {
                     window.location.href = btn.href;
                 } else if (btn.tagName === 'BUTTON' && btn.form) {
-                    // Thêm hidden input nếu button có name & value
                     if (btn.name && btn.value) {
                         const hiddenInput = document.createElement('input');
                         hiddenInput.type = 'hidden';
@@ -154,9 +245,72 @@
                         hiddenInput.value = btn.value;
                         btn.form.appendChild(hiddenInput);
                     }
+                    btn.form.dataset.isConfirmed = 'true';
                     btn.form.submit();
-                } else if (btn.tagName === 'BUTTON') {
+                } else {
+                    btn.dataset.isConfirmed = 'true';
                     btn.click();
+                    setTimeout(() => { delete btn.dataset.isConfirmed; }, 500);
+                }
+            }
+        });
+    });
+
+    // Bắt sự kiện submit form nếu form có thuộc tính data-confirm
+    document.addEventListener('submit', function(e) {
+        const form = e.target;
+        if (form.hasAttribute('data-confirm') && form.dataset.isConfirmed !== 'true') {
+            e.preventDefault();
+            const message = form.getAttribute('data-confirm') || 'Bạn có chắc chắn muốn gửi biểu mẫu này?';
+            const title = form.getAttribute('data-confirm-title') || 'Xác Nhận Biểu Mẫu';
+            const confirmText = form.getAttribute('data-confirm-btn') || 'Đồng Ý';
+            const isDanger = form.getAttribute('data-confirm-danger') !== 'false';
+
+            openConfirmModal({
+                title: title,
+                message: message,
+                confirmText: confirmText,
+                isDanger: isDanger,
+                onConfirm: function() {
+                    form.dataset.isConfirmed = 'true';
+                    form.submit();
+                }
+            });
+        }
+    }, true);
+
+    // Tự động chuyển đổi các phần tử HTML cũ có onsubmit / onclick chứa confirm(...)
+    // sang hệ thống data-confirm để triệt tiêu hoàn toàn pop-up "localhost says"
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('form, button, a').forEach(el => {
+            const onsubmitAttr = el.getAttribute('onsubmit');
+            const onclickAttr = el.getAttribute('onclick');
+
+            if (onsubmitAttr && onsubmitAttr.includes('confirm(')) {
+                const match = onsubmitAttr.match(/confirm\s*\(\s*(['"`])(.*?)\1\s*\)/);
+                if (match && match[2]) {
+                    el.removeAttribute('onsubmit');
+                    el.setAttribute('data-confirm', match[2]);
+                    const lower = onsubmitAttr.toLowerCase();
+                    if (lower.includes('chốt') || lower.includes('phê duyệt')) {
+                        el.setAttribute('data-confirm-danger', 'false');
+                    } else if (lower.includes('xóa') || lower.includes('hủy')) {
+                        el.setAttribute('data-confirm-danger', 'true');
+                    }
+                }
+            }
+
+            if (onclickAttr && onclickAttr.includes('confirm(')) {
+                const match = onclickAttr.match(/confirm\s*\(\s*(['"`])(.*?)\1\s*\)/);
+                if (match && match[2]) {
+                    el.removeAttribute('onclick');
+                    el.setAttribute('data-confirm', match[2]);
+                    const lower = onclickAttr.toLowerCase();
+                    if (lower.includes('phê duyệt') || lower.includes('đồng ý')) {
+                        el.setAttribute('data-confirm-danger', 'false');
+                    } else if (lower.includes('xóa') || lower.includes('hủy')) {
+                        el.setAttribute('data-confirm-danger', 'true');
+                    }
                 }
             }
         });

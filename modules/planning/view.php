@@ -476,7 +476,9 @@ require_once __DIR__ . '/../../includes/header.php';
                                         <input type="hidden" name="action_type" value="delete_plan_item">
                                         <input type="hidden" name="item_id" value="<?= $it['id'] ?>">
                                         <button type="submit" 
-                                                onclick="return confirm('Bạn có chắc chắn muốn xóa cán bộ này khỏi kế hoạch?')"
+                                                data-confirm="Bạn có chắc chắn muốn xóa cán bộ '<?= e($it['fullname']) ?>' khỏi kế hoạch?"
+                                                data-confirm-title="Xác Nhận Xóa Khỏi Kế Hoạch"
+                                                data-confirm-danger="true"
                                                 class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-900/40 text-slate-400 inline-flex items-center justify-center transition">
                                             <i class="fa-solid fa-trash-can text-xs"></i>
                                         </button>

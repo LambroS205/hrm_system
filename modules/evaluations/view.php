@@ -959,7 +959,14 @@ async function submitEvaluation(event, reviewType, isSubmitFinal) {
         const confirmMsg = reviewType === 'self' 
             ? 'Bạn có chắc chắn muốn nộp kết quả tự đánh giá? Phiếu sẽ được chuyển tiếp cho Quản lý chấm điểm.'
             : 'Bạn có chắc chắn muốn phê duyệt và chốt kết quả đánh giá KPI này?';
-        if (!confirm(confirmMsg)) return;
+        const title = reviewType === 'self' ? 'Xác Nhận Nộp Tự Đánh Giá' : 'Xác Nhận Phê Duyệt KPI';
+        const confirmed = await window.confirmAsync({
+            title: title,
+            message: confirmMsg,
+            confirmText: 'Xác Nhận Nộp',
+            isDanger: false
+        });
+        if (!confirmed) return;
     }
 
     const scores = [];
@@ -1000,14 +1007,22 @@ async function submitEvaluation(event, reviewType, isSubmitFinal) {
 
         const res = await response.json();
         if (res.success) {
-            alert(res.message);
+            if (typeof window.showToast === 'function') {
+                window.showToast('success', res.message);
+            }
             // Reload trang để cập nhật đầy đủ điểm và badges
-            window.location.reload();
+            setTimeout(() => {
+                window.location.reload();
+            }, 800);
         } else {
-            alert('Lỗi: ' + res.message);
+            if (typeof window.showToast === 'function') {
+                window.showToast('danger', 'Lỗi: ' + res.message);
+            }
         }
     } catch (e) {
-        alert('Có lỗi mạng hoặc máy chủ không phản hồi: ' + e.message);
+        if (typeof window.showToast === 'function') {
+            window.showToast('danger', 'Có lỗi mạng hoặc máy chủ không phản hồi: ' + e.message);
+        }
     }
 }
 

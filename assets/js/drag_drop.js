@@ -188,20 +188,20 @@
                 const sizeMB = file.size / (1024 * 1024);
 
                 if (!allowedExts.includes(ext)) {
-                    if (window.showToast) {
+                    if (typeof window.showToast === 'function') {
                         window.showToast('danger', `Định dạng .${ext} không được hỗ trợ. Vui lòng chọn: ${allowedExts.join(', ')}`);
                     } else {
-                        alert(`Định dạng .${ext} không được hỗ trợ.`);
+                        console.warn(`Định dạng .${ext} không được hỗ trợ.`);
                     }
                     resetFile();
                     return;
                 }
 
                 if (sizeMB > maxSizeMB) {
-                    if (window.showToast) {
+                    if (typeof window.showToast === 'function') {
                         window.showToast('danger', `Dung lượng tệp (${sizeMB.toFixed(1)}MB) vượt quá giới hạn tối đa ${maxSizeMB}MB.`);
                     } else {
-                        alert(`Dung lượng tệp vượt quá ${maxSizeMB}MB.`);
+                        console.warn(`Dung lượng tệp vượt quá ${maxSizeMB}MB.`);
                     }
                     resetFile();
                     return;

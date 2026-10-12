@@ -161,7 +161,10 @@ require_once __DIR__ . '/../../includes/header.php';
                             </td>
                             <td class="py-4 px-6 text-right">
                                 <?php if (has_permission('payroll', 'delete')): ?>
-                                    <form action="holidays.php?year=<?= $selected_year ?>" method="POST" class="inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa ngày lễ này?')">
+                                    <form action="holidays.php?year=<?= $selected_year ?>" method="POST" class="inline"
+                                          data-confirm="Bạn có chắc chắn muốn xóa ngày lễ '<?= e($h['name']) ?>' này?"
+                                          data-confirm-title="Xác Nhận Xóa Ngày Lễ"
+                                          data-confirm-danger="true">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action_type" value="delete_holiday">
                                         <input type="hidden" name="holiday_id" value="<?= $h['id'] ?>">

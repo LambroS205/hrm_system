@@ -636,7 +636,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <p class="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Chuyên ngành: <strong class="text-slate-800 dark:text-slate-100"><?= e($edu['major']) ?></strong></p>
                                 </div>
                                 <?php if (has_permission('employees', 'edit')): ?>
-                                    <form method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bằng cấp này?');">
+                                    <form method="POST"
+                                          data-confirm="Bạn có chắc chắn muốn xóa bằng cấp này?"
+                                          data-confirm-title="Xác Nhận Xóa Bằng Cấp"
+                                          data-confirm-danger="true">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="delete_education">
                                         <input type="hidden" name="edu_id" value="<?= $edu['id'] ?>">
@@ -717,7 +720,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Cơ quan cấp: <strong class="text-slate-700 dark:text-slate-200"><?= e($cert['issuer']) ?></strong></p>
                                 </div>
                                 <?php if (has_permission('employees', 'edit')): ?>
-                                    <form method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa chứng chỉ này?');">
+                                    <form method="POST"
+                                          data-confirm="Bạn có chắc muốn xóa chứng chỉ này?"
+                                          data-confirm-title="Xác Nhận Xóa Chứng Chỉ"
+                                          data-confirm-danger="true">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="delete_certificate">
                                         <input type="hidden" name="cert_id" value="<?= $cert['id'] ?>">
@@ -809,7 +815,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                         </a>
                                     <?php endif; ?>
                                     <?php if (has_permission('employees', 'edit')): ?>
-                                        <form method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bản hợp đồng này?');">
+                                        <form method="POST"
+                                              data-confirm="Bạn có chắc chắn muốn xóa bản hợp đồng này?"
+                                              data-confirm-title="Xác Nhận Xóa Hợp Đồng"
+                                              data-confirm-danger="true">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="action" value="delete_contract">
                                             <input type="hidden" name="contract_id" value="<?= $ctr['id'] ?>">
@@ -902,7 +911,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                     </div>
                                 </div>
                                 <?php if (has_permission('employees', 'edit')): ?>
-                                    <form method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bảo hiểm này?');">
+                                    <form method="POST"
+                                          data-confirm="Bạn có chắc chắn muốn xóa bảo hiểm này?"
+                                          data-confirm-title="Xác Nhận Xóa Bảo Hiểm"
+                                          data-confirm-danger="true">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="delete_insurance">
                                         <input type="hidden" name="insurance_id" value="<?= $ins['id'] ?>">
@@ -1038,7 +1050,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                     </div>
                                 </div>
                                 <?php if (has_permission('employees', 'edit')): ?>
-                                    <form method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa bản ghi thân nhân này?');">
+                                    <form method="POST"
+                                          data-confirm="Bạn có chắc muốn xóa bản ghi thân nhân này?"
+                                          data-confirm-title="Xác Nhận Xóa Thân Nhân"
+                                          data-confirm-danger="true">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="delete_dependent">
                                         <input type="hidden" name="dependent_id" value="<?= $dep['id'] ?>">

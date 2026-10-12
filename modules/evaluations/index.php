@@ -573,7 +573,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                         <?php endif; ?>
 
                                         <?php if (has_permission('evaluations', 'delete')): ?>
-                                            <form method="POST" action="<?= base_url('modules/evaluations/delete.php') ?>" class="inline" onsubmit="return confirm('Bạn có chắc muốn xóa phiếu [<?= e($item['evaluation_code']) ?>]?')">
+                                            <form method="POST" action="<?= base_url('modules/evaluations/delete.php') ?>" class="inline"
+                                                  data-confirm="Bạn có chắc muốn xóa phiếu đánh giá [<?= e($item['evaluation_code']) ?>]?"
+                                                  data-confirm-title="Xác Nhận Xóa Phiếu Đánh Giá"
+                                                  data-confirm-danger="true">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="id" value="<?= $item['id'] ?>">
                                                 <button type="submit" class="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition" title="Xóa">

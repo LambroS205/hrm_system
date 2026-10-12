@@ -454,7 +454,10 @@ require_once __DIR__ . '/../../includes/header.php';
 
                         <?php if (has_permission('evaluations', 'delete') && $p['total_evaluations'] == 0): ?>
                             <!-- Nút Xóa -->
-                            <form method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa đợt đánh giá [<?= e($p['code']) ?>]?')">
+                            <form method="POST"
+                                  data-confirm="Bạn có chắc muốn xóa đợt đánh giá [<?= e($p['code']) ?>]?"
+                                  data-confirm-title="Xác Nhận Xóa Đợt Đánh Giá"
+                                  data-confirm-danger="true">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="action_type" value="delete_period">
                                 <input type="hidden" name="period_id" value="<?= $p['id'] ?>">
