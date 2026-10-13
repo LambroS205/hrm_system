@@ -23,15 +23,10 @@ require_once __DIR__ . '/../../includes/header.php';
 
 <div class="space-y-6">
 
-    <!-- Header Section với Gradient Banner -->
-    <div class="bg-gradient-to-r from-slate-800 via-slate-900 to-indigo-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
-        <!-- Background Pattern -->
-        <div class="absolute inset-0 opacity-10">
-            <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,<svg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"><g fill=\"none\" fill-rule=\"evenodd\"><g fill=\"%23ffffff\" fill-opacity=\"0.15\"><path d=\"M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\"/></g></g></svg>');"></div>
-        </div>
-        
+    <!-- Header Section với Flat Metro Banner -->
+    <div class="bg-slate-900 rounded-sm p-6 sm:p-8 text-white border border-slate-800 relative">
         <div class="relative z-10">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/15 backdrop-blur-md mb-4 text-indigo-200">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-sm text-xs font-semibold bg-slate-800 text-indigo-300 border border-slate-700 mb-4">
                 <i class="fa-solid fa-magnifying-glass-plus text-amber-300"></i> Trung Tâm Tìm Kiếm Thông Minh
             </div>
             <h2 class="text-2xl sm:text-3xl font-bold tracking-tight mb-2">Tìm Kiếm Toàn Cục</h2>
@@ -192,7 +187,7 @@ require_once __DIR__ . '/../../includes/header.php';
     <div id="searchResults" class="space-y-6">
         <!-- Placeholder ban đầu -->
         <div id="searchPlaceholder" class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/80 dark:border-slate-700 p-12 text-center">
-            <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-indigo-100 to-violet-100 dark:from-indigo-950/60 dark:to-violet-950/60 text-indigo-500 dark:text-indigo-400 flex items-center justify-center mx-auto mb-5 text-3xl">
+            <div class="w-20 h-20 rounded-sm bg-indigo-50 dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-slate-700 flex items-center justify-center mx-auto mb-5 text-3xl">
                 <i class="fa-solid fa-magnifying-glass-chart"></i>
             </div>
             <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-2">Bắt Đầu Tìm Kiếm</h3>
@@ -505,7 +500,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <a href="${BASE_URL}modules/employees/view.php?id=${emp.id}" class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition group">
                 ${emp.avatar ? 
                     `<img src="${BASE_URL}assets/uploads/${escapeHtml(emp.avatar)}" class="w-11 h-11 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs flex-shrink-0" alt="">` :
-                    `<div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0">${initial}</div>`
+                    `<div class="w-11 h-11 rounded-sm bg-indigo-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">${initial}</div>`
                 }
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">

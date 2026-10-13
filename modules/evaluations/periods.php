@@ -272,7 +272,7 @@ require_once __DIR__ . '/../../includes/header.php';
             </a>
             <?php if (has_permission('evaluations', 'create')): ?>
                 <button type="button" onclick="openPeriodModal()" 
-                        class="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold rounded-xl text-xs transition flex items-center gap-2 shadow-md shadow-indigo-200 dark:shadow-none">
+                        class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-sm text-xs transition flex items-center gap-2">
                     <i class="fa-solid fa-plus"></i>
                     <span>Tạo Đợt Đánh Giá Mới</span>
                 </button>
@@ -400,7 +400,7 @@ require_once __DIR__ . '/../../includes/header.php';
                             <span class="font-mono text-indigo-600 dark:text-indigo-400 font-bold"><?= $pct_completed ?>%</span>
                         </div>
                         <div class="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
-                            <div class="bg-gradient-to-r from-indigo-500 to-emerald-500 h-full rounded-full transition-all duration-500" style="width: <?= $pct_completed ?>%"></div>
+                            <div class="bg-emerald-600 h-full transition-all duration-500" style="width: <?= $pct_completed ?>%"></div>
                         </div>
 
                         <!-- Mini Badges for statuses -->

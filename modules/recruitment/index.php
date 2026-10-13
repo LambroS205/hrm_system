@@ -430,7 +430,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 </td>
                                 <td class="py-3 px-4">
                                     <div class="flex items-center gap-2.5">
-                                        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
+                                        <div class="w-8 h-8 rounded-sm bg-indigo-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
                                             <?= strtoupper(mb_substr($c['fullname'], 0, 1, 'UTF-8')) ?>
                                         </div>
                                         <div>

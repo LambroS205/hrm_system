@@ -7,10 +7,10 @@
 <!-- ==================================================== -->
 <!-- GLOBAL CONFIRM MODAL (Thay thế toàn bộ confirm browser) -->
 <!-- ==================================================== -->
-<div id="globalConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm hidden animate-fade-in">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-md w-full p-6 border-2 border-slate-200 dark:border-slate-700 animate-scale-up">
+<div id="globalConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 hidden animate-fade-in">
+    <div class="bg-white dark:bg-slate-800 rounded-sm max-w-md w-full p-6 border border-slate-300 dark:border-slate-700 animate-scale-up">
         <div class="flex items-start gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 text-xl shadow-xs">
+            <div class="w-12 h-12 rounded-sm bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 text-xl">
                 <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
             <div class="flex-1">
@@ -23,11 +23,11 @@
             </div>
         </div>
 
-        <div class="mt-6 flex items-center justify-end gap-3 pt-4 border-t-2 border-slate-200 dark:border-slate-700">
-            <button type="button" onclick="closeConfirmModal()" class="px-4 py-2.5 rounded-xl border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-bold transition">
+        <div class="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <button type="button" onclick="closeConfirmModal()" class="px-4 py-2.5 rounded-sm border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-bold transition">
                 Hủy Bỏ
             </button>
-            <button type="button" id="confirmModalSubmitBtn" onclick="triggerConfirmModalAction()" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-sm font-bold transition shadow-sm">
+            <button type="button" id="confirmModalSubmitBtn" onclick="triggerConfirmModalAction()" class="px-4 py-2.5 rounded-sm bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-sm font-bold transition">
                 Đồng Ý
             </button>
         </div>
@@ -37,16 +37,16 @@
 <!-- ==================================================== -->
 <!-- COMMAND PALETTE: Tìm Kiếm Toàn Cục Nhanh (Ctrl+K)  -->
 <!-- ==================================================== -->
-<div id="searchCommandPalette" class="fixed inset-0 z-[60] flex items-start justify-center p-4 pt-[12vh] bg-slate-900/60 backdrop-blur-sm hidden" style="animation: none;">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-2xl w-full border-2 border-slate-300 dark:border-slate-700 animate-scale-up overflow-hidden" style="max-height: 72vh;">
+<div id="searchCommandPalette" class="fixed inset-0 z-[60] flex items-start justify-center p-4 pt-[12vh] bg-slate-900/60 hidden" style="animation: none;">
+    <div class="bg-white dark:bg-slate-800 rounded-sm max-w-2xl w-full border border-slate-300 dark:border-slate-700 animate-scale-up overflow-hidden" style="max-height: 72vh;">
         <!-- Input Tìm kiếm -->
-        <div class="flex items-center gap-3 px-5 py-4 border-b-2 border-slate-200 dark:border-slate-700">
+        <div class="flex items-center gap-3 px-5 py-4 border-b border-slate-200 dark:border-slate-700">
             <i class="fa-solid fa-magnifying-glass text-indigo-600 dark:text-indigo-400 text-lg flex-shrink-0"></i>
             <input type="text" id="cmdPaletteInput" 
                    placeholder="Tìm nhân viên, phòng ban, chi nhánh..."
                    autocomplete="off"
                    class="w-full bg-transparent text-sm font-bold text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none">
-            <kbd class="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded text-[10px] font-extrabold flex-shrink-0 border border-slate-300 dark:border-slate-500 shadow-2xs">ESC</kbd>
+            <kbd class="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-sm text-[10px] font-extrabold flex-shrink-0 border border-slate-300 dark:border-slate-500">ESC</kbd>
         </div>
 
         <!-- Loading -->

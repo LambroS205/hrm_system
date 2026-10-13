@@ -89,7 +89,7 @@ require_once __DIR__ . '/includes/header.php';
     <!-- Card Tổng quan Tài khoản -->
     <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-700 shadow-sm relative overflow-hidden">
         <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6 relative z-10 text-center sm:text-left">
-            <div class="w-24 h-24 rounded-3xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center font-extrabold text-4xl shadow-lg shadow-indigo-200 dark:shadow-none flex-shrink-0">
+            <div class="w-24 h-24 rounded-sm bg-indigo-600 text-white flex items-center justify-center font-extrabold text-4xl flex-shrink-0">
                 <?= mb_strtoupper(mb_substr($db_user['fullname'], 0, 1, 'UTF-8'), 'UTF-8') ?>
             </div>
             

@@ -194,9 +194,9 @@ require_once __DIR__ . '/../../includes/header.php';
 
                 <!-- 1. Node Đỉnh: BAN LÃNH ĐẠO / CƠ QUAN TRUNG ƯƠNG -->
                 <div class="flex flex-col items-center">
-                    <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white px-8 py-5 rounded-3xl shadow-xl shadow-slate-200 border border-slate-800 flex items-center gap-4 cursor-pointer transform hover:-translate-y-1 transition duration-200"
+                    <div class="bg-slate-900 text-white px-8 py-5 rounded-sm border border-slate-800 flex items-center gap-4 cursor-pointer hover:border-amber-400 transition duration-150"
                          onclick="openDetailDrawer('agency', 0, 'CƠ QUAN TRUNG ƯƠNG', 'Trụ sở điều hành cao nhất', '<?= $total_employees_count ?> cán bộ')">
-                        <div class="w-12 h-12 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-xl shadow-md">
+                        <div class="w-12 h-12 rounded-sm bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-xl">
                             <i class="fa-solid fa-landmark"></i>
                         </div>
                         <div>

@@ -5,7 +5,7 @@ $current_uri = $_SERVER['REQUEST_URI'];
 
 $getActiveClass = function($isActive) {
     if ($isActive) {
-        return 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/25 group sidebar-active-item';
+        return 'bg-indigo-600 text-white font-bold group sidebar-active-item';
     }
     return 'text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-100 dark:hover:bg-slate-700/70 hover:text-slate-900 dark:hover:text-white group';
 };
@@ -18,12 +18,12 @@ $getIconClass = function($isActive) {
 };
 ?>
 
-<aside id="sidebar" class="w-64 bg-white dark:bg-slate-800 border-r-2 border-slate-200 dark:border-slate-700 flex flex-col flex-shrink-0 lg:static fixed inset-y-0 left-0 z-30 transform -translate-x-full lg:translate-x-0 shadow-xs">
+<aside id="sidebar" class="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col flex-shrink-0 lg:static fixed inset-y-0 left-0 z-30 transform -translate-x-full lg:translate-x-0">
     
-    <!-- Logo Ứng Dụng -->
-    <div class="h-16 flex items-center gap-3 px-4 sm:px-5 border-b-2 border-slate-200 dark:border-slate-700 flex-shrink-0">
+    <!-- Logo Ứng Dụng (Flat Metro UI) -->
+    <div class="h-16 flex items-center gap-3 px-4 sm:px-5 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
         <a href="<?= base_url('index.php') ?>" class="flex items-center gap-3 min-w-0">
-            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-md shadow-indigo-300 dark:shadow-none flex-shrink-0">
+            <div class="w-9 h-9 rounded-sm bg-indigo-600 text-white flex items-center justify-center flex-shrink-0">
                 <i class="fa-solid fa-users-gear text-base"></i>
             </div>
             <div class="sidebar-logo-text min-w-0">

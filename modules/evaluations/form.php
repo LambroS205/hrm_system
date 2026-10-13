@@ -513,7 +513,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </a>
 
                 <button type="submit" 
-                        class="px-7 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold rounded-xl text-xs shadow-md shadow-indigo-200 dark:shadow-none transition flex items-center gap-2">
+                        class="px-7 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-sm text-xs transition flex items-center gap-2">
                     <i class="fa-solid fa-floppy-disk"></i>
                     <span><?= $is_edit ? 'Cập Nhật Phiếu Đánh Giá' : 'Lưu & Khởi Tạo Phiếu' ?></span>
                 </button>

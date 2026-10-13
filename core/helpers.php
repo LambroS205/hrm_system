@@ -171,9 +171,9 @@ function format_datetime($date_string) {
 function render_avatar($name, $avatar_file = null, $size = 10) {
     $first_letter = mb_strtoupper(mb_substr(trim($name ?? 'User'), 0, 1, 'UTF-8'), 'UTF-8');
     if (!empty($avatar_file) && file_exists(__DIR__ . '/../assets/uploads/' . $avatar_file)) {
-        return '<img src="' . asset('uploads/' . e($avatar_file)) . '" class="w-' . $size . ' h-' . $size . ' rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-sm" alt="' . e($name) . '">';
+        return '<img src="' . asset('uploads/' . e($avatar_file)) . '" class="w-' . $size . ' h-' . $size . ' rounded-sm object-cover border border-slate-300 dark:border-slate-700" alt="' . e($name) . '">';
     }
-    return '<div class="w-' . $size . ' h-' . $size . ' rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0">' . e($first_letter) . '</div>';
+    return '<div class="w-' . $size . ' h-' . $size . ' rounded-sm bg-indigo-600 dark:bg-indigo-500 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">' . e($first_letter) . '</div>';
 }
 
 /**

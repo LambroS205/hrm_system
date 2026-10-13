@@ -322,7 +322,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     <?php if (!empty($p['avatar']) && file_exists(__DIR__ . '/../../assets/uploads/' . $p['avatar'])): ?>
                         <img src="<?= base_url('assets/uploads/' . e($p['avatar'])) ?>" class="w-16 h-16 rounded-2xl object-cover border-2 border-slate-200 dark:border-slate-700 shadow-md" alt="">
                     <?php else: ?>
-                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xl shadow-md">
+                        <div class="w-16 h-16 rounded-sm bg-indigo-600 text-white flex items-center justify-center font-bold text-xl">
                             <?= strtoupper(mb_substr($p['fullname'], 0, 1, 'UTF-8')) ?>
                         </div>
                     <?php endif; ?>
@@ -356,7 +356,7 @@ require_once __DIR__ . '/../../includes/header.php';
             </div>
 
             <!-- Tóm tắt nhanh -->
-            <div class="bg-gradient-to-br from-violet-600 to-indigo-700 p-5 rounded-2xl text-white shadow-lg shadow-violet-100 dark:shadow-none">
+            <div class="bg-indigo-700 dark:bg-slate-800 p-5 rounded-sm text-white border border-indigo-800 dark:border-slate-700">
                 <h3 class="text-sm font-bold flex items-center gap-2 mb-3 opacity-90">
                     <i class="fa-solid fa-chart-simple"></i>
                     Tóm Tắt Đề Xuất

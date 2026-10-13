@@ -228,7 +228,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
             <?php if (has_permission('evaluations', 'create')): ?>
                 <a href="<?= base_url('modules/evaluations/form.php') ?>" 
-                   class="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold rounded-xl text-xs transition flex items-center gap-2 shadow-md shadow-indigo-200 dark:shadow-none">
+                   class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-sm text-xs transition flex items-center gap-2">
                     <i class="fa-solid fa-plus"></i>
                     <span>Tạo Phiếu Đánh Giá</span>
                 </a>

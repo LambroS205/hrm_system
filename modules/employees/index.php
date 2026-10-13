@@ -267,7 +267,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                              class="w-10 h-10 rounded-xl object-cover border border-slate-300 dark:border-slate-600 shadow-xs" 
                                              alt="<?= e($emp['fullname']) ?>">
                                     <?php else: ?>
-                                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                                        <div class="w-10 h-10 rounded-sm bg-indigo-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
                                             <?= strtoupper(mb_substr($emp['fullname'], 0, 1, 'UTF-8')) ?>
                                         </div>
                                     <?php endif; ?>

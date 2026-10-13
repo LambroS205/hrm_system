@@ -208,10 +208,10 @@ require_once __DIR__ . '/includes/header.php';
 
 <div class="space-y-6">
 
-    <!-- Banner Chào Mừng Phong Cách Modern UI Cao Cấp -->
-    <div class="bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-indigo-100 dark:shadow-none flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
-        <div class="relative z-10">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/20 backdrop-blur-md mb-3 text-indigo-50">
+    <!-- Banner Chào Mừng Phong Cách Flat Metro UI -->
+    <div class="bg-indigo-700 dark:bg-slate-800 rounded-sm p-6 sm:p-8 text-white border border-indigo-800 dark:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-6 relative">
+        <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-sm text-xs font-semibold bg-indigo-900 text-indigo-100 mb-3 border border-indigo-600/40">
                 <i class="fa-solid fa-sparkles text-amber-300"></i> Trung Tâm Điều Hành Nhân Sự - Aura Retail Group
             </div>
             <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Xin chào, <?= e($user['fullname']) ?>!</h2>
@@ -223,10 +223,10 @@ require_once __DIR__ . '/includes/header.php';
             </p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2.5 flex-shrink-0 relative z-10">
+        <div class="flex flex-wrap items-center gap-2 flex-shrink-0">
             <?php if (has_permission('orgchart', 'view')): ?>
                 <a href="<?= base_url('modules/orgchart/index.php') ?>" 
-                   class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 backdrop-blur-md transition">
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-sm bg-indigo-800 hover:bg-indigo-900 text-white font-semibold text-xs border border-indigo-600/60 transition">
                     <i class="fa-solid fa-sitemap text-amber-300"></i>
                     <span>Sơ Đồ Cơ Cấu</span>
                 </a>
@@ -234,7 +234,7 @@ require_once __DIR__ . '/includes/header.php';
 
             <?php if (has_permission('transfers', 'view')): ?>
                 <a href="<?= base_url('modules/transfers/index.php') ?>" 
-                   class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 backdrop-blur-md transition">
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-sm bg-indigo-800 hover:bg-indigo-900 text-white font-semibold text-xs border border-indigo-600/60 transition">
                     <i class="fa-solid fa-people-arrows text-sky-300"></i>
                     <span>Thuyên Chuyển</span>
                 </a>
@@ -242,7 +242,7 @@ require_once __DIR__ . '/includes/header.php';
 
             <?php if (is_superadmin()): ?>
                 <a href="<?= base_url('modules/matrix/index.php') ?>" 
-                   class="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 backdrop-blur-md transition">
+                   class="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-sm bg-indigo-800 hover:bg-indigo-900 text-white font-semibold text-xs border border-indigo-600/60 transition">
                     <i class="fa-solid fa-network-wired"></i>
                     <span>Ma Trận Quyền</span>
                 </a>
@@ -250,29 +250,29 @@ require_once __DIR__ . '/includes/header.php';
             
             <?php if (has_permission('proposals', 'view') || has_permission('proposals', 'create')): ?>
                 <a href="<?= base_url('modules/proposals/index.php') ?>" 
-                   class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 backdrop-blur-md transition">
+                   class="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-sm bg-indigo-800 hover:bg-indigo-900 text-white font-semibold text-xs border border-indigo-600/60 transition">
                     <i class="fa-solid fa-paper-plane text-amber-300"></i>
                     <span>Đề Xuất</span>
                     <?php if ($pending_proposals_count > 0): ?>
-                        <span class="ml-1 px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-900 text-[10px] font-black"><?= $pending_proposals_count ?></span>
+                        <span class="ml-1 px-1.5 py-0.5 rounded-sm bg-amber-400 text-slate-900 text-[10px] font-black"><?= $pending_proposals_count ?></span>
                     <?php endif; ?>
                 </a>
             <?php endif; ?>
             
             <?php if (has_permission('evaluations', 'view')): ?>
                 <a href="<?= base_url('modules/evaluations/index.php') ?>" 
-                   class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 backdrop-blur-md transition">
+                   class="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-sm bg-indigo-800 hover:bg-indigo-900 text-white font-semibold text-xs border border-indigo-600/60 transition">
                     <i class="fa-solid fa-bullseye text-violet-300"></i>
                     <span>Đánh Giá & KPI</span>
                     <?php if ($kpi_stats['pending_review'] > 0): ?>
-                        <span class="ml-1 px-1.5 py-0.5 rounded-full bg-violet-400 text-slate-900 text-[10px] font-black"><?= $kpi_stats['pending_review'] ?></span>
+                        <span class="ml-1 px-1.5 py-0.5 rounded-sm bg-violet-400 text-slate-900 text-[10px] font-black"><?= $kpi_stats['pending_review'] ?></span>
                     <?php endif; ?>
                 </a>
             <?php endif; ?>
 
             <?php if (has_permission('attendance', 'create')): ?>
                 <a href="<?= base_url('modules/attendance/index.php') ?>" 
-                   class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-indigo-700 hover:bg-indigo-50 font-semibold text-xs shadow-md transition">
+                   class="inline-flex items-center gap-2 px-4 py-2.5 rounded-sm bg-white text-indigo-700 hover:bg-indigo-50 font-bold text-xs transition border border-white">
                     <i class="fa-solid fa-clipboard-user"></i>
                     <span>Chấm Công Hôm Nay</span>
                 </a>
@@ -908,8 +908,8 @@ new Chart(ctxTrend, {
             data: trendValues,
             backgroundColor: isDarkMode ? 'rgba(99, 102, 241, 0.75)' : 'rgba(79, 70, 229, 0.85)',
             borderColor: '#4338ca',
-            borderWidth: 1.5,
-            borderRadius: 8,
+            borderWidth: 1,
+            borderRadius: 0,
             barThickness: 34
         }]
     },
@@ -931,14 +931,14 @@ new Chart(ctxTrend, {
                 beginAtZero: true,
                 grid: { color: isDarkMode ? '#334155' : '#e2e8f0' },
                 ticks: {
-                    font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' },
+                    font: { family: 'Inter', size: 11, weight: '600' },
                     color: isDarkMode ? '#cbd5e1' : '#334155'
                 }
             },
             x: {
                 grid: { display: false },
                 ticks: {
-                    font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' },
+                    font: { family: 'Inter', size: 11, weight: '600' },
                     color: isDarkMode ? '#cbd5e1' : '#334155'
                 }
             }
@@ -971,7 +971,7 @@ if (ctxKpi) {
                     '#f97316', // Yếu (Orange)
                     '#ef4444'  // Kém (Rose)
                 ],
-                borderRadius: 8,
+                borderRadius: 0,
                 barThickness: 24
             }]
         },

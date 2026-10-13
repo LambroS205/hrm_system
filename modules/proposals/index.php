@@ -416,7 +416,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <?php if (!empty($p['avatar']) && file_exists(__DIR__ . '/../../assets/uploads/' . $p['avatar'])): ?>
                                         <img src="<?= base_url('assets/uploads/' . e($p['avatar'])) ?>" class="w-9 h-9 rounded-xl object-cover border border-slate-200 dark:border-slate-700" alt="">
                                     <?php else: ?>
-                                        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-sm flex-shrink-0">
+                                        <div class="w-9 h-9 rounded-sm bg-indigo-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
                                             <?= strtoupper(mb_substr($p['fullname'], 0, 1, 'UTF-8')) ?>
                                         </div>
                                     <?php endif; ?>

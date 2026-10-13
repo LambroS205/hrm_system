@@ -91,13 +91,9 @@ $flash = get_flash();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AURA HRM - Đăng Nhập Hệ Thống Nhân Sự Tập Đoàn</title>
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS CDN & Flat Config -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-        }
-    </script>
+    <script src="<?= asset('js/tailwind-flat.config.js') ?>"></script>
     <!-- Google Fonts Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -118,38 +114,38 @@ $flash = get_flash();
 
 <!-- Nút chuyển đổi Dark/Light mode góc màn hình -->
 <div class="fixed top-5 right-5">
-    <button type="button" id="themeToggleBtn" onclick="toggleTheme()" class="w-10 h-10 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-500 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition" title="Chuyển chế độ Sáng/Tối">
+    <button type="button" id="themeToggleBtn" onclick="toggleTheme()" class="w-10 h-10 rounded-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition" title="Chuyển chế độ Sáng/Tối">
         <i class="fa-regular fa-moon dark:hidden text-lg"></i>
         <i class="fa-regular fa-sun hidden dark:inline text-lg"></i>
     </button>
 </div>
 
 <div class="max-w-md w-full">
-    <!-- Logo & Tiêu đề -->
+    <!-- Logo & Tiêu đề (Flat Metro UI) -->
     <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-indigo-600 to-violet-500 text-white rounded-2xl shadow-lg shadow-indigo-100 dark:shadow-none mb-3">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 text-white rounded-sm mb-3">
             <i class="fa-solid fa-users-gear text-2xl"></i>
         </div>
-        <h2 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Cổng Nhân Sự Tập Đoàn Aura</h2>
+        <h2 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Cổng Nhân Sự Tập Đoàn Aura</h2>
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">"Nâng tầm trải nghiệm bán lẻ thông minh"</p>
     </div>
 
     <!-- Thông báo lỗi hoặc flash -->
     <?php if (!empty($error)): ?>
-        <div class="mb-5 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-sm flex items-center gap-3">
+        <div class="mb-5 p-4 rounded-sm bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-sm flex items-center gap-3">
             <i class="fa-solid fa-circle-exclamation text-base flex-shrink-0 text-rose-500"></i>
             <span><?= e($error) ?></span>
         </div>
     <?php endif; ?>
 
     <?php if ($flash): ?>
-        <div class="mb-5 p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-sm flex items-center gap-3">
+        <div class="mb-5 p-4 rounded-sm bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-300 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-sm flex items-center gap-3">
             <i class="fa-solid fa-circle-info text-base flex-shrink-0 text-indigo-500"></i>
             <span><?= e($flash['message']) ?></span>
         </div>
     <?php endif; ?>
 
-    <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl shadow-slate-100 dark:shadow-none border border-slate-100 dark:border-slate-700">
+    <div class="bg-white dark:bg-slate-800 p-8 rounded-sm border border-slate-300 dark:border-slate-700">
         <form action="<?= base_url('login.php') ?>" method="POST" class="space-y-5" onsubmit="handleLoginSubmit(this)">
             <?= csrf_field() ?>
 
@@ -163,7 +159,7 @@ $flash = get_flash();
                     </div>
                     <input type="text" id="username" name="username" value="<?= e($username) ?>" required autofocus
                            placeholder="Nhập tên tài khoản"
-                           class="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-900 transition duration-150">
+                           class="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm text-sm text-slate-900 dark:text-slate-100 transition duration-150">
                 </div>
             </div>
 
@@ -177,7 +173,7 @@ $flash = get_flash();
                     </div>
                     <input type="password" id="password" name="password" required
                            placeholder="••••••••"
-                           class="w-full pl-10 pr-10 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-900 transition duration-150">
+                           class="w-full pl-10 pr-10 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm text-sm text-slate-900 dark:text-slate-100 transition duration-150">
                     <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                         <i class="fa-regular fa-eye" id="passwordEyeIcon"></i>
                     </button>
@@ -185,13 +181,13 @@ $flash = get_flash();
             </div>
 
             <button type="submit" id="loginBtn"
-                    class="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-xl text-sm shadow-md shadow-indigo-100 dark:shadow-none transition duration-150 flex items-center justify-center gap-2">
+                    class="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-sm text-sm transition duration-150 flex items-center justify-center gap-2">
                 <span>Đăng Nhập Vào Hệ Thống</span>
                 <i class="fa-solid fa-arrow-right text-xs" id="loginArrow"></i>
             </button>
         </form>
 
-        <div class="mt-8 pt-6 border-t border-slate-100 dark:border-slate-700/60">
+        <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700/60">
             <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3 text-center">
                 Tài Khoản Trình Diễn (Mật khẩu chung: <span class="text-indigo-600 dark:text-indigo-400 font-bold">Aura@2026</span>)
             </h4>

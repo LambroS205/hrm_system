@@ -69,7 +69,7 @@ require_once __DIR__ . '/../../includes/header.php';
         
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-slate-100 dark:border-slate-700/60">
             <div class="flex items-center gap-5">
-                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-2xl shadow-md flex-shrink-0">
+                <div class="w-16 h-16 rounded-sm bg-indigo-600 text-white flex items-center justify-center font-bold text-2xl flex-shrink-0">
                     <?= strtoupper(mb_substr($candidate['fullname'], 0, 1, 'UTF-8')) ?>
                 </div>
 

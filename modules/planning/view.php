@@ -280,7 +280,7 @@ require_once __DIR__ . '/../../includes/header.php';
             </a>
             <?php if ($plan['status'] !== 'completed' && !empty($items) && has_permission('transfers', 'approve')): ?>
                 <button onclick="confirmBatchExecute()" 
-                        class="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2">
+                        class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-sm transition flex items-center gap-2">
                     <i class="fa-solid fa-check-double"></i>
                     <span>Thực Thi Kế Hoạch Hàng Loạt</span>
                 </button>

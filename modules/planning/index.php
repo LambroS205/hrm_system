@@ -263,7 +263,7 @@ require_once __DIR__ . '/../../includes/header.php';
     <!-- Header Tiêu Đề & Công Cụ Nhanh -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
         <div>
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-amber-500/10 to-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/50 mb-2">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-sm text-xs font-semibold bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 mb-2">
                 <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> Trung Tâm Phân Tích & Điều Phối Nhân Lực Chiến Lược
             </div>
             <h2 class="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white tracking-tight">Kế Hoạch & Đề Xuất Tối Ưu Nhân Lực</h2>
@@ -578,11 +578,11 @@ require_once __DIR__ . '/../../includes/header.php';
     <!-- ===================================================================== -->
     <?php if ($active_tab === 'simulation'): ?>
 
-        <div class="bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl space-y-6">
+        <div class="bg-slate-900 rounded-sm p-6 sm:p-8 text-white border border-slate-800 space-y-6">
             
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
                 <div>
-                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-amber-300 backdrop-blur-md mb-2">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-sm text-xs font-semibold bg-slate-800 text-amber-300 border border-slate-700 mb-2">
                         <i class="fa-solid fa-sparkles"></i> Aura AI What-If Simulation Engine
                     </div>
                     <h3 class="text-xl sm:text-2xl font-bold tracking-tight text-white">4 Kịch Bản Tối Ưu Hóa & Luân Chuyển Khuyên Dùng</h3>
@@ -592,7 +592,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
                 
                 <button onclick="location.reload()" 
-                        class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 backdrop-blur-md transition flex items-center gap-1.5 flex-shrink-0">
+                        class="px-4 py-2.5 rounded-sm bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition flex items-center gap-1.5 flex-shrink-0">
                     <i class="fa-solid fa-arrows-rotate"></i>
                     <span>Tái Tính Toán Thuật Toán</span>
                 </button>
@@ -601,16 +601,16 @@ require_once __DIR__ . '/../../includes/header.php';
             <!-- Grid 4 Kịch Bản -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <?php foreach ($scenarios as $sol): ?>
-                    <div class="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/15 space-y-5 hover:border-white/30 transition flex flex-col justify-between shadow-lg">
+                    <div class="bg-slate-800/80 rounded-sm p-6 border border-slate-700 space-y-5 hover:border-slate-600 transition flex flex-col justify-between">
                         
                         <div class="space-y-4">
                             <!-- Header Kịch Bản -->
                             <div class="flex items-center justify-between gap-2">
-                                <span class="px-3 py-1 rounded-full text-[11px] font-bold uppercase border <?= $sol['tag_class'] ?>">
+                                <span class="px-3 py-1 rounded-sm text-[11px] font-bold uppercase border <?= $sol['tag_class'] ?>">
                                     <i class="fa-solid <?= $sol['icon'] ?> mr-1"></i>
                                     <?= $sol['tag'] ?>
                                 </span>
-                                <div class="flex items-center gap-1.5 text-emerald-400 text-xs font-mono font-bold bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-500/30">
+                                <div class="flex items-center gap-1.5 text-emerald-400 text-xs font-mono font-bold bg-emerald-950/40 px-2.5 py-1 rounded-sm border border-emerald-500/30">
                                     <i class="fa-solid fa-chart-line text-[11px]"></i>
                                     <span>Hiệu Quả: <?= $sol['impact_score'] ?>/100</span>
                                 </div>
@@ -621,10 +621,10 @@ require_once __DIR__ . '/../../includes/header.php';
 
                             <!-- Danh Sách Cán Bộ Đề Cử -->
                             <?php foreach ($sol['candidates'] as $cand): ?>
-                                <div class="p-4 bg-black/30 rounded-2xl border border-white/10 space-y-2.5 text-xs">
+                                <div class="p-4 bg-black/30 rounded-sm border border-white/10 space-y-2.5 text-xs">
                                     <div class="flex items-center justify-between">
                                         <div class="flex items-center gap-2">
-                                            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-indigo-500 text-slate-950 font-black text-xs flex items-center justify-center">
+                                            <div class="w-8 h-8 rounded-sm bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
                                                 <?= mb_substr($cand['candidate_name'], 0, 1) ?>
                                             </div>
                                             <div>
@@ -680,7 +680,7 @@ require_once __DIR__ . '/../../includes/header.php';
                             </span>
 
                             <button onclick="openApplyScenarioModal(<?= htmlspecialchars(json_encode($sol), ENT_QUOTES, 'UTF-8') ?>)" 
-                                    class="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 flex-shrink-0">
+                                    class="px-5 py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-sm transition flex items-center justify-center gap-2 flex-shrink-0">
                                 <i class="fa-solid fa-bolt text-xs"></i>
                                 <span>Áp Dụng Phương Án Này</span>
                             </button>
@@ -1272,13 +1272,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         label: 'Thực Tế',
                         data: <?= json_encode($chart_branch_current) ?>,
                         backgroundColor: '#6366f1',
-                        borderRadius: 6
+                        borderRadius: 0
                     },
                     {
                         label: 'Mục Tiêu',
                         data: <?= json_encode($chart_branch_target) ?>,
                         backgroundColor: '#e2e8f0',
-                        borderRadius: 6
+                        borderRadius: 0
                     }
                 ]
             },

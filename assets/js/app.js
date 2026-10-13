@@ -51,7 +51,7 @@
         };
 
         const toast = document.createElement('div');
-        toast.className = `toast-item border shadow-lg ${bgStyles[type] || bgStyles.info}`;
+        toast.className = `toast-item ${bgStyles[type] || bgStyles.info}`;
         toast.innerHTML = `
             <i class="fa-solid ${icons[type] || icons.info} text-xl flex-shrink-0"></i>
             <div class="text-sm font-medium flex-1">${escapeHtml(message)}</div>
@@ -88,7 +88,7 @@
         }
     };
 
-    // 3. GLOBAL CONFIRM MODAL (Thay thế toàn bộ confirm browser cổ điển)
+    // 3. GLOBAL CONFIRM MODAL (Thay thế toàn bộ confirm browser cổ điển - Flat Metro UI)
     let pendingConfirmCallback = null;
     let pendingCancelCallback = null;
 
@@ -97,11 +97,11 @@
         if (!modal) {
             modal = document.createElement('div');
             modal.id = 'globalConfirmModal';
-            modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm hidden animate-fade-in';
+            modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 hidden animate-fade-in';
             modal.innerHTML = `
-                <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-md w-full p-6 border-2 border-slate-200 dark:border-slate-700 animate-scale-up">
+                <div class="bg-white dark:bg-slate-800 rounded-sm max-w-md w-full p-6 border border-slate-300 dark:border-slate-700 animate-scale-up">
                     <div class="flex items-start gap-4">
-                        <div id="confirmModalIconBox" class="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 text-xl shadow-xs">
+                        <div id="confirmModalIconBox" class="w-12 h-12 rounded-sm bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 text-xl">
                             <i id="confirmModalIcon" class="fa-solid fa-triangle-exclamation"></i>
                         </div>
                         <div class="flex-1">
@@ -114,11 +114,11 @@
                         </div>
                     </div>
 
-                    <div class="mt-6 flex items-center justify-end gap-3 pt-4 border-t-2 border-slate-200 dark:border-slate-700">
-                        <button type="button" onclick="closeConfirmModal()" class="px-4 py-2.5 rounded-xl border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-bold transition">
+                    <div class="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                        <button type="button" onclick="closeConfirmModal()" class="px-4 py-2.5 rounded-sm border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-bold transition">
                             Hủy Bỏ
                         </button>
-                        <button type="button" id="confirmModalSubmitBtn" onclick="triggerConfirmModalAction()" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-sm font-bold transition shadow-sm">
+                        <button type="button" id="confirmModalSubmitBtn" onclick="triggerConfirmModalAction()" class="px-4 py-2.5 rounded-sm bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-sm font-bold transition">
                             Đồng Ý
                         </button>
                     </div>
@@ -149,18 +149,18 @@
         if (confirmBtn) {
             confirmBtn.textContent = confirmText;
             if (isDanger) {
-                confirmBtn.className = 'px-4 py-2.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-semibold rounded-xl text-sm transition shadow-sm';
+                confirmBtn.className = 'px-4 py-2.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-semibold rounded-sm text-sm transition';
             } else {
-                confirmBtn.className = 'px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-xl text-sm transition shadow-sm';
+                confirmBtn.className = 'px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-sm text-sm transition';
             }
         }
 
         if (iconBox && iconEl) {
             if (isDanger) {
-                iconBox.className = 'w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 text-xl shadow-xs';
+                iconBox.className = 'w-12 h-12 rounded-sm bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 text-xl';
                 iconEl.className = 'fa-solid fa-triangle-exclamation';
             } else {
-                iconBox.className = 'w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 text-xl shadow-xs';
+                iconBox.className = 'w-12 h-12 rounded-sm bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 text-xl';
                 iconEl.className = 'fa-solid fa-circle-question';
             }
         }

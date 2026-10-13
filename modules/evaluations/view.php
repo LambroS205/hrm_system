@@ -162,7 +162,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
             <?php if (in_array($eval['rating'], ['outstanding', 'excellent']) && has_permission('rewards', 'create')): ?>
                 <a href="<?= base_url('modules/rewards/form.php?employee_id=' . $eval['employee_id'] . '&evaluation_id=' . $eval['id']) ?>" 
-                   class="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-900 font-bold rounded-xl text-xs transition flex items-center gap-2 shadow-md shadow-amber-200 dark:shadow-none">
+                   class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded-sm text-xs transition flex items-center gap-2">
                     <i class="fa-solid fa-award"></i>
                     <span>Lập Khen Thưởng</span>
                 </a>
@@ -339,7 +339,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <!-- Mục Tiêu Trọng Tâm Đề Ra & Cam Kết Hiệu Suất Theo Vị Trí -->
     <?php if (!empty($eval['goals_summary']) || !empty($eval['custom_items_json'])): ?>
-        <div class="bg-gradient-to-r from-indigo-50/90 via-violet-50/70 to-slate-50 dark:from-slate-800 dark:via-indigo-950/30 dark:to-slate-800 p-5 sm:p-6 rounded-3xl border border-indigo-200/80 dark:border-indigo-900/60 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="bg-indigo-50 dark:bg-slate-800 p-5 sm:p-6 rounded-sm border border-indigo-200 dark:border-indigo-900 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div class="space-y-1.5 flex-1">
                 <div class="flex items-center gap-2 flex-wrap">
                     <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-600 text-white flex items-center gap-1.5 shadow-sm">
@@ -567,7 +567,7 @@ require_once __DIR__ . '/../../includes/header.php';
                         </button>
 
                         <button type="submit" 
-                                class="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold rounded-xl text-xs shadow-md shadow-indigo-200 dark:shadow-none transition flex items-center gap-2">
+                                class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-sm text-xs transition flex items-center gap-2">
                             <i class="fa-solid fa-paper-plane"></i>
                             <span>Nộp Tự Đánh Giá (Chuyển Quản Lý)</span>
                         </button>
@@ -776,7 +776,7 @@ require_once __DIR__ . '/../../includes/header.php';
                         </button>
 
                         <button type="submit" 
-                                class="px-6 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold rounded-xl text-xs shadow-md shadow-violet-200 dark:shadow-none transition flex items-center gap-2">
+                                class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-sm text-xs transition flex items-center gap-2">
                             <i class="fa-solid fa-circle-check"></i>
                             <span>Phê Duyệt & Chốt Kết Quả (Hoàn Tất)</span>
                         </button>
@@ -834,7 +834,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <div class="lg:col-span-7 space-y-5">
                 
                 <!-- Thẻ Total Rewards Simulator -->
-                <div class="bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-950 text-white rounded-3xl p-6 shadow-lg border border-indigo-800/40 space-y-4">
+                <div class="bg-slate-900 text-white rounded-sm p-6 border border-slate-800 space-y-4">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-2xl bg-amber-400/20 text-amber-400 flex items-center justify-center text-lg">

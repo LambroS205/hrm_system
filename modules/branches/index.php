@@ -247,7 +247,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 <div>
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 rounded-2xl <?= $b['is_headquarter'] ? 'bg-gradient-to-tr from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-100' : 'bg-slate-100 text-slate-700' ?> flex items-center justify-center font-bold text-lg flex-shrink-0">
+                            <div class="w-12 h-12 rounded-sm <?= $b['is_headquarter'] ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200' ?> flex items-center justify-center font-bold text-lg flex-shrink-0">
                                 <?= $b['is_headquarter'] ? '<i class="fa-solid fa-crown text-amber-300"></i>' : '<i class="fa-solid fa-building"></i>' ?>
                             </div>
                             <div>
