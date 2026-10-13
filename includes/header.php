@@ -49,13 +49,13 @@ $flash = get_flash();
     <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 sm:px-6 z-10 flex-shrink-0 transition-colors duration-200">
         <!-- Nút menu mobile, Toggle Mini Sidebar & Breadcrumb Tiêu Đề -->
         <div class="flex items-center gap-2 sm:gap-3.5 min-w-0">
-            <button id="mobileMenuBtn" class="lg:hidden text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Mở menu">
+            <button id="mobileMenuBtn" class="lg:hidden text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white p-2 rounded-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Mở menu">
                 <i class="fa-solid fa-bars text-lg"></i>
             </button>
 
             <!-- Nút Toggle Thu Gọn / Mở Rộng Sidebar (Desktop) -->
             <button type="button" id="toggleSidebarBtn" onclick="toggleSidebarCollapse()" 
-                    class="hidden lg:flex w-9 h-9 rounded-xl items-center justify-center text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/80 transition border border-transparent hover:border-slate-200 dark:hover:border-slate-600 shadow-2xs flex-shrink-0" 
+                    class="hidden lg:flex w-9 h-9 rounded-sm items-center justify-center text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/80 transition border border-transparent hover:border-slate-200 dark:hover:border-slate-600 flex-shrink-0" 
                     title="Thu gọn / Mở rộng Sidebar (Alt+S)">
                 <i class="fa-solid fa-bars-staggered text-sm"></i>
             </button>
@@ -70,50 +70,50 @@ $flash = get_flash();
             </div>
         </div>
 
-        <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+        <div class="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
             <!-- Nút Tìm Kiếm Toàn Cục (Ctrl+K) -->
             <button type="button" id="openSearchModalBtn" 
-                    class="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-700/80 hover:bg-indigo-50/70 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition group border border-slate-300 dark:border-slate-600 shadow-2xs"
+                    class="hidden sm:flex items-center gap-2 px-2.5 xl:px-3 py-2 rounded-sm bg-slate-100 dark:bg-slate-700/80 hover:bg-indigo-50/70 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition group border border-slate-300 dark:border-slate-600"
                     title="Tìm kiếm toàn cục (Ctrl+K)">
                 <i class="fa-solid fa-magnifying-glass text-sm text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform"></i>
-                <span class="text-slate-600 dark:text-slate-300 font-medium">Tìm kiếm...</span>
-                <kbd class="ml-1 px-1.5 py-0.5 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 rounded text-[10px] font-extrabold border border-slate-300 dark:border-slate-500 shadow-xs">⌘K</kbd>
+                <span class="text-slate-600 dark:text-slate-300 font-medium hidden xl:inline">Tìm kiếm...</span>
+                <kbd class="ml-1 px-1.5 py-0.5 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 rounded-sm text-[10px] font-extrabold border border-slate-300 dark:border-slate-500 hidden xl:inline">⌘K</kbd>
             </button>
 
             <!-- Nút Trợ Giúp & Cẩm Nang Đào Tạo (F1) -->
             <button type="button" onclick="openHelpModal()" 
-                    class="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50/80 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold transition border border-indigo-200/80 dark:border-indigo-800/80 shadow-2xs group"
+                    class="hidden sm:flex items-center gap-1.5 px-2.5 xl:px-3 py-2 rounded-sm bg-indigo-50/80 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold transition border border-indigo-200/80 dark:border-indigo-800/80 group"
                     title="Cẩm nang hướng dẫn sử dụng & đào tạo nhân viên (F1)">
                 <i class="fa-solid fa-circle-question text-sm text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform"></i>
-                <span class="hidden md:inline">Trợ Giúp</span>
-                <kbd class="ml-1 px-1.5 py-0.5 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 rounded text-[10px] font-extrabold border border-indigo-300 dark:border-indigo-700 shadow-xs">F1</kbd>
+                <span class="hidden xl:inline">Trợ Giúp</span>
+                <kbd class="ml-1 px-1.5 py-0.5 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 rounded-sm text-[10px] font-extrabold border border-indigo-300 dark:border-indigo-700 hidden xl:inline">F1</kbd>
             </button>
             <button type="button" id="openSearchModalBtnMobile" 
-                    class="sm:hidden w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 flex items-center justify-center transition shadow-2xs"
+                    class="sm:hidden w-9 h-9 rounded-sm bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 flex items-center justify-center transition"
                     title="Tìm kiếm">
                 <i class="fa-solid fa-magnifying-glass text-sm text-indigo-600 dark:text-indigo-400"></i>
             </button>
 
             <!-- Nút bật/tắt Dark Mode -->
-            <button type="button" onclick="toggleTheme()" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 flex items-center justify-center transition shadow-2xs" title="Chuyển chế độ Sáng / Tối">
+            <button type="button" onclick="toggleTheme()" class="w-9 h-9 rounded-sm bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 flex items-center justify-center transition" title="Chuyển chế độ Sáng / Tối">
                 <i class="fa-regular fa-moon dark:hidden text-sm theme-icon-moon"></i>
                 <i class="fa-regular fa-sun hidden dark:inline text-sm theme-icon-sun text-amber-400"></i>
             </button>
 
             <!-- Khối thông tin User & Avatar Dropdown -->
             <div class="relative" id="userMenuDropdownContainer">
-                <button type="button" id="userMenuBtn" class="flex items-center gap-3 p-1.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-700/60 transition focus:outline-none border border-transparent hover:border-slate-200 dark:hover:border-slate-600">
-                    <div class="text-right hidden sm:block">
+                <button type="button" id="userMenuBtn" class="flex items-center gap-2.5 p-1.5 rounded-sm hover:bg-slate-100 dark:hover:bg-slate-700/60 transition focus:outline-none border border-transparent hover:border-slate-200 dark:hover:border-slate-600">
+                    <div class="text-right hidden lg:block">
                         <div class="text-sm font-bold text-slate-900 dark:text-white leading-tight">
                             <?= e($user['fullname']) ?>
                         </div>
                         <div class="text-xs text-slate-600 dark:text-slate-300 flex items-center justify-end gap-1.5 mt-0.5">
                             <?php if (!empty($user['is_superadmin'])): ?>
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-extrabold bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
                                     <i class="fa-solid fa-crown text-[9px] mr-1 text-amber-600 dark:text-amber-400"></i> Super Admin
                                 </span>
                             <?php else: ?>
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-900 dark:text-indigo-200 border border-indigo-300 dark:border-indigo-700">
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-900 dark:text-indigo-200 border border-indigo-300 dark:border-indigo-700">
                                     <i class="fa-solid fa-user-shield text-[9px] mr-1 text-indigo-600 dark:text-indigo-400"></i> <?= e($user['role_name'] ?? 'Admin Phân Hệ') ?>
                                 </span>
                             <?php endif; ?>
@@ -121,7 +121,7 @@ $flash = get_flash();
                     </div>
 
                     <?= render_avatar($user['fullname'], $user['avatar'] ?? null, 9) ?>
-                    <i class="fa-solid fa-chevron-down text-xs text-slate-500 dark:text-slate-400 mr-1 hidden sm:inline"></i>
+                    <i class="fa-solid fa-chevron-down text-xs text-slate-500 dark:text-slate-400 mr-1 hidden lg:inline"></i>
                 </button>
 
                 <!-- Dropdown Menu (Flat Metro) -->

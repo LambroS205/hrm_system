@@ -209,7 +209,7 @@ require_once __DIR__ . '/includes/header.php';
 <div class="space-y-6">
 
     <!-- Banner Chào Mừng Phong Cách Flat Metro UI -->
-    <div class="bg-indigo-700 dark:bg-slate-800 rounded-sm p-6 sm:p-8 text-white border border-indigo-800 dark:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-6 relative">
+    <div class="bg-indigo-700 dark:bg-slate-800 rounded-sm p-6 sm:p-8 text-white border border-indigo-800 dark:border-slate-700 flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative">
         <div>
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-sm text-xs font-semibold bg-indigo-900 text-indigo-100 mb-3 border border-indigo-600/40">
                 <i class="fa-solid fa-sparkles text-amber-300"></i> Trung Tâm Điều Hành Nhân Sự - Aura Retail Group
@@ -223,7 +223,7 @@ require_once __DIR__ . '/includes/header.php';
             </p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2 flex-shrink-0">
+        <div class="flex flex-wrap items-center gap-2">
             <?php if (has_permission('orgchart', 'view')): ?>
                 <a href="<?= base_url('modules/orgchart/index.php') ?>" 
                    class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-sm bg-indigo-800 hover:bg-indigo-900 text-white font-semibold text-xs border border-indigo-600/60 transition">
@@ -242,7 +242,7 @@ require_once __DIR__ . '/includes/header.php';
 
             <?php if (is_superadmin()): ?>
                 <a href="<?= base_url('modules/matrix/index.php') ?>" 
-                   class="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-sm bg-indigo-800 hover:bg-indigo-900 text-white font-semibold text-xs border border-indigo-600/60 transition">
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-sm bg-indigo-800 hover:bg-indigo-900 text-white font-semibold text-xs border border-indigo-600/60 transition">
                     <i class="fa-solid fa-network-wired"></i>
                     <span>Ma Trận Quyền</span>
                 </a>
@@ -250,7 +250,7 @@ require_once __DIR__ . '/includes/header.php';
             
             <?php if (has_permission('proposals', 'view') || has_permission('proposals', 'create')): ?>
                 <a href="<?= base_url('modules/proposals/index.php') ?>" 
-                   class="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-sm bg-indigo-800 hover:bg-indigo-900 text-white font-semibold text-xs border border-indigo-600/60 transition">
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-sm bg-indigo-800 hover:bg-indigo-900 text-white font-semibold text-xs border border-indigo-600/60 transition">
                     <i class="fa-solid fa-paper-plane text-amber-300"></i>
                     <span>Đề Xuất</span>
                     <?php if ($pending_proposals_count > 0): ?>
@@ -261,7 +261,7 @@ require_once __DIR__ . '/includes/header.php';
             
             <?php if (has_permission('evaluations', 'view')): ?>
                 <a href="<?= base_url('modules/evaluations/index.php') ?>" 
-                   class="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-sm bg-indigo-800 hover:bg-indigo-900 text-white font-semibold text-xs border border-indigo-600/60 transition">
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-sm bg-indigo-800 hover:bg-indigo-900 text-white font-semibold text-xs border border-indigo-600/60 transition">
                     <i class="fa-solid fa-bullseye text-violet-300"></i>
                     <span>Đánh Giá & KPI</span>
                     <?php if ($kpi_stats['pending_review'] > 0): ?>
@@ -281,10 +281,10 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 
     <!-- Khối Trung Tâm Hành Động Cần Xử Lý Ngay (Enterprise Action Required Center) -->
-    <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200/90 dark:border-slate-700/90 shadow-sm space-y-3">
+    <div class="bg-white dark:bg-slate-800 p-5 rounded-sm border border-slate-300 dark:border-slate-700 space-y-3">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-2.5">
-                <span class="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xs shadow-sm">
+                <span class="w-7 h-7 rounded-sm bg-amber-500 text-white flex items-center justify-center text-xs">
                     <i class="fa-solid fa-bell-concierge"></i>
                 </span>
                 <div>
@@ -295,61 +295,61 @@ require_once __DIR__ . '/includes/header.php';
             <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 hidden sm:inline">Cập nhật thời gian thực</span>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 pt-1">
             <!-- Mục 1: Đề xuất chờ duyệt -->
             <a href="<?= base_url('modules/proposals/index.php') ?>" 
-               class="p-3.5 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/80 flex items-center justify-between hover:bg-amber-100/60 dark:hover:bg-amber-950/50 transition group">
+               class="p-3.5 rounded-sm bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/80 flex items-center justify-between hover:bg-amber-100/60 dark:hover:bg-amber-950/50 transition group">
                 <div>
                     <div class="text-[11px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider">Đề Xuất Nghỉ & OT</div>
                     <div class="text-lg font-black text-amber-950 dark:text-amber-100 mt-0.5">
                         <?= $pending_proposals_count ?> <span class="text-xs font-semibold text-amber-700 dark:text-amber-400">chờ duyệt</span>
                     </div>
                 </div>
-                <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xs group-hover:scale-110 transition-transform">
+                <div class="w-8 h-8 rounded-sm bg-amber-500 text-white flex items-center justify-center text-xs group-hover:scale-110 transition-transform">
                     <i class="fa-solid fa-arrow-right"></i>
                 </div>
             </a>
 
             <!-- Mục 2: Kỷ luật chờ phê duyệt -->
             <a href="<?= base_url('modules/disciplines/index.php') ?>" 
-               class="p-3.5 rounded-2xl bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-800/80 flex items-center justify-between hover:bg-rose-100/60 dark:hover:bg-rose-950/50 transition group">
+               class="p-3.5 rounded-sm bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-800/80 flex items-center justify-between hover:bg-rose-100/60 dark:hover:bg-rose-950/50 transition group">
                 <div>
-                    <div class="text-[11px] font-bold text-rose-800 dark:text-rose-300 uppercase tracking-wider">Vi Phẩm & Kỷ Luật</div>
+                    <div class="text-[11px] font-bold text-rose-800 dark:text-rose-300 uppercase tracking-wider">Vi Phạm & Kỷ Luật</div>
                     <div class="text-lg font-black text-rose-950 dark:text-rose-100 mt-0.5">
                         <?= $pending_disciplines_count ?> <span class="text-xs font-semibold text-rose-700 dark:text-rose-400">chờ xử lý</span>
                     </div>
                 </div>
-                <div class="w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center text-xs group-hover:scale-110 transition-transform">
+                <div class="w-8 h-8 rounded-sm bg-rose-500 text-white flex items-center justify-center text-xs group-hover:scale-110 transition-transform">
                     <i class="fa-solid fa-arrow-right"></i>
                 </div>
             </a>
 
             <!-- Mục 3: Hợp đồng sắp hết hạn -->
             <a href="<?= base_url('modules/employees/index.php') ?>" 
-               class="p-3.5 rounded-2xl bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200/80 dark:border-sky-800/80 flex items-center justify-between hover:bg-sky-100/60 dark:hover:bg-sky-950/50 transition group">
+               class="p-3.5 rounded-sm bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200/80 dark:border-sky-800/80 flex items-center justify-between hover:bg-sky-100/60 dark:hover:bg-sky-950/50 transition group">
                 <div>
                     <div class="text-[11px] font-bold text-sky-800 dark:text-sky-300 uppercase tracking-wider">HĐLĐ Sắp Hết Hạn</div>
                     <div class="text-lg font-black text-sky-950 dark:text-sky-100 mt-0.5">
                         <?= $expiring_contracts_count ?> <span class="text-xs font-semibold text-sky-700 dark:text-sky-400">(trong 30 ngày)</span>
                     </div>
                 </div>
-                <div class="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center text-xs group-hover:scale-110 transition-transform">
+                <div class="w-8 h-8 rounded-sm bg-sky-500 text-white flex items-center justify-center text-xs group-hover:scale-110 transition-transform">
                     <i class="fa-solid fa-arrow-right"></i>
                 </div>
             </a>
 
             <!-- Mục 4: Trạng thái kỳ lương hiện tại -->
             <a href="<?= base_url('modules/payroll/index.php') ?>" 
-               class="p-3.5 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-between hover:bg-indigo-100/60 dark:hover:bg-indigo-950/50 transition group">
+               class="p-3.5 rounded-sm bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-between hover:bg-indigo-100/60 dark:hover:bg-indigo-950/50 transition group">
                 <div>
                     <div class="text-[11px] font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-wider">Kỳ Lương Tháng <?= $current_month ?>/<?= $current_year ?></div>
                     <div class="text-xs font-bold text-indigo-900 dark:text-indigo-100 mt-1">
-                        <span class="inline-block px-2 py-0.5 rounded-lg <?= $payroll_status_info['class'] ?> text-[11px] font-extrabold">
+                        <span class="inline-block px-2 py-0.5 rounded-sm <?= $payroll_status_info['class'] ?> text-[11px] font-extrabold">
                             <?= $payroll_status_info['label'] ?>
                         </span>
                     </div>
                 </div>
-                <div class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xs group-hover:scale-110 transition-transform">
+                <div class="w-8 h-8 rounded-sm bg-indigo-600 text-white flex items-center justify-center text-xs group-hover:scale-110 transition-transform">
                     <i class="fa-solid fa-arrow-right"></i>
                 </div>
             </a>
@@ -357,9 +357,9 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 
     <!-- 5 Khối Chỉ Số KPI Trọng Điểm -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
         <!-- KPI 1: Tổng số nhân sự -->
-        <div class="kpi-stripe-indigo bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-300 dark:border-slate-700 shadow-sm flex items-center justify-between card-hover">
+        <div class="kpi-stripe-indigo bg-white dark:bg-slate-800 p-5 rounded-sm border border-slate-300 dark:border-slate-700 flex items-center justify-between card-hover">
             <div>
                 <span class="kpi-label">Nhân Sự Đang Làm Việc</span>
                 <div class="kpi-value mt-1"><?= $total_employees ?></div>
@@ -368,13 +368,13 @@ require_once __DIR__ . '/includes/header.php';
                     <span><?= $total_official ?> chính thức</span>
                 </div>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-lg shadow-md shadow-indigo-300 dark:shadow-none p-3">
+            <div class="w-12 h-12 rounded-sm bg-indigo-600 text-white flex items-center justify-center text-lg p-3">
                 <i class="fa-solid fa-users"></i>
             </div>
         </div>
 
         <!-- KPI 2: Tỷ lệ đi làm hôm nay -->
-        <div class="kpi-stripe-emerald bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-300 dark:border-slate-700 shadow-sm flex items-center justify-between card-hover">
+        <div class="kpi-stripe-emerald bg-white dark:bg-slate-800 p-5 rounded-sm border border-slate-300 dark:border-slate-700 flex items-center justify-between card-hover">
             <div>
                 <span class="kpi-label">Tỷ Lệ Có Mặt Hôm Nay</span>
                 <div class="kpi-value text-emerald-600 dark:text-emerald-400 mt-1 font-mono"><?= $attendance_rate ?>%</div>
@@ -383,13 +383,13 @@ require_once __DIR__ . '/includes/header.php';
                     <span><?= $att_today['present_count'] ?>/<?= $total_employees ?> có mặt</span>
                 </div>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg shadow-md shadow-emerald-300 dark:shadow-none p-3">
+            <div class="w-12 h-12 rounded-sm bg-emerald-600 text-white flex items-center justify-center text-lg p-3">
                 <i class="fa-solid fa-calendar-check"></i>
             </div>
         </div>
 
         <!-- KPI 3: Quỹ lương tháng này -->
-        <div class="kpi-stripe-amber bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-300 dark:border-slate-700 shadow-sm flex items-center justify-between card-hover">
+        <div class="kpi-stripe-amber bg-white dark:bg-slate-800 p-5 rounded-sm border border-slate-300 dark:border-slate-700 flex items-center justify-between card-hover">
             <div>
                 <span class="kpi-label">
                     <?= $is_projected_fund ? 'Dự Toán Quỹ Lương' : 'Tổng Quỹ Lương T' . $current_month ?>
@@ -400,13 +400,13 @@ require_once __DIR__ . '/includes/header.php';
                     <span><?= $is_projected_fund ? 'Định mức ngạch bậc' : ('Đã chi: ' . format_money($paid_fund)) ?></span>
                 </div>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-md shadow-amber-300 dark:shadow-none p-3">
+            <div class="w-12 h-12 rounded-sm bg-amber-500 text-white flex items-center justify-center text-lg p-3">
                 <i class="fa-solid fa-sack-dollar"></i>
             </div>
         </div>
 
         <!-- KPI 4: Quy mô tổ chức -->
-        <div class="kpi-stripe-sky bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-300 dark:border-slate-700 shadow-sm flex items-center justify-between card-hover">
+        <div class="kpi-stripe-sky bg-white dark:bg-slate-800 p-5 rounded-sm border border-slate-300 dark:border-slate-700 flex items-center justify-between card-hover">
             <div>
                 <span class="kpi-label">Khối Phòng Ban</span>
                 <div class="kpi-value mt-1"><?= $total_departments ?></div>
@@ -415,13 +415,13 @@ require_once __DIR__ . '/includes/header.php';
                     <span><?= count($dept_stats) ?> đơn vị</span>
                 </div>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center text-lg shadow-md shadow-sky-300 dark:shadow-none p-3">
+            <div class="w-12 h-12 rounded-sm bg-sky-600 text-white flex items-center justify-center text-lg p-3">
                 <i class="fa-solid fa-building"></i>
             </div>
         </div>
 
         <!-- KPI 5: Điểm Hiệu Suất & Đánh Giá KPI -->
-        <div class="kpi-stripe-violet bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-300 dark:border-slate-700 shadow-sm flex items-center justify-between card-hover">
+        <div class="kpi-stripe-violet bg-white dark:bg-slate-800 p-5 rounded-sm border border-slate-300 dark:border-slate-700 flex items-center justify-between card-hover">
             <div>
                 <span class="kpi-label">Điểm KPI Trung Bình</span>
                 <div class="kpi-value text-violet-600 dark:text-violet-400 mt-1 font-mono">
@@ -433,23 +433,23 @@ require_once __DIR__ . '/includes/header.php';
                     <span><?= $kpi_stats['completed'] ?> xong • <?= $kpi_stats['pending_review'] ?> đang chấm</span>
                 </div>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-violet-600 text-white flex items-center justify-center text-lg shadow-md shadow-violet-300 dark:shadow-none p-3">
+            <div class="w-12 h-12 rounded-sm bg-violet-600 text-white flex items-center justify-center text-lg p-3">
                 <i class="fa-solid fa-award"></i>
             </div>
         </div>
     </div>
 
     <!-- Hàng Biểu Đồ Trực Quan 2 Cột -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
         <!-- Biểu đồ 1: Cơ Cấu Nhân Sự Theo Phòng Ban (Donut Chart) -->
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-300 dark:border-slate-700 shadow-sm space-y-4">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 min-w-0">
             <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
                 <div>
                     <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Cơ Cấu Nhân Sự Theo Khối</h3>
                     <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Tỷ trọng phân bổ nhân viên các phòng</p>
                 </div>
-                <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-sm shadow-xs">
+                <div class="w-9 h-9 rounded-sm bg-indigo-600 text-white flex items-center justify-center text-sm">
                     <i class="fa-solid fa-chart-pie"></i>
                 </div>
             </div>
@@ -462,7 +462,7 @@ require_once __DIR__ . '/includes/header.php';
                 <?php foreach ($dept_stats as $idx => $d): ?>
                     <div class="flex items-center justify-between py-1.5 border-b border-slate-200 dark:border-slate-700/60">
                         <div class="flex items-center gap-2 truncate">
-                            <span class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: <?= ['#4f46e5', '#0284c7', '#059669', '#d97706', '#db2777', '#7c3aed'][$idx % 6] ?>;"></span>
+                            <span class="w-3 h-3 rounded-sm flex-shrink-0" style="background-color: <?= ['#4f46e5', '#0284c7', '#059669', '#d97706', '#db2777', '#7c3aed'][$idx % 6] ?>;"></span>
                             <span class="text-slate-800 dark:text-slate-200 font-semibold truncate"><?= e($d['name']) ?></span>
                         </div>
                         <span class="font-extrabold text-slate-900 dark:text-white font-mono ml-2"><?= $d['emp_count'] ?> NV</span>
@@ -472,13 +472,13 @@ require_once __DIR__ . '/includes/header.php';
         </div>
 
         <!-- Biểu đồ 2: Biến Động Quỹ Lương 6 Tháng Gần Nhất (Bar Chart) -->
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-300 dark:border-slate-700 shadow-sm space-y-4 lg:col-span-2">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 xl:col-span-2 min-w-0">
             <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
                 <div>
                     <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Biến Động Quỹ Lương (6 Tháng Gần Nhất)</h3>
                     <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Đơn vị: Triệu VNĐ &bull; Dựa trên dữ liệu quyết toán thực tế</p>
                 </div>
-                <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm shadow-xs">
+                <div class="w-9 h-9 rounded-sm bg-emerald-600 text-white flex items-center justify-center text-sm">
                     <i class="fa-solid fa-chart-column"></i>
                 </div>
             </div>
@@ -491,16 +491,16 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 
     <!-- Hàng Thống Kê Điểm Danh & 5 Nhân Sự Mới Nhất -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
         <!-- Khối Chi Tiết Điểm Danh Hôm Nay -->
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-300 dark:border-slate-700 shadow-sm space-y-4">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 min-w-0">
             <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
                 <div>
                     <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Tình Hình Có Mặt Hôm Nay</h3>
                     <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Ngày <?= date('d/m/Y') ?></p>
                 </div>
-                <span class="px-3 py-1 rounded-full text-[11px] font-extrabold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-900 dark:text-indigo-200 border border-indigo-300 dark:border-indigo-700">
+                <span class="px-2.5 py-1 rounded-sm text-[11px] font-extrabold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-900 dark:text-indigo-200 border border-indigo-300 dark:border-indigo-700">
                     <?= $att_today['total_logged'] ?> / <?= $total_employees ?> ghi nhận
                 </span>
             </div>
@@ -509,54 +509,54 @@ require_once __DIR__ . '/includes/header.php';
                 <div>
                     <div class="flex justify-between mb-1.5">
                         <span class="text-emerald-800 dark:text-emerald-300 font-bold flex items-center gap-1.5">
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs"></span> Đi Làm Đúng Giờ
+                            <span class="w-2.5 h-2.5 rounded-sm bg-emerald-500"></span> Đi Làm Đúng Giờ
                         </span>
                         <span class="font-mono font-extrabold text-slate-900 dark:text-white"><?= $att_today['present_count'] ?> NV</span>
                     </div>
-                    <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
-                        <div class="bg-emerald-500 h-2.5 rounded-full transition-all duration-500" style="width: <?= $total_employees > 0 ? ($att_today['present_count'] / $total_employees) * 100 : 0 ?>%"></div>
+                    <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-sm h-2.5 overflow-hidden">
+                        <div class="bg-emerald-500 h-2.5 rounded-sm transition-all duration-500" style="width: <?= $total_employees > 0 ? ($att_today['present_count'] / $total_employees) * 100 : 0 ?>%"></div>
                     </div>
                 </div>
 
                 <div>
                     <div class="flex justify-between mb-1.5">
                         <span class="text-amber-800 dark:text-amber-300 font-bold flex items-center gap-1.5">
-                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-xs"></span> Đi Muộn / Về Sớm
+                            <span class="w-2.5 h-2.5 rounded-sm bg-amber-500"></span> Đi Muộn / Về Sớm
                         </span>
                         <span class="font-mono font-extrabold text-slate-900 dark:text-white"><?= $att_today['late_count'] ?> NV</span>
                     </div>
-                    <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
-                        <div class="bg-amber-500 h-2.5 rounded-full transition-all duration-500" style="width: <?= $total_employees > 0 ? ($att_today['late_count'] / $total_employees) * 100 : 0 ?>%"></div>
+                    <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-sm h-2.5 overflow-hidden">
+                        <div class="bg-amber-500 h-2.5 rounded-sm transition-all duration-500" style="width: <?= $total_employees > 0 ? ($att_today['late_count'] / $total_employees) * 100 : 0 ?>%"></div>
                     </div>
                 </div>
 
                 <div>
                     <div class="flex justify-between mb-1.5">
                         <span class="text-sky-800 dark:text-sky-300 font-bold flex items-center gap-1.5">
-                            <span class="w-2.5 h-2.5 rounded-full bg-sky-500 shadow-xs"></span> Nghỉ Có Phép
+                            <span class="w-2.5 h-2.5 rounded-sm bg-sky-500"></span> Nghỉ Có Phép
                         </span>
                         <span class="font-mono font-extrabold text-slate-900 dark:text-white"><?= $att_today['leave_count'] ?> NV</span>
                     </div>
-                    <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
-                        <div class="bg-sky-500 h-2.5 rounded-full transition-all duration-500" style="width: <?= $total_employees > 0 ? ($att_today['leave_count'] / $total_employees) * 100 : 0 ?>%"></div>
+                    <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-sm h-2.5 overflow-hidden">
+                        <div class="bg-sky-500 h-2.5 rounded-sm transition-all duration-500" style="width: <?= $total_employees > 0 ? ($att_today['leave_count'] / $total_employees) * 100 : 0 ?>%"></div>
                     </div>
                 </div>
 
                 <div>
                     <div class="flex justify-between mb-1.5">
                         <span class="text-rose-800 dark:text-rose-300 font-bold flex items-center gap-1.5">
-                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-xs"></span> Vắng Không Phép
+                            <span class="w-2.5 h-2.5 rounded-sm bg-rose-500"></span> Vắng Không Phép
                         </span>
                         <span class="font-mono font-extrabold text-slate-900 dark:text-white"><?= $att_today['absent_count'] ?> NV</span>
                     </div>
-                    <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
-                        <div class="bg-rose-500 h-2.5 rounded-full transition-all duration-500" style="width: <?= $total_employees > 0 ? ($att_today['absent_count'] / $total_employees) * 100 : 0 ?>%"></div>
+                    <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-sm h-2.5 overflow-hidden">
+                        <div class="bg-rose-500 h-2.5 rounded-sm transition-all duration-500" style="width: <?= $total_employees > 0 ? ($att_today['absent_count'] / $total_employees) * 100 : 0 ?>%"></div>
                     </div>
                 </div>
             </div>
 
             <?php if ($att_today['total_logged'] == 0 && has_permission('attendance', 'create')): ?>
-                <div class="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border-2 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-xs text-center font-medium">
+                <div class="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-sm border-2 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-xs text-center font-medium">
                     <i class="fa-solid fa-bell mr-1 text-amber-600"></i> Hôm nay chưa được lưu điểm danh!
                     <a href="<?= base_url('modules/attendance/index.php') ?>" class="block font-extrabold text-amber-900 dark:text-amber-200 underline mt-1">
                         Nhấn vào đây để chấm công ngay &rarr;
@@ -566,7 +566,7 @@ require_once __DIR__ . '/includes/header.php';
         </div>
 
         <!-- Khối 5 Nhân Sự Mới Tuyển Dụng -->
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-300 dark:border-slate-700 shadow-sm space-y-4 lg:col-span-2">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 xl:col-span-2 min-w-0">
             <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
                 <div>
                     <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Cán Bộ Mới Gia Nhập</h3>
@@ -620,11 +620,11 @@ require_once __DIR__ . '/includes/header.php';
                                 </td>
                                 <td class="py-3.5 px-4 text-center">
                                     <?php if ($emp['employment_status'] === 'official'): ?>
-                                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700">Chính thức</span>
+                                        <span class="px-2.5 py-1 rounded-sm text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700">Chính thức</span>
                                     <?php elseif ($emp['employment_status'] === 'probation'): ?>
-                                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700">Thử việc</span>
+                                        <span class="px-2.5 py-1 rounded-sm text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700">Thử việc</span>
                                     <?php else: ?>
-                                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-700">Đã nghỉ</span>
+                                        <span class="px-2.5 py-1 rounded-sm text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-700">Đã nghỉ</span>
                                     <?php endif; ?>
                                 </td>
                             </tr>
@@ -637,17 +637,17 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 
     <!-- Khối Đánh Giá Hiệu Suất & Phân Bố KPI Toàn Tập Đoàn -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
         
         <!-- Cột 1: Biểu đồ phân bổ xếp loại KPI (Bar Chart) -->
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-300 dark:border-slate-700 shadow-sm space-y-4 flex flex-col justify-between">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 flex flex-col justify-between min-w-0">
             <div>
                 <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
                     <div>
                         <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Phân Bổ Xếp Loại KPI</h3>
                         <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Tỷ trọng các bậc xếp loại hiệu suất</p>
                     </div>
-                    <div class="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center text-sm shadow-xs">
+                    <div class="w-9 h-9 rounded-sm bg-violet-600 text-white flex items-center justify-center text-sm">
                         <i class="fa-solid fa-chart-column"></i>
                     </div>
                 </div>
@@ -658,25 +658,25 @@ require_once __DIR__ . '/includes/header.php';
             </div>
 
             <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 dark:border-slate-700 text-center text-[11px]">
-                <div class="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 font-bold">
+                <div class="p-1.5 rounded-sm bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 font-bold">
                     Xuất sắc: <?= $kpi_stats['outstanding_count'] ?>
                 </div>
-                <div class="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-bold">
+                <div class="p-1.5 rounded-sm bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-bold">
                     Tốt: <?= $kpi_stats['excellent_count'] ?>
                 </div>
-                <div class="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 font-bold">
+                <div class="p-1.5 rounded-sm bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 font-bold">
                     Khá: <?= $kpi_stats['good_count'] ?>
                 </div>
             </div>
         </div>
 
         <!-- Cột 2 & 3: Top 5 Nhân Sự Dẫn Đầu Hiệu Suất & KPI (Top Performers) -->
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-300 dark:border-slate-700 shadow-sm space-y-4 lg:col-span-2">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 xl:col-span-2 min-w-0">
             <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
                 <div>
                     <h3 class="font-extrabold text-slate-900 dark:text-white text-base flex items-center gap-2">
                         <span>Top Nhân Sự Xuất Sắc Kỳ Này</span>
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700">AURA Leaders</span>
+                        <span class="px-2 py-0.5 rounded-sm text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700">AURA Leaders</span>
                     </h3>
                     <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Nhân sự đạt điểm KPI cao nhất được cấp quản lý chứng nhận</p>
                 </div>
@@ -709,7 +709,7 @@ require_once __DIR__ . '/includes/header.php';
                             <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-700/40 transition">
                                 <td class="py-3 px-3">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-6 h-6 rounded-full <?= $rank === 0 ? 'bg-amber-500 text-white shadow-xs' : ($rank === 1 ? 'bg-slate-400 text-white' : ($rank === 2 ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300')) ?> flex items-center justify-center font-black text-xs flex-shrink-0">
+                                        <div class="w-6 h-6 rounded-sm <?= $rank === 0 ? 'bg-amber-500 text-white' : ($rank === 1 ? 'bg-slate-400 text-white' : ($rank === 2 ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300')) ?> flex items-center justify-center font-black text-xs flex-shrink-0">
                                             <?= $rank + 1 ?>
                                         </div>
                                         <?= render_avatar($tp['fullname'], $tp['avatar'], 8) ?>
@@ -727,16 +727,16 @@ require_once __DIR__ . '/includes/header.php';
                                 </td>
                                 <td class="py-3 px-3 text-center">
                                     <?php if ($tp['rating'] === 'outstanding'): ?>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700">Xuất Sắc</span>
+                                        <span class="px-2 py-0.5 rounded-sm text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700">Xuất Sắc</span>
                                     <?php elseif ($tp['rating'] === 'excellent'): ?>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">Tốt</span>
+                                        <span class="px-2 py-0.5 rounded-sm text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">Tốt</span>
                                     <?php else: ?>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300">Khá</span>
+                                        <span class="px-2 py-0.5 rounded-sm text-[10px] font-black bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300">Khá</span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="py-3 px-3 text-right">
                                     <a href="<?= base_url('modules/evaluations/view.php?id=' . $tp['eval_id']) ?>" 
-                                       class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold text-[11px] transition inline-flex items-center gap-1">
+                                       class="px-2.5 py-1 rounded-sm bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold text-[11px] transition inline-flex items-center gap-1">
                                         <span>Xem Phiếu</span>
                                         <i class="fa-solid fa-arrow-right text-[9px]"></i>
                                     </a>
@@ -752,17 +752,17 @@ require_once __DIR__ . '/includes/header.php';
 
     <?php if (has_permission('proposals', 'view') || has_permission('proposals', 'create')): ?>
         <!-- Khối Đề Xuất Chờ Phê Duyệt -->
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-300 dark:border-slate-700 shadow-sm space-y-4">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 min-w-0">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b-2 border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-md shadow-amber-200 dark:shadow-none">
+                    <div class="w-10 h-10 rounded-sm bg-amber-500 text-white flex items-center justify-center text-lg">
                         <i class="fa-solid fa-paper-plane"></i>
                     </div>
                     <div>
                         <div class="flex items-center gap-2">
                             <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Đề Xuất Chờ Phê Duyệt</h3>
                             <?php if ($pending_proposals_count > 0): ?>
-                                <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700 animate-pulse">
+                                <span class="px-2.5 py-0.5 rounded-sm text-xs font-black bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
                                     <?= $pending_proposals_count ?> chờ duyệt
                                 </span>
                             <?php endif; ?>
@@ -772,7 +772,7 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
                 <div class="flex items-center gap-2">
                     <?php if (has_permission('proposals', 'create')): ?>
-                        <a href="<?= base_url('modules/proposals/create.php') ?>" class="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-bold rounded-xl transition flex items-center gap-1.5">
+                        <a href="<?= base_url('modules/proposals/create.php') ?>" class="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-bold rounded-sm transition flex items-center gap-1.5">
                             <i class="fa-solid fa-plus text-[10px]"></i>
                             <span>Tạo đề xuất</span>
                         </a>
@@ -835,7 +835,7 @@ require_once __DIR__ . '/includes/header.php';
                                         </div>
                                     </td>
                                     <td class="py-3 px-4">
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border <?= $tb[1] ?>">
+                                        <span class="px-2 py-0.5 rounded-sm text-[10px] font-bold border <?= $tb[1] ?>">
                                             <?= $tb[0] ?>
                                         </span>
                                     </td>
@@ -850,7 +850,7 @@ require_once __DIR__ . '/includes/header.php';
                                     </td>
                                     <td class="py-3 px-4 text-right">
                                         <a href="<?= base_url('modules/proposals/view.php?id=' . $prop['id']) ?>" 
-                                           class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-bold text-[11px] transition inline-flex items-center gap-1">
+                                           class="px-2.5 py-1 rounded-sm bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-bold text-[11px] transition inline-flex items-center gap-1">
                                             <span>Xem</span>
                                             <i class="fa-solid fa-arrow-right text-[9px]"></i>
                                         </a>

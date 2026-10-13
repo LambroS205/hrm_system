@@ -517,62 +517,64 @@ mark {
     transition: width 0.2s ease, transform 0.2s ease;
 }
 
-.sidebar-collapsed #sidebar {
-    width: 4.5rem !important; /* 72px */
-}
+@media (min-width: 1024px) {
+    .sidebar-collapsed #sidebar {
+        width: 4.5rem !important; /* 72px */
+    }
 
-.sidebar-collapsed #sidebar .sidebar-text,
-.sidebar-collapsed #sidebar .sidebar-section-header,
-.sidebar-collapsed #sidebar .sidebar-badge-text,
-.sidebar-collapsed #sidebar .sidebar-user-details,
-.sidebar-collapsed #sidebar .sidebar-logo-text {
-    display: none !important;
-}
+    .sidebar-collapsed #sidebar .sidebar-text,
+    .sidebar-collapsed #sidebar .sidebar-section-header,
+    .sidebar-collapsed #sidebar .sidebar-badge-text,
+    .sidebar-collapsed #sidebar .sidebar-user-details,
+    .sidebar-collapsed #sidebar .sidebar-logo-text {
+        display: none !important;
+    }
 
-.sidebar-collapsed #sidebar .sidebar-link {
-    justify-content: center !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    position: relative;
-}
+    .sidebar-collapsed #sidebar .sidebar-link {
+        justify-content: center !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        position: relative;
+    }
 
-.sidebar-collapsed #sidebar .sidebar-link i {
-    margin: 0 !important;
-    font-size: 1.1rem;
-}
+    .sidebar-collapsed #sidebar .sidebar-link i {
+        margin: 0 !important;
+        font-size: 1.1rem;
+    }
 
-.sidebar-collapsed #sidebar .sidebar-section-divider {
-    display: block;
-    height: 1px;
-    background-color: var(--border-subtle);
-    margin: 8px 12px;
-}
+    .sidebar-collapsed #sidebar .sidebar-section-divider {
+        display: block;
+        height: 1px;
+        background-color: var(--border-subtle);
+        margin: 8px 12px;
+    }
 
-/* Tooltip sidebar dạng phẳng */
-.sidebar-collapsed #sidebar .sidebar-link[data-tooltip] {
-    position: relative;
-}
-.sidebar-collapsed #sidebar .sidebar-link[data-tooltip]:hover::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    left: calc(100% + 8px);
-    top: 50%;
-    transform: translateY(-50%);
-    background: #0f172a;
-    color: #ffffff;
-    padding: 6px 10px;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1.2;
-    border-radius: var(--flat-radius);
-    white-space: nowrap;
-    z-index: 999;
-    pointer-events: none;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-.dark .sidebar-collapsed #sidebar .sidebar-link[data-tooltip]:hover::after {
-    background: #1e293b;
-    border-color: #475569;
+    /* Tooltip sidebar dạng phẳng */
+    .sidebar-collapsed #sidebar .sidebar-link[data-tooltip] {
+        position: relative;
+    }
+    .sidebar-collapsed #sidebar .sidebar-link[data-tooltip]:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        left: calc(100% + 8px);
+        top: 50%;
+        transform: translateY(-50%);
+        background: #0f172a;
+        color: #ffffff;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.2;
+        border-radius: var(--flat-radius);
+        white-space: nowrap;
+        z-index: 999;
+        pointer-events: none;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .dark .sidebar-collapsed #sidebar .sidebar-link[data-tooltip]:hover::after {
+        background: #1e293b;
+        border-color: #475569;
+    }
 }
 
 /* Sticky Data Columns (Flat border thay vì shadow) */

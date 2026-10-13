@@ -53,8 +53,8 @@ $sql = "
     JOIN employees emp ON e.employee_id = emp.id
     LEFT JOIN departments d ON emp.department_id = d.id
     LEFT JOIN positions p ON emp.position_id = p.id
-    JOIN employees rev ON e.reviewer_id = rev.id
-    JOIN kpi_templates t ON e.template_id = t.id
+    LEFT JOIN employees rev ON e.reviewer_id = rev.id
+    LEFT JOIN kpi_templates t ON e.template_id = t.id
     WHERE 1=1
 ";
 $params = [];

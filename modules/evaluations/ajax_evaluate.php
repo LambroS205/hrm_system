@@ -44,7 +44,7 @@ $eval_stmt = $pdo->prepare("
     FROM evaluations e
     JOIN evaluation_periods ep ON e.period_id = ep.id
     JOIN employees emp ON e.employee_id = emp.id
-    JOIN employees rev ON e.reviewer_id = rev.id
+    LEFT JOIN employees rev ON e.reviewer_id = rev.id
     WHERE e.id = ?
 ");
 $eval_stmt->execute([$evaluation_id]);
@@ -89,8 +89,9 @@ if (!empty($eval['custom_items_json'])) {
 }
 
 $items_map = [];
-foreach ($template_items as $ti) {
-    $items_map[$ti['id']] = $ti;
+foreach ($template_items as $idx => $ti) {
+    $ti_id = (int)($ti['id'] ?? ($idx + 1));
+    $items_map[$ti_id] = $ti;
 }
 
 // Xử lý tính điểm theo trọng số và phân tích Nhóm ưu tiên Link Power (A, B, C)
@@ -157,11 +158,11 @@ foreach ($scores_input as $sc) {
 
     $scores_json_array[] = [
         'item_id'         => $item_id,
-        'criteria'        => $item['criteria_name'],
+        'criteria'        => $item['criteria_name'] ?? ($item['criteria'] ?? ($sc['criteria'] ?? 'Tiêu chí')),
         'priority_group'  => $p_group,
         'bsc_pillar'      => $pillar,
         'weight'          => $weight,
-        'target'          => $item['target_value'] ?? '',
+        'target'          => $item['target_value'] ?? ($item['target'] ?? ''),
         'unit'            => $item['unit'] ?? '%',
         'actual'          => $actual_val,
         'completion_rate' => round($completion_rate, 1),
@@ -237,29 +238,36 @@ try {
 
         // Tự động xếp loại & tính Hệ số thưởng Total Rewards theo Link Power
         $rating = 'average';
+        $rating_grade = 'C';
         $bonus_multiplier = 0.60;
 
         if ($final_score >= 95.0) {
             $rating = 'outstanding'; // Xuất sắc (A+)
+            $rating_grade = 'A+';
             $bonus_multiplier = 1.50; // Thưởng 150%
             if ($promotion_rec === 'none') $promotion_rec = 'bonus';
         } elseif ($final_score >= 85.0) {
             $rating = 'excellent';   // Tốt (A)
+            $rating_grade = 'A';
             $bonus_multiplier = 1.20; // Thưởng 120%
             if ($promotion_rec === 'none') $promotion_rec = 'salary_increase';
         } elseif ($final_score >= 70.0) {
             $rating = 'good';        // Khá (B)
+            $rating_grade = 'B';
             $bonus_multiplier = 1.00; // Thưởng 100%
         } elseif ($final_score >= 55.0) {
             $rating = 'average';     // Trung bình (C)
+            $rating_grade = 'C';
             $bonus_multiplier = 0.60; // Thưởng 60%
             if ($promotion_rec === 'none') $promotion_rec = 'training';
         } elseif ($final_score >= 40.0) {
             $rating = 'below_average';// Yếu (D)
+            $rating_grade = 'D';
             $bonus_multiplier = 0.00; // Không thưởng
             if ($promotion_rec === 'none') $promotion_rec = 'warning';
         } else {
             $rating = 'poor';        // Kém (E)
+            $rating_grade = 'E';
             $bonus_multiplier = 0.00; // Không thưởng
             if ($promotion_rec === 'none') $promotion_rec = 'warning';
         }
@@ -274,6 +282,7 @@ try {
                 manager_submitted_at = NOW(),
                 final_score = ?,
                 rating = ?,
+                rating_grade = ?,
                 bonus_multiplier = ?,
                 promotion_recommendation = ?,
                 status = ?
@@ -285,6 +294,7 @@ try {
             $notes,
             $final_score,
             $rating,
+            $rating_grade,
             $bonus_multiplier,
             $promotion_rec,
             $new_status,

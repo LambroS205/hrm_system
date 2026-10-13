@@ -51,9 +51,9 @@ $stmt = $pdo->prepare("
     LEFT JOIN branches b ON emp.branch_id = b.id
     LEFT JOIN departments d ON emp.department_id = d.id
     LEFT JOIN positions p ON emp.position_id = p.id
-    JOIN employees rev ON e.reviewer_id = rev.id
+    LEFT JOIN employees rev ON e.reviewer_id = rev.id
     LEFT JOIN positions rev_pos ON rev.position_id = rev_pos.id
-    JOIN kpi_templates t ON e.template_id = t.id
+    LEFT JOIN kpi_templates t ON e.template_id = t.id
     WHERE e.id = ?
 ");
 $stmt->execute([$id]);
@@ -64,7 +64,7 @@ if (!$eval) {
     redirect('modules/evaluations/index.php');
 }
 
-$page_title = 'Phiếu Đánh Giá KPI: ' . $eval['evaluation_code'];
+$page_title = 'Phiếu Đánh Giá KPI: ' . ($eval['evaluation_code'] ?? 'N/A');
 
 // Lấy danh sách các tiêu chí thành phần (ưu tiên custom_items_json đã thiết lập theo vị trí & mục tiêu đề ra)
 if (!empty($eval['custom_items_json'])) {
@@ -82,15 +82,27 @@ $mgr_scores_saved = !empty($eval['manager_scores_json']) ? json_decode($eval['ma
 
 $self_map = [];
 if (is_array($self_scores_saved)) {
-    foreach ($self_scores_saved as $s) {
-        $self_map[$s['item_id']] = $s;
+    foreach ($self_scores_saved as $idx => $s) {
+        if (!is_array($s)) continue;
+        if (isset($s['item_id'])) {
+            $self_map[$s['item_id']] = $s;
+        } elseif (isset($template_items[$idx]['id'])) {
+            $s['item_id'] = $template_items[$idx]['id'];
+            $self_map[$s['item_id']] = $s;
+        }
     }
 }
 
 $mgr_map = [];
 if (is_array($mgr_scores_saved)) {
-    foreach ($mgr_scores_saved as $m) {
-        $mgr_map[$m['item_id']] = $m;
+    foreach ($mgr_scores_saved as $idx => $m) {
+        if (!is_array($m)) continue;
+        if (isset($m['item_id'])) {
+            $mgr_map[$m['item_id']] = $m;
+        } elseif (isset($template_items[$idx]['id'])) {
+            $m['item_id'] = $template_items[$idx]['id'];
+            $mgr_map[$m['item_id']] = $m;
+        }
     }
 }
 
@@ -429,10 +441,11 @@ require_once __DIR__ . '/../../includes/header.php';
                 <div class="space-y-5">
                     <?php foreach ($template_items as $idx => $it): ?>
                         <?php 
-                            $saved_it = $self_map[$it['id']] ?? null;
-                            $init_score = $saved_it ? (float)$saved_it['score'] : 85;
+                            $it_id = $it['id'] ?? ($idx + 1);
+                            $saved_it = $self_map[$it_id] ?? null;
+                            $init_score = $saved_it ? (float)($saved_it['score'] ?? 85) : 85;
                             $init_actual = $saved_it ? ($saved_it['actual'] ?? '') : '';
-                            $init_comment = $saved_it ? $saved_it['comment'] : '';
+                            $init_comment = $saved_it ? ($saved_it['comment'] ?? '') : '';
                             
                             $p_group = $it['priority_group'] ?? 'B';
                             $p_info = $priority_groups[$p_group] ?? $priority_groups['B'];
@@ -498,13 +511,13 @@ require_once __DIR__ . '/../../includes/header.php';
                                         Số Thực Hiện Đạt Được (Actual)
                                     </label>
                                     <div class="relative">
-                                        <input type="text" id="actual_self_<?= $it['id'] ?>"
+                                        <input type="text" id="actual_self_<?= $it_id ?>"
                                                value="<?= e($init_actual) ?>"
                                                placeholder="VD: 98 hoặc 105"
-                                               data-target="<?= e($it['target_value']) ?>"
+                                               data-target="<?= e($it['target_value'] ?? '100%') ?>"
                                                data-direction="<?= e($it['calc_direction'] ?? 'higher_better') ?>"
                                                data-cap="<?= e($it['max_cap'] ?? 120) ?>"
-                                               oninput="calcKpiFromActual(this, 'num_self_<?= $it['id'] ?>', 'slider_self_<?= $it['id'] ?>', 'self')"
+                                               oninput="calcKpiFromActual(this, 'num_self_<?= $it_id ?>', 'slider_self_<?= $it_id ?>', 'self')"
                                                class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500">
                                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 font-bold"><?= e($it['unit'] ?? '%') ?></span>
                                     </div>
@@ -515,23 +528,23 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <div class="flex-1">
                                         <div class="flex justify-between text-[10px] text-slate-400 mb-1">
                                             <span>% Hoàn Thành / Điểm</span>
-                                            <span class="font-mono font-bold text-indigo-600" id="label_score_self_<?= $it['id'] ?>"><?= $init_score ?>đ</span>
+                                            <span class="font-mono font-bold text-indigo-600" id="label_score_self_<?= $it_id ?>"><?= $init_score ?>đ</span>
                                         </div>
                                         <input type="range" min="0" max="120" step="1" 
-                                               id="slider_self_<?= $it['id'] ?>"
+                                               id="slider_self_<?= $it_id ?>"
                                                value="<?= $init_score ?>"
                                                data-weight="<?= $it['weight'] ?>"
-                                               oninput="syncSliderToInput(this, 'num_self_<?= $it['id'] ?>', 'self')"
+                                               oninput="syncSliderToInput(this, 'num_self_<?= $it_id ?>', 'self')"
                                                class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600">
                                     </div>
 
                                     <input type="number" min="0" max="120" step="0.5"
-                                           id="num_self_<?= $it['id'] ?>"
-                                           name="self_scores[<?= $it['id'] ?>]"
+                                           id="num_self_<?= $it_id ?>"
+                                           name="self_scores[<?= $it_id ?>]"
                                            value="<?= $init_score ?>"
-                                           data-item-id="<?= $it['id'] ?>"
+                                           data-item-id="<?= $it_id ?>"
                                            data-weight="<?= $it['weight'] ?>"
-                                           oninput="syncInputToSlider(this, 'slider_self_<?= $it['id'] ?>', 'self')"
+                                           oninput="syncInputToSlider(this, 'slider_self_<?= $it_id ?>', 'self')"
                                            class="self-score-input w-16 px-2.5 py-1.5 text-center font-mono font-black text-xs bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 rounded-xl text-indigo-600 dark:text-indigo-400 focus:ring-2 focus:ring-indigo-500">
                                 </div>
 
@@ -539,7 +552,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
                             <!-- Ô nhập giải trình / minh chứng -->
                             <div>
-                                <input type="text" id="comment_self_<?= $it['id'] ?>" value="<?= e($init_comment) ?>"
+                                <input type="text" id="comment_self_<?= $it_id ?>" value="<?= e($init_comment) ?>"
                                        placeholder="Dẫn chứng số liệu, link báo cáo ERP/Git hoặc giải trình lý do đạt/chưa đạt..."
                                        class="w-full px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500">
                             </div>
@@ -616,13 +629,14 @@ require_once __DIR__ . '/../../includes/header.php';
                 <div class="space-y-5">
                     <?php foreach ($template_items as $idx => $it): ?>
                         <?php 
-                            $saved_self = $self_map[$it['id']] ?? null;
-                            $saved_mgr = $mgr_map[$it['id']] ?? null;
-                            $self_pt = $saved_self ? (float)$saved_self['score'] : null;
+                            $it_id = $it['id'] ?? ($idx + 1);
+                            $saved_self = $self_map[$it_id] ?? null;
+                            $saved_mgr = $mgr_map[$it_id] ?? null;
+                            $self_pt = $saved_self ? (float)($saved_self['score'] ?? null) : null;
                             $self_act = $saved_self ? ($saved_self['actual'] ?? '') : '';
-                            $init_mgr_score = $saved_mgr ? (float)$saved_mgr['score'] : ($self_pt !== null ? $self_pt : 85);
+                            $init_mgr_score = $saved_mgr ? (float)($saved_mgr['score'] ?? 85) : ($self_pt !== null ? $self_pt : 85);
                             $init_mgr_actual = $saved_mgr ? ($saved_mgr['actual'] ?? $self_act) : $self_act;
-                            $init_mgr_comment = $saved_mgr ? $saved_mgr['comment'] : '';
+                            $init_mgr_comment = $saved_mgr ? ($saved_mgr['comment'] ?? '') : '';
 
                             $p_group = $it['priority_group'] ?? 'B';
                             $p_info = $priority_groups[$p_group] ?? $priority_groups['B'];
@@ -692,13 +706,13 @@ require_once __DIR__ . '/../../includes/header.php';
                                         Số Thực Hiện Thẩm Định (Actual)
                                     </label>
                                     <div class="relative">
-                                        <input type="text" id="actual_mgr_<?= $it['id'] ?>"
+                                        <input type="text" id="actual_mgr_<?= $it_id ?>"
                                                value="<?= e($init_mgr_actual) ?>"
                                                placeholder="VD: 98 hoặc 105"
-                                               data-target="<?= e($it['target_value']) ?>"
+                                               data-target="<?= e($it['target_value'] ?? '100%') ?>"
                                                data-direction="<?= e($it['calc_direction'] ?? 'higher_better') ?>"
                                                data-cap="<?= e($it['max_cap'] ?? 120) ?>"
-                                               oninput="calcKpiFromActual(this, 'num_mgr_<?= $it['id'] ?>', 'slider_mgr_<?= $it['id'] ?>', 'manager')"
+                                               oninput="calcKpiFromActual(this, 'num_mgr_<?= $it_id ?>', 'slider_mgr_<?= $it_id ?>', 'manager')"
                                                class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-violet-500">
                                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 font-bold"><?= e($it['unit'] ?? '%') ?></span>
                                     </div>
@@ -708,30 +722,30 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <div class="flex-1">
                                         <div class="flex justify-between text-[10px] text-slate-400 mb-1">
                                             <span>Quản lý thẩm định</span>
-                                            <span class="font-mono font-bold text-violet-600" id="label_score_mgr_<?= $it['id'] ?>"><?= $init_mgr_score ?>đ</span>
+                                            <span class="font-mono font-bold text-violet-600" id="label_score_mgr_<?= $it_id ?>"><?= $init_mgr_score ?>đ</span>
                                         </div>
                                         <input type="range" min="0" max="120" step="1" 
-                                               id="slider_mgr_<?= $it['id'] ?>"
+                                               id="slider_mgr_<?= $it_id ?>"
                                                value="<?= $init_mgr_score ?>"
                                                data-weight="<?= $it['weight'] ?>"
-                                               oninput="syncSliderToInput(this, 'num_mgr_<?= $it['id'] ?>', 'manager')"
+                                               oninput="syncSliderToInput(this, 'num_mgr_<?= $it_id ?>', 'manager')"
                                                class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-violet-600">
                                     </div>
 
                                     <input type="number" min="0" max="120" step="0.5"
-                                           id="num_mgr_<?= $it['id'] ?>"
-                                           name="mgr_scores[<?= $it['id'] ?>]"
+                                           id="num_mgr_<?= $it_id ?>"
+                                           name="mgr_scores[<?= $it_id ?>]"
                                            value="<?= $init_mgr_score ?>"
-                                           data-item-id="<?= $it['id'] ?>"
+                                           data-item-id="<?= $it_id ?>"
                                            data-weight="<?= $it['weight'] ?>"
-                                           oninput="syncInputToSlider(this, 'slider_mgr_<?= $it['id'] ?>', 'manager')"
+                                           oninput="syncInputToSlider(this, 'slider_mgr_<?= $it_id ?>', 'manager')"
                                            class="mgr-score-input w-16 px-2.5 py-1.5 text-center font-mono font-black text-xs bg-violet-50 dark:bg-violet-950/50 border border-violet-200 dark:border-violet-800 rounded-xl text-violet-600 dark:text-violet-400 focus:ring-2 focus:ring-violet-500">
                                 </div>
                             </div>
 
                             <!-- Ghi chú của quản lý cho tiêu chí này -->
                             <div>
-                                <input type="text" id="comment_mgr_<?= $it['id'] ?>" value="<?= e($init_mgr_comment) ?>"
+                                <input type="text" id="comment_mgr_<?= $it_id ?>" value="<?= e($init_mgr_comment) ?>"
                                        placeholder="Quản lý nhận xét về chất lượng hoặc lý do điều chỉnh điểm số..."
                                        class="w-full px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-violet-500">
                             </div>
@@ -886,10 +900,13 @@ require_once __DIR__ . '/../../includes/header.php';
                     <?php
                         $sum_weights = ['A' => 0, 'B' => 0, 'C' => 0];
                         $sum_scores = ['A' => 0, 'B' => 0, 'C' => 0];
-                        foreach ($template_items as $it) {
-                            $pg = $it['priority_group'] ?? 'B';
-                            $w = (float)$it['weight'];
-                            $sc = $mgr_map[$it['id']]['score'] ?? ($self_map[$it['id']]['score'] ?? 0);
+                        foreach ($template_items as $idx => $it) {
+                            $it_id = $it['id'] ?? ($idx + 1);
+                            $pg = !empty($it['priority_group']) && in_array($it['priority_group'], ['A', 'B', 'C']) ? $it['priority_group'] : 'B';
+                            $w = (float)($it['weight'] ?? 0);
+                            $sc = ($it_id && isset($mgr_map[$it_id]['score'])) 
+                                ? (float)$mgr_map[$it_id]['score'] 
+                                : (($it_id && isset($self_map[$it_id]['score'])) ? (float)$self_map[$it_id]['score'] : 0);
                             $sum_weights[$pg] += $w;
                             $sum_scores[$pg] += ($sc * $w / 100);
                         }
@@ -898,7 +915,7 @@ require_once __DIR__ . '/../../includes/header.php';
                         <?php foreach (['A', 'B', 'C'] as $pg): ?>
                             <?php 
                                 $avg_pg = $sum_weights[$pg] > 0 ? round(($sum_scores[$pg] / $sum_weights[$pg]) * 100, 1) : 0;
-                                $p_inf = $priority_groups[$pg];
+                                $p_inf = $priority_groups[$pg] ?? $priority_groups['B'];
                             ?>
                             <div class="space-y-1.5">
                                 <div class="flex items-center justify-between text-xs">
@@ -951,14 +968,15 @@ require_once __DIR__ . '/../../includes/header.php';
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                        <?php foreach ($template_items as $it): ?>
+                        <?php foreach ($template_items as $idx => $it): ?>
                             <?php 
-                                $s_val = $self_map[$it['id']]['score'] ?? null;
-                                $m_val = $mgr_map[$it['id']]['score'] ?? null;
+                                $it_id = $it['id'] ?? ($idx + 1);
+                                $s_val = ($it_id && isset($self_map[$it_id]['score'])) ? (float)$self_map[$it_id]['score'] : null;
+                                $m_val = ($it_id && isset($mgr_map[$it_id]['score'])) ? (float)$mgr_map[$it_id]['score'] : null;
                                 $delta = ($s_val !== null && $m_val !== null) ? round($m_val - $s_val, 1) : null;
-                                $final_contrib = ($m_val !== null) ? round($m_val * $it['weight'] / 100, 2) : 0;
-                                $pg = $it['priority_group'] ?? 'B';
-                                $p_inf = $priority_groups[$pg];
+                                $final_contrib = ($m_val !== null) ? round($m_val * ($it['weight'] ?? 0) / 100, 2) : 0;
+                                $pg = !empty($it['priority_group']) && in_array($it['priority_group'], ['A', 'B', 'C']) ? $it['priority_group'] : 'B';
+                                $p_inf = $priority_groups[$pg] ?? $priority_groups['B'];
                             ?>
                             <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-900/40">
                                 <td class="py-3 pr-2">
@@ -1131,15 +1149,19 @@ function renderRadarChart() {
     const selfData = [];
     const mgrData = [];
 
-    TEMPLATE_ITEMS.forEach(it => {
-        const name = it.criteria_name.length > 22 ? it.criteria_name.substring(0, 22) + '...' : it.criteria_name;
+    TEMPLATE_ITEMS.forEach((it, idx) => {
+        const itId = it.id || (idx + 1);
+        const criteriaName = it.criteria_name || it.criteria || ('Tiêu chí ' + (idx + 1));
+        const name = criteriaName.length > 22 ? criteriaName.substring(0, 22) + '...' : criteriaName;
         labels.push(name);
 
-        const sInp = document.getElementById('num_self_' + it.id);
-        const mInp = document.getElementById('num_mgr_' + it.id);
+        const sInp = document.getElementById('num_self_' + itId);
+        const mInp = document.getElementById('num_mgr_' + itId);
 
-        selfData.push(sInp ? parseFloat(sInp.value) || 0 : (SELF_MAP[it.id] ? parseFloat(SELF_MAP[it.id].score) : 0));
-        mgrData.push(mInp ? parseFloat(mInp.value) || 0 : (MGR_MAP[it.id] ? parseFloat(MGR_MAP[it.id].score) : 0));
+        const selfVal = sInp ? parseFloat(sInp.value) : ((SELF_MAP[itId] && SELF_MAP[itId].score !== undefined) ? parseFloat(SELF_MAP[itId].score) : 0);
+        const mgrVal = mInp ? parseFloat(mInp.value) : ((MGR_MAP[itId] && MGR_MAP[itId].score !== undefined) ? parseFloat(MGR_MAP[itId].score) : 0);
+        selfData.push(isNaN(selfVal) ? 0 : selfVal);
+        mgrData.push(isNaN(mgrVal) ? 0 : mgrVal);
     });
 
     const isDarkMode = document.documentElement.classList.contains('dark');
@@ -1215,15 +1237,17 @@ async function submitEvaluation(event, reviewType, isSubmitFinal) {
     }
 
     const scores = [];
-    TEMPLATE_ITEMS.forEach(it => {
-        const scoreInput = document.getElementById(reviewType === 'self' ? 'num_self_' + it.id : 'num_mgr_' + it.id);
-        const actualInput = document.getElementById(reviewType === 'self' ? 'actual_self_' + it.id : 'actual_mgr_' + it.id);
-        const commentInput = document.getElementById(reviewType === 'self' ? 'comment_self_' + it.id : 'comment_mgr_' + it.id);
+    TEMPLATE_ITEMS.forEach((it, idx) => {
+        const itId = it.id || (idx + 1);
+        const scoreInput = document.getElementById(reviewType === 'self' ? 'num_self_' + itId : 'num_mgr_' + itId);
+        const actualInput = document.getElementById(reviewType === 'self' ? 'actual_self_' + itId : 'actual_mgr_' + itId);
+        const commentInput = document.getElementById(reviewType === 'self' ? 'comment_self_' + itId : 'comment_mgr_' + itId);
         
         scores.push({
-            item_id: it.id,
+            item_id: itId,
+            criteria: it.criteria_name || it.criteria || '',
             actual: actualInput ? actualInput.value.trim() : '',
-            score: parseFloat(scoreInput.value) || 0,
+            score: scoreInput ? (parseFloat(scoreInput.value) || 0) : 0,
             comment: commentInput ? commentInput.value : ''
         });
     });
