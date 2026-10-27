@@ -45,9 +45,10 @@ if ($is_edit) {
     }
     $employee = $existing;
 } else {
-    // Tự sinh mã nhân viên kế tiếp (VD: NV003, NV004...)
+    // Tự sinh mã nhân viên kế tiếp (VD: WCM086, WCM087...)
     $last_id = $pdo->query("SELECT MAX(id) FROM employees")->fetchColumn() ?: 0;
-    $employee['employee_code'] = 'NV' . str_pad($last_id + 1, 3, '0', STR_PAD_LEFT);
+    $emp_prefix = brand('emp_code_prefix') ?: 'WCM';
+    $employee['employee_code'] = $emp_prefix . str_pad($last_id + 1, 3, '0', STR_PAD_LEFT);
 }
 
 $errors = [];

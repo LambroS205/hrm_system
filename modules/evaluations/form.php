@@ -140,6 +140,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($employee_id <= 0) $errors[] = 'Vui lòng chọn nhân viên được đánh giá.';
     if ($template_id <= 0) $errors[] = 'Vui lòng chọn bộ tiêu chí KPI áp dụng.';
     if ($reviewer_id <= 0) $errors[] = 'Vui lòng chọn quản lý chấm điểm (Reviewer).';
+    if ($employee_id > 0 && $reviewer_id > 0 && $employee_id === $reviewer_id) {
+        $errors[] = 'Người đánh giá (Reviewer) không được trùng với nhân sự được đánh giá.';
+    }
+
+    if ($is_edit) {
+        // Kiểm tra khóa khi phiếu đã hoàn tất hoặc kỳ đánh giá đã đóng
+        $p_check = $pdo->prepare("SELECT status FROM evaluation_periods WHERE id = ?");
+        $p_check->execute([$existing['period_id']]);
+        $p_status = $p_check->fetchColumn();
+
+        if (($existing['status'] === 'completed' || $p_status === 'closed') && !has_permission('evaluations', 'delete')) {
+            $errors[] = 'Phiếu đánh giá đã hoàn thành hoặc kỳ đánh giá đã đóng, không thể sửa đổi thông tin.';
+        }
+    }
 
     // Xử lý danh sách tiêu chí tùy biến (Mục tiêu đề ra & trọng số theo vị trí)
     $custom_items = [];
@@ -153,6 +167,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $units = $_POST['item_unit'] ?? [];
         $directions = $_POST['item_calc_direction'] ?? [];
         $datasources = $_POST['item_data_source'] ?? [];
+        $min_thresholds = $_POST['item_min_threshold'] ?? [];
+        $max_caps = $_POST['item_max_cap'] ?? [];
         $ids = $_POST['item_id'] ?? [];
 
         $total_weight_check = 0;
@@ -162,6 +178,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $item_weight = (float)($weights[$idx] ?? 0);
             $total_weight_check += $item_weight;
+            $c_min_thresh = isset($min_thresholds[$idx]) && $min_thresholds[$idx] !== '' ? (float)$min_thresholds[$idx] : 0.0;
+            $c_max_cap = isset($max_caps[$idx]) && $max_caps[$idx] !== '' ? (float)$max_caps[$idx] : 120.0;
 
             $custom_items[] = [
                 'id'             => !empty($ids[$idx]) ? (int)$ids[$idx] : ($idx + 1),
@@ -175,10 +193,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'target_value'   => trim($targets[$idx] ?? '100%') ?: '100%',
                 'calc_direction' => in_array($directions[$idx] ?? '', ['higher_better', 'lower_better', 'boolean']) ? $directions[$idx] : 'higher_better',
                 'data_source'    => trim($datasources[$idx] ?? ''),
-                'min_threshold'  => 0,
-                'max_cap'        => 120,
+                'min_threshold'  => max(0.0, min(100.0, $c_min_thresh)),
+                'max_cap'        => max(100.0, min(200.0, $c_max_cap)),
                 'sort_order'     => $idx + 1
             ];
+        }
+
+        if (abs($total_weight_check - 100.0) > 0.1) {
+            $errors[] = 'Tổng trọng số các tiêu chí phải đạt đúng 100% (Hiện tại là ' . round($total_weight_check, 1) . '%).';
         }
     }
 
@@ -288,7 +310,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     </label>
                     <input type="text" value="<?= e($evaluation['evaluation_code']) ?>" readonly
                            class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 cursor-not-allowed">
-                    <p class="text-[11px] text-slate-400 mt-1">Mã hồ sơ tự động đồng bộ theo chuẩn AURA HRM</p>
+                    <p class="text-[11px] text-slate-400 mt-1">Mã hồ sơ tự động đồng bộ theo chuẩn <?= e(brand('product_short')) ?></p>
                 </div>
 
                 <div>
@@ -656,6 +678,8 @@ function appendCriteriaRow(it, rowNum) {
             ${rowNum}
             <input type="hidden" name="item_id[]" value="${escapeHtml(String(itemId))}">
             <input type="hidden" name="item_data_source[]" value="${escapeHtml(dataSource)}">
+            <input type="hidden" name="item_min_threshold[]" value="${it.min_threshold || 0}">
+            <input type="hidden" name="item_max_cap[]" value="${it.max_cap || 120}">
         </td>
 
         <td class="py-3 px-3 space-y-1.5">
@@ -734,6 +758,8 @@ function addNewCustomCriteriaRow() {
         target_value: '100%',
         unit: '%',
         calc_direction: 'higher_better',
+        min_threshold: 0,
+        max_cap: 120,
         description: 'Mục tiêu giao riêng cho nhân sự trong kỳ đánh giá này.'
     };
 

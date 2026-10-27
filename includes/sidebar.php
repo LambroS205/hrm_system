@@ -22,13 +22,13 @@ $getIconClass = function($isActive) {
     
     <!-- Logo Ứng Dụng (Flat Metro UI) -->
     <div class="h-16 flex items-center gap-3 px-4 sm:px-5 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
-        <a href="<?= base_url('index.php') ?>" class="flex items-center gap-3 min-w-0">
-            <div class="w-9 h-9 rounded-sm bg-indigo-600 text-white flex items-center justify-center flex-shrink-0">
-                <i class="fa-solid fa-users-gear text-base"></i>
+        <a href="<?= base_url('index.php') ?>" class="flex items-center gap-3 min-w-0" title="<?= e(brand('company_legal')) ?>">
+            <div class="w-9 h-9 rounded-sm flex items-center justify-center flex-shrink-0 overflow-hidden shadow-2xs">
+                <img src="<?= asset('img/brand/logo-mark.svg') ?>" alt="<?= e(brand('product_short')) ?>" class="w-9 h-9 object-contain">
             </div>
             <div class="sidebar-logo-text min-w-0">
-                <span class="font-extrabold text-slate-900 dark:text-white tracking-tight text-base block leading-none truncate">AURA HRM</span>
-                <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-600 dark:text-indigo-400 block mt-1 truncate">Enterprise v3.2</span>
+                <span class="font-extrabold text-slate-900 dark:text-white tracking-tight text-sm block leading-none truncate"><?= e(brand('product_short')) ?></span>
+                <span class="text-[9px] uppercase font-bold tracking-wider text-indigo-600 dark:text-indigo-400 block mt-1 truncate"><?= e(brand('retail_brands')) ?></span>
             </div>
         </a>
     </div>
@@ -159,12 +159,17 @@ $getIconClass = function($isActive) {
         <?php endif; ?>
 
         <?php if (has_permission('attendance', 'view')): ?>
-            <?php $is_active = (strpos($current_uri, '/attendance/') !== false); ?>
+            <?php 
+            $is_active = (strpos($current_uri, '/attendance/') !== false); 
+            $is_att_mgr = is_superadmin() || has_permission('attendance', 'edit') || has_permission('attendance', 'delete');
+            $att_label = $is_att_mgr ? 'Bảng Chấm Công' : 'Chấm Công Của Tôi';
+            $att_tip   = $is_att_mgr ? 'Bảng Chấm Công Hàng Tháng' : 'Điểm Danh & Chấm Công Cá Nhân';
+            ?>
             <a href="<?= base_url('modules/attendance/index.php') ?>" 
-               data-tooltip="Bảng Chấm Công Hàng Tháng"
+               data-tooltip="<?= e($att_tip) ?>"
                class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition <?= $getActiveClass($is_active) ?>">
                 <i class="fa-solid fa-calendar-check w-5 text-center text-sm <?= $getIconClass($is_active) ?>"></i>
-                <span class="sidebar-text truncate">Bảng Chấm Công</span>
+                <span class="sidebar-text truncate"><?= e($att_label) ?></span>
             </a>
         <?php endif; ?>
 
@@ -227,18 +232,28 @@ $getIconClass = function($isActive) {
         <?php endif; ?>
 
         <?php if (has_permission('evaluations', 'view')): ?>
-            <?php $is_active = (strpos($current_uri, '/evaluations/') !== false); ?>
-            <?php
+            <?php 
+            $is_active = (strpos($current_uri, '/evaluations/') !== false); 
+            $can_manage_all_kpi = is_superadmin() || has_permission('evaluations', 'approve') || has_permission('evaluations', 'create');
+            $kpi_label = $can_manage_all_kpi ? 'Đánh Giá & KPI' : 'KPI Của Tôi';
+            $kpi_tip   = $can_manage_all_kpi ? 'Quản Trị Hiệu Suất & KPI' : 'Hồ Sơ Đánh Giá KPI Cá Nhân';
+
             $pending_evals_count = 0;
             try {
-                $pending_evals_count = (int)($pdo->query("SELECT COUNT(*) FROM evaluations WHERE status IN ('manager_review', 'self_review')")->fetchColumn() ?: 0);
+                if ($can_manage_all_kpi) {
+                    $pending_evals_count = (int)($pdo->query("SELECT COUNT(*) FROM evaluations WHERE status IN ('manager_review', 'self_review')")->fetchColumn() ?: 0);
+                } else {
+                    $curr_uid = (int)($_SESSION['user']['id'] ?? 0);
+                    $m_eid = (int)($pdo->query("SELECT id FROM employees WHERE user_id = {$curr_uid}")->fetchColumn() ?: 0);
+                    $pending_evals_count = (int)($pdo->query("SELECT COUNT(*) FROM evaluations WHERE employee_id = {$m_eid} AND status = 'self_review'")->fetchColumn() ?: 0);
+                }
             } catch (Exception $e) { $pending_evals_count = 0; }
             ?>
             <a href="<?= base_url('modules/evaluations/index.php') ?>" 
-               data-tooltip="Đánh Giá Hiệu Suất & KPI"
+               data-tooltip="<?= e($kpi_tip) ?>"
                class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition <?= $getActiveClass($is_active) ?>">
                 <i class="fa-solid fa-bullseye w-5 text-center text-sm <?= $getIconClass($is_active) ?>"></i>
-                <span class="sidebar-text truncate">Đánh Giá & KPI</span>
+                <span class="sidebar-text truncate"><?= e($kpi_label) ?></span>
                 <?php if ($pending_evals_count > 0): ?>
                     <span class="sidebar-badge-text ml-auto px-1.5 py-0.5 text-[10px] font-extrabold rounded-md <?= $is_active ? 'bg-indigo-700 text-white' : 'bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700' ?>"><?= $pending_evals_count ?></span>
                 <?php endif; ?>

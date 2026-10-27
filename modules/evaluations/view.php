@@ -1,6 +1,8 @@
 <?php
 // modules/evaluations/view.php - Chi Tiết Đánh Giá KPI & Chấm Điểm Định Lượng Phân Tầng (BSC & SMART Link Power)
 require_once __DIR__ . '/../../core/auth.php';
+require_once __DIR__ . '/../../core/KpiCalculator.php';
+require_once __DIR__ . '/../../core/KpiService.php';
 require_permission('evaluations', 'view');
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -39,7 +41,7 @@ $stmt = $pdo->prepare("
            ep.start_date AS period_start, ep.end_date AS period_end,
            ep.self_review_deadline, ep.manager_review_deadline, ep.status AS period_status,
            emp.employee_code, emp.fullname AS employee_name, emp.avatar AS employee_avatar,
-           emp.user_id AS employee_user_id,
+           emp.user_id AS employee_user_id, emp.department_id,
            b.name AS branch_name, d.name AS department_name, p.name AS position_name, p.base_salary,
            rev.employee_code AS reviewer_code, rev.fullname AS reviewer_name, rev.avatar AS reviewer_avatar,
            rev_pos.name AS reviewer_position, rev.user_id AS reviewer_user_id,
@@ -64,7 +66,28 @@ if (!$eval) {
     redirect('modules/evaluations/index.php');
 }
 
+// BẢO MẬT & PHÂN QUYỀN TRUY CẬP:
+// Chỉ Super Admin, người có thẩm quyền duyệt KPI (HR Director/Quản lý cấp cao),
+// hoặc chính nhân viên sở hữu phiếu, hoặc người được giao chấm điểm (Reviewer) mới được phép xem!
+$user = current_user();
+$curr_user_id = (int)($user['id'] ?? 0);
+$emp_user_id = (int)($eval['employee_user_id'] ?? 0);
+$rev_user_id = (int)($eval['reviewer_user_id'] ?? 0);
+
+if (!is_superadmin() && !has_permission('evaluations', 'approve')) {
+    if ($curr_user_id <= 0 || ($curr_user_id !== $emp_user_id && $curr_user_id !== $rev_user_id)) {
+        set_flash('danger', 'Truy cập bị từ chối: Bạn chỉ có thể xem phiếu đánh giá KPI của chính mình hoặc phiếu được giao thẩm định.');
+        redirect('modules/evaluations/index.php');
+    }
+}
+
 $page_title = 'Phiếu Đánh Giá KPI: ' . ($eval['evaluation_code'] ?? 'N/A');
+
+// Lấy mục tiêu cấp phòng ban trong kỳ đánh giá
+$dept_target = null;
+if (!empty($eval['period_id']) && !empty($eval['department_id'])) {
+    $dept_target = KpiService::getDepartmentTarget($pdo, (int)$eval['period_id'], (int)$eval['department_id']);
+}
 
 // Lấy danh sách các tiêu chí thành phần (ưu tiên custom_items_json đã thiết lập theo vị trí & mục tiêu đề ra)
 if (!empty($eval['custom_items_json'])) {
@@ -108,34 +131,23 @@ if (is_array($mgr_scores_saved)) {
 
 $user = current_user();
 
-// Kiểm tra quyền chấm điểm
-$can_edit_self = is_superadmin() || 
-                 ($user['id'] == $eval['employee_user_id'] || $user['id'] == $eval['employee_id']) ||
-                 has_permission('evaluations', 'edit');
+// Kiểm tra quyền chấm điểm & trạng thái khóa an toàn qua KpiService
+$can_edit_self = KpiService::canSelfReview($eval, $user);
+$can_edit_mgr  = KpiService::canManagerReview($eval, $user);
+$lock_info     = KpiService::getLockStatus($eval);
 
-$can_edit_mgr = is_superadmin() || 
-                ($user['id'] == $eval['reviewer_user_id'] || $user['id'] == $eval['reviewer_id']) ||
-                has_permission('evaluations', 'approve') ||
-                has_permission('evaluations', 'manager_review');
-
-// Cấu hình xếp loại & Total Rewards
+// Cấu hình xếp loại & Total Rewards từ config/kpi_rules.php
+$kpi_cfg = kpi_rules();
 $rating_configs = [
-    'outstanding'   => ['label' => 'Xuất Sắc (A+)', 'multiplier' => 1.50, 'bg' => 'from-amber-500 to-yellow-500', 'text' => 'text-amber-500', 'badge' => 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300', 'icon' => 'fa-crown', 'reward_desc' => 'Thưởng 150% quỹ KPI & Đề xuất thăng chức / tăng lương trước hạn'],
-    'excellent'     => ['label' => 'Tốt (A)', 'multiplier' => 1.20, 'bg' => 'from-emerald-500 to-teal-500', 'text' => 'text-emerald-500', 'badge' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300', 'icon' => 'fa-star', 'reward_desc' => 'Thưởng 120% quỹ KPI & Xét nâng bậc lương định kỳ'],
-    'good'          => ['label' => 'Khá (B)', 'multiplier' => 1.00, 'bg' => 'from-indigo-500 to-blue-500', 'text' => 'text-indigo-500', 'badge' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300', 'icon' => 'fa-circle-check', 'reward_desc' => 'Thưởng 100% quỹ KPI tiêu chuẩn (Đạt định mức)'],
-    'average'       => ['label' => 'Trung Bình (C)', 'multiplier' => 0.60, 'bg' => 'from-slate-500 to-zinc-500', 'text' => 'text-slate-500', 'badge' => 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200', 'icon' => 'fa-circle-dot', 'reward_desc' => 'Thưởng 60% quỹ KPI & Lập kế hoạch kèm cặp cải thiện PIP 60 ngày'],
-    'below_average' => ['label' => 'Yếu (D)', 'multiplier' => 0.00, 'bg' => 'from-orange-500 to-amber-600', 'text' => 'text-orange-500', 'badge' => 'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300', 'icon' => 'fa-triangle-exclamation', 'reward_desc' => '0% thưởng hiệu suất, cảnh cáo và tái đào tạo chuyên môn'],
-    'poor'          => ['label' => 'Kém (E)', 'multiplier' => 0.00, 'bg' => 'from-rose-500 to-red-600', 'text' => 'text-rose-500', 'badge' => 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300', 'icon' => 'fa-circle-xmark', 'reward_desc' => '0% thưởng hiệu suất, xem xét chuyển đổi vị trí hoặc chấm dứt HĐ']
+    'outstanding'   => ['label' => 'Xuất Sắc (A+)', 'multiplier' => 1.50, 'bg' => 'from-amber-500 to-yellow-500', 'text' => 'text-amber-500', 'badge' => 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-300 dark:border-amber-700', 'icon' => 'fa-crown', 'reward_desc' => 'Thưởng 150% quỹ KPI & Đề xuất thăng chức / tăng lương trước hạn'],
+    'excellent'     => ['label' => 'Tốt (A)', 'multiplier' => 1.20, 'bg' => 'from-emerald-500 to-teal-500', 'text' => 'text-emerald-500', 'badge' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700', 'icon' => 'fa-star', 'reward_desc' => 'Thưởng 120% quỹ KPI & Xét nâng bậc lương định kỳ'],
+    'good'          => ['label' => 'Khá (B)', 'multiplier' => 1.00, 'bg' => 'from-indigo-500 to-blue-500', 'text' => 'text-indigo-500', 'badge' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700', 'icon' => 'fa-circle-check', 'reward_desc' => 'Thưởng 100% quỹ KPI tiêu chuẩn (Đạt định mức)'],
+    'average'       => ['label' => 'Trung Bình (C)', 'multiplier' => 0.60, 'bg' => 'from-slate-500 to-zinc-500', 'text' => 'text-slate-500', 'badge' => 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600', 'icon' => 'fa-circle-dot', 'reward_desc' => 'Thưởng 60% quỹ KPI & Lập kế hoạch kèm cặp cải thiện PIP 60 ngày'],
+    'below_average' => ['label' => 'Yếu (D)', 'multiplier' => 0.00, 'bg' => 'from-orange-500 to-amber-600', 'text' => 'text-orange-500', 'badge' => 'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300 border-orange-300 dark:border-orange-700', 'icon' => 'fa-triangle-exclamation', 'reward_desc' => '0% thưởng hiệu suất, cảnh cáo và tái đào tạo chuyên môn'],
+    'poor'          => ['label' => 'Kém (E)', 'multiplier' => 0.00, 'bg' => 'from-rose-500 to-red-600', 'text' => 'text-rose-500', 'badge' => 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border-rose-300 dark:border-rose-700', 'icon' => 'fa-circle-xmark', 'reward_desc' => '0% thưởng hiệu suất, xem xét chuyển đổi vị trí hoặc chấm dứt HĐ']
 ];
 
-$rec_labels = [
-    'none' => 'Không đề xuất',
-    'bonus' => 'Khen thưởng hiệu suất',
-    'salary_increase' => 'Đề xuất tăng bậc lương',
-    'promotion' => 'Quy hoạch bổ nhiệm',
-    'training' => 'Đào tạo & Hướng dẫn lại',
-    'warning' => 'Nhắc nhở & Giám sát hiệu suất'
-];
+$rec_labels = KpiService::allowedPromotionRecommendations();
 
 $level_info = $hierarchy_levels[$eval['template_level'] ?? 'specialist'] ?? $hierarchy_levels['specialist'];
 $current_rating_cfg = $rating_configs[$eval['rating'] ?? ''] ?? null;
@@ -165,7 +177,7 @@ require_once __DIR__ . '/../../includes/header.php';
             </h1>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2.5">
+        <div class="flex flex-wrap items-center gap-2.5 no-print">
             <button type="button" onclick="window.print()" 
                     class="px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-semibold rounded-xl text-xs transition flex items-center gap-2 shadow-sm">
                 <i class="fa-solid fa-print"></i>
@@ -178,6 +190,14 @@ require_once __DIR__ . '/../../includes/header.php';
                     <i class="fa-solid fa-award"></i>
                     <span>Lập Khen Thưởng</span>
                 </a>
+            <?php endif; ?>
+
+            <?php if ($eval['status'] === 'completed' && (is_superadmin() || has_permission('evaluations', 'approve'))): ?>
+                <button type="button" onclick="reopenEvaluation()"
+                        class="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 font-semibold rounded-xl text-xs transition flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-unlock-keyhole"></i>
+                    <span>Mở Lại Đánh Giá</span>
+                </button>
             <?php endif; ?>
 
             <?php if (has_permission('evaluations', 'edit')): ?>
@@ -195,6 +215,16 @@ require_once __DIR__ . '/../../includes/header.php';
             </a>
         </div>
     </div>
+
+    <!-- Alert Thông Báo Trạng Thái Khóa Hồ Sơ -->
+    <?php if ($lock_info['is_locked']): ?>
+        <div class="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs flex items-center gap-3 shadow-xs">
+            <i class="fa-solid fa-lock text-base text-amber-600 dark:text-amber-400 flex-shrink-0"></i>
+            <div>
+                <span class="font-bold">Trạng Thái Hồ Sơ:</span> <?= e($lock_info['reason']) ?>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <!-- Banner Profile & Tổng Quan Điểm Số (Score Dashboard Card) -->
     <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 sm:p-8 space-y-6">
@@ -271,6 +301,41 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
             </div>
         </div>
+
+        <?php if ($dept_target): ?>
+            <!-- Mục Tiêu Trọng Tâm Cấp Khối / Phòng Ban (Department Aligned Goals) -->
+            <div class="p-4 rounded-2xl bg-gradient-to-r from-red-50/90 via-rose-50/60 to-amber-50/60 dark:from-red-950/40 dark:via-rose-950/30 dark:to-amber-950/30 border border-red-200/90 dark:border-red-900/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="px-2.5 py-0.5 rounded-lg bg-red-600 text-white font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
+                            <i class="fa-solid fa-bullseye"></i> Mục Tiêu Phòng Ban
+                        </span>
+                        <span class="text-xs font-bold text-slate-800 dark:text-white">
+                            <?= e($eval['department_name']) ?> &bull; <?= e($eval['period_name']) ?>
+                        </span>
+                    </div>
+                    <h4 class="text-sm font-bold text-slate-900 dark:text-white">
+                        <?= e($dept_target['target_title']) ?>
+                    </h4>
+                    <?php if (!empty($dept_target['target_description'])): ?>
+                        <p class="text-xs text-slate-600 dark:text-slate-300">
+                            <?= e($dept_target['target_description']) ?>
+                        </p>
+                    <?php endif; ?>
+                </div>
+                <?php if (!empty($dept_target['kpi_items']) && is_array($dept_target['kpi_items'])): ?>
+                    <div class="flex items-center gap-2 flex-wrap flex-shrink-0">
+                        <?php foreach (array_slice($dept_target['kpi_items'], 0, 3) as $dKpi): ?>
+                            <span class="px-2.5 py-1 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-red-200/80 dark:border-red-800/80 text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5 shadow-xs">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                <strong class="text-red-600 dark:text-red-400 font-mono"><?= e($dKpi['target_value'] ?? '') ?></strong>
+                                <span class="text-slate-600 dark:text-slate-300 truncate max-w-[150px]"><?= e($dKpi['criteria_name'] ?? '') ?></span>
+                            </span>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
 
         <!-- Hàng dưới: 4 Khối Chỉ Số Điểm & Total Rewards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -415,9 +480,14 @@ require_once __DIR__ . '/../../includes/header.php';
             
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-700">
                 <div>
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
                         <i class="fa-solid fa-sliders text-indigo-600"></i>
                         <span>Bảng Tiêu Chí Tự Đánh Giá Bản Thân (Đo Lường SMART)</span>
+                        <?php if (!$can_edit_self): ?>
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 inline-flex items-center gap-1.5">
+                                <i class="fa-solid fa-lock text-[10px]"></i>Chế độ chỉ xem (Đã khóa)
+                            </span>
+                        <?php endif; ?>
                     </h3>
                     <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         Nhập <strong>Số Thực Hiện Đạt Được (Actual)</strong> để hệ thống tự động tính ra % hoàn thành theo công thức khoa học.
@@ -426,7 +496,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
                 <div class="flex items-center gap-3">
                     <div class="text-right">
-                        <span class="text-[11px] text-slate-400 block">Điểm tự chấm tạm tính:</span>
+                        <span class="text-[11px] text-slate-400 block">Điểm tự chấm:</span>
                         <span id="selfLiveScore" class="text-xl font-black font-mono text-indigo-600 dark:text-indigo-400">
                             <?= $eval['self_score'] !== null ? round($eval['self_score'], 1) : '0.0' ?>
                         </span>
@@ -518,7 +588,8 @@ require_once __DIR__ . '/../../includes/header.php';
                                                data-direction="<?= e($it['calc_direction'] ?? 'higher_better') ?>"
                                                data-cap="<?= e($it['max_cap'] ?? 120) ?>"
                                                oninput="calcKpiFromActual(this, 'num_self_<?= $it_id ?>', 'slider_self_<?= $it_id ?>', 'self')"
-                                               class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500">
+                                               <?= !$can_edit_self ? 'disabled' : '' ?>
+                                               class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 <?= !$can_edit_self ? 'opacity-70 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : '' ?>">
                                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 font-bold"><?= e($it['unit'] ?? '%') ?></span>
                                     </div>
                                 </div>
@@ -535,7 +606,8 @@ require_once __DIR__ . '/../../includes/header.php';
                                                value="<?= $init_score ?>"
                                                data-weight="<?= $it['weight'] ?>"
                                                oninput="syncSliderToInput(this, 'num_self_<?= $it_id ?>', 'self')"
-                                               class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                                               <?= !$can_edit_self ? 'disabled' : '' ?>
+                                               class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600 <?= !$can_edit_self ? 'opacity-50 cursor-not-allowed' : '' ?>">
                                     </div>
 
                                     <input type="number" min="0" max="120" step="0.5"
@@ -545,7 +617,8 @@ require_once __DIR__ . '/../../includes/header.php';
                                            data-item-id="<?= $it_id ?>"
                                            data-weight="<?= $it['weight'] ?>"
                                            oninput="syncInputToSlider(this, 'slider_self_<?= $it_id ?>', 'self')"
-                                           class="self-score-input w-16 px-2.5 py-1.5 text-center font-mono font-black text-xs bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 rounded-xl text-indigo-600 dark:text-indigo-400 focus:ring-2 focus:ring-indigo-500">
+                                           <?= !$can_edit_self ? 'disabled' : '' ?>
+                                           class="self-score-input w-16 px-2.5 py-1.5 text-center font-mono font-black text-xs bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 rounded-xl text-indigo-600 dark:text-indigo-400 focus:ring-2 focus:ring-indigo-500 <?= !$can_edit_self ? 'opacity-70 cursor-not-allowed' : '' ?>">
                                 </div>
 
                             </div>
@@ -554,7 +627,8 @@ require_once __DIR__ . '/../../includes/header.php';
                             <div>
                                 <input type="text" id="comment_self_<?= $it_id ?>" value="<?= e($init_comment) ?>"
                                        placeholder="Dẫn chứng số liệu, link báo cáo ERP/Git hoặc giải trình lý do đạt/chưa đạt..."
-                                       class="w-full px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500">
+                                       <?= !$can_edit_self ? 'disabled' : '' ?>
+                                       class="w-full px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 <?= !$can_edit_self ? 'opacity-70 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : '' ?>">
                             </div>
 
                         </div>
@@ -567,7 +641,8 @@ require_once __DIR__ . '/../../includes/header.php';
                         Nhận Xét & Đánh Giá Tổng Thể Của Bản Thân
                     </label>
                     <textarea id="self_notes" rows="4" placeholder="Tự đánh giá các điểm nổi bật trong kỳ, điểm cần cải thiện, và các đề xuất cần ban lãnh đạo hỗ trợ..."
-                              class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500"><?= e($eval['self_notes'] ?? '') ?></textarea>
+                              <?= !$can_edit_self ? 'disabled' : '' ?>
+                              class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 <?= !$can_edit_self ? 'opacity-70 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : '' ?>"><?= e($eval['self_notes'] ?? '') ?></textarea>
                 </div>
 
                 <!-- Footer Buttons -->
@@ -603,9 +678,14 @@ require_once __DIR__ . '/../../includes/header.php';
             
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-700">
                 <div>
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
                         <i class="fa-solid fa-user-tie text-violet-600"></i>
                         <span>Bảng Quản Lý Trực Tiếp Thẩm Tra & Chấm Điểm</span>
+                        <?php if (!$can_edit_mgr): ?>
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 inline-flex items-center gap-1.5">
+                                <i class="fa-solid fa-lock text-[10px]"></i>Chế độ chỉ xem (Đã khóa)
+                            </span>
+                        <?php endif; ?>
                     </h3>
                     <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         Đối chiếu số liệu thực tế, thẩm định mức độ hoàn thành và đưa ra xếp loại nhân sự & thưởng Total Rewards.
@@ -614,7 +694,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
                 <div class="flex items-center gap-3">
                     <div class="text-right">
-                        <span class="text-[11px] text-slate-400 block">Điểm Quản Lý tạm tính:</span>
+                        <span class="text-[11px] text-slate-400 block">Điểm Quản Lý:</span>
                         <span id="mgrLiveScore" class="text-xl font-black font-mono text-violet-600 dark:text-violet-400">
                             <?= $eval['manager_score'] !== null ? round($eval['manager_score'], 1) : '0.0' ?>
                         </span>
@@ -713,7 +793,8 @@ require_once __DIR__ . '/../../includes/header.php';
                                                data-direction="<?= e($it['calc_direction'] ?? 'higher_better') ?>"
                                                data-cap="<?= e($it['max_cap'] ?? 120) ?>"
                                                oninput="calcKpiFromActual(this, 'num_mgr_<?= $it_id ?>', 'slider_mgr_<?= $it_id ?>', 'manager')"
-                                               class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-violet-500">
+                                               <?= !$can_edit_mgr ? 'disabled' : '' ?>
+                                               class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-violet-500 <?= !$can_edit_mgr ? 'opacity-70 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : '' ?>">
                                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 font-bold"><?= e($it['unit'] ?? '%') ?></span>
                                     </div>
                                 </div>
@@ -729,7 +810,8 @@ require_once __DIR__ . '/../../includes/header.php';
                                                value="<?= $init_mgr_score ?>"
                                                data-weight="<?= $it['weight'] ?>"
                                                oninput="syncSliderToInput(this, 'num_mgr_<?= $it_id ?>', 'manager')"
-                                               class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-violet-600">
+                                               <?= !$can_edit_mgr ? 'disabled' : '' ?>
+                                               class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-violet-600 <?= !$can_edit_mgr ? 'opacity-50 cursor-not-allowed' : '' ?>">
                                     </div>
 
                                     <input type="number" min="0" max="120" step="0.5"
@@ -739,7 +821,8 @@ require_once __DIR__ . '/../../includes/header.php';
                                            data-item-id="<?= $it_id ?>"
                                            data-weight="<?= $it['weight'] ?>"
                                            oninput="syncInputToSlider(this, 'slider_mgr_<?= $it_id ?>', 'manager')"
-                                           class="mgr-score-input w-16 px-2.5 py-1.5 text-center font-mono font-black text-xs bg-violet-50 dark:bg-violet-950/50 border border-violet-200 dark:border-violet-800 rounded-xl text-violet-600 dark:text-violet-400 focus:ring-2 focus:ring-violet-500">
+                                           <?= !$can_edit_mgr ? 'disabled' : '' ?>
+                                           class="mgr-score-input w-16 px-2.5 py-1.5 text-center font-mono font-black text-xs bg-violet-50 dark:bg-violet-950/50 border border-violet-200 dark:border-violet-800 rounded-xl text-violet-600 dark:text-violet-400 focus:ring-2 focus:ring-violet-500 <?= !$can_edit_mgr ? 'opacity-70 cursor-not-allowed' : '' ?>">
                                 </div>
                             </div>
 
@@ -747,7 +830,8 @@ require_once __DIR__ . '/../../includes/header.php';
                             <div>
                                 <input type="text" id="comment_mgr_<?= $it_id ?>" value="<?= e($init_mgr_comment) ?>"
                                        placeholder="Quản lý nhận xét về chất lượng hoặc lý do điều chỉnh điểm số..."
-                                       class="w-full px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-violet-500">
+                                       <?= !$can_edit_mgr ? 'disabled' : '' ?>
+                                       class="w-full px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-violet-500 <?= !$can_edit_mgr ? 'opacity-70 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : '' ?>">
                             </div>
 
                         </div>
@@ -761,7 +845,8 @@ require_once __DIR__ . '/../../includes/header.php';
                             Đề Xuất Hành Động Nhân Sự
                         </label>
                         <select id="mgr_promotion_recommendation"
-                                class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white font-medium focus:ring-2 focus:ring-violet-500">
+                                <?= !$can_edit_mgr ? 'disabled' : '' ?>
+                                class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white font-medium focus:ring-2 focus:ring-violet-500 <?= !$can_edit_mgr ? 'opacity-70 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : '' ?>">
                             <option value="none" <?= ($eval['promotion_recommendation'] ?? '') === 'none' ? 'selected' : '' ?>>Không có đề xuất đặc biệt</option>
                             <option value="bonus" <?= ($eval['promotion_recommendation'] ?? '') === 'bonus' ? 'selected' : '' ?>>Khen thưởng hiệu suất xuất sắc</option>
                             <option value="salary_increase" <?= ($eval['promotion_recommendation'] ?? '') === 'salary_increase' ? 'selected' : '' ?>>Đề xuất tăng bậc lương</option>
@@ -776,7 +861,8 @@ require_once __DIR__ . '/../../includes/header.php';
                             Nhận Xét Tổng Thể & Định Hướng Của Quản Lý
                         </label>
                         <textarea id="mgr_notes" rows="3" placeholder="Đánh giá thái độ, tiềm năng phát triển và mục tiêu cần đạt trong kỳ tới..."
-                                  class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white focus:ring-2 focus:ring-violet-500"><?= e($eval['manager_notes'] ?? '') ?></textarea>
+                                  <?= !$can_edit_mgr ? 'disabled' : '' ?>
+                                  class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white focus:ring-2 focus:ring-violet-500 <?= !$can_edit_mgr ? 'opacity-70 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : '' ?>"><?= e($eval['manager_notes'] ?? '') ?></textarea>
                     </div>
                 </div>
 
@@ -792,7 +878,7 @@ require_once __DIR__ . '/../../includes/header.php';
                         <button type="submit" 
                                 class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-sm text-xs transition flex items-center gap-2">
                             <i class="fa-solid fa-circle-check"></i>
-                            <span>Phê Duyệt & Chốt Kết Quả (Hoàn Tất)</span>
+                            <span><?= $eval['status'] === 'completed' ? 'Lưu Điều Chỉnh & Cập Nhật Điểm' : 'Phê Duyệt & Chốt Kết Quả (Hoàn Tất)' ?></span>
                         </button>
                     </div>
                 <?php else: ?>
@@ -1056,26 +1142,53 @@ function switchTab(tabKey) {
 
 // Tính toán khoa học từ Số Thực Tế (Actual) so với Kế Hoạch (Target)
 function calcKpiFromActual(actualInput, scoreInputId, sliderInputId, type) {
-    const actualStr = actualInput.value.trim();
-    const targetStr = actualInput.getAttribute('data-target') || '100';
-    const direction = actualInput.getAttribute('data-direction') || 'higher_better';
-    const maxCap = parseFloat(actualInput.getAttribute('data-cap')) || 120;
+    const actualStr  = actualInput.value.trim();
+    const targetStr  = actualInput.getAttribute('data-target') || '100';
+    const direction  = actualInput.getAttribute('data-direction') || 'higher_better';
+    const maxCap     = parseFloat(actualInput.getAttribute('data-cap')) || 120;
+    const minThresh  = parseFloat(actualInput.getAttribute('data-min')) || 0;
 
-    const numActual = parseFloat(actualStr);
-    const match = targetStr.match(/(\d+(?:\.\d+)?)/);
-    const numTarget = match ? parseFloat(match[1]) : 100;
+    if (actualStr === '') {
+        return;
+    }
 
-    if (!isNaN(numActual) && numTarget > 0) {
-        let completion = 0;
-        if (direction === 'higher_better') {
-            completion = (numActual / numTarget) * 100;
-        } else if (direction === 'lower_better') {
-            completion = (1 + (numTarget - numActual) / numTarget) * 100;
-        } else {
-            completion = numActual > 0 ? 100 : 0;
+    let completion = 0;
+    let computed = false;
+
+    // 1. Tiêu chí Boolean
+    if (direction === 'boolean') {
+        const valLower = actualStr.toLowerCase();
+        const truthy = ['1', 'true', 'đạt', 'dat', 'yes', 'có', 'co', 'pass', 'hoàn thành'].includes(valLower);
+        completion = truthy ? 100 : 0;
+        computed = true;
+    } else {
+        const matchActual = actualStr.replace(',', '.').match(/(\d+(?:\.\d+)?)/);
+        const matchTarget = targetStr.replace(',', '.').match(/(\d+(?:\.\d+)?)/);
+        const numActual = matchActual ? parseFloat(matchActual[1]) : NaN;
+        const numTarget = matchTarget ? parseFloat(matchTarget[1]) : 100;
+
+        if (!isNaN(numActual)) {
+            if (numTarget > 0) {
+                if (direction === 'higher_better') {
+                    completion = (numActual / numTarget) * 100;
+                } else if (direction === 'lower_better') {
+                    completion = (1 + (numTarget - numActual) / numTarget) * 100;
+                }
+                computed = true;
+            } else if (numTarget === 0 && direction === 'lower_better') {
+                completion = numActual <= 0 ? 100 : Math.max(0, 100 - (numActual * 20));
+                computed = true;
+            }
         }
+    }
 
-        completion = Math.max(0, Math.min(maxCap, completion));
+    if (computed) {
+        // Áp dụng ngưỡng liệt (Fail threshold)
+        if (minThresh > 0 && completion < minThresh) {
+            completion = 0;
+        } else {
+            completion = Math.max(0, Math.min(maxCap, completion));
+        }
         completion = Math.round(completion * 10) / 10;
 
         const scoreInput = document.getElementById(scoreInputId);
@@ -1113,30 +1226,55 @@ function syncInputToSlider(input, sliderId, type) {
     calculateLiveScore(type);
 }
 
-// Tính điểm live theo trọng số %
+// Tính điểm live theo trọng số % (Chuẩn hóa chia tổng trọng số template để chống lạm phát điểm khi bỏ trống)
 function calculateLiveScore(type) {
     const inputs = document.querySelectorAll(type === 'self' ? '.self-score-input' : '.mgr-score-input');
     let totalWeighted = 0;
-    let totalWeight = 0;
+    let totalTemplateWeight = 0;
+    let groupAWeighted = 0;
+    let groupAWeight = 0;
 
     inputs.forEach(inp => {
         const score = parseFloat(inp.value) || 0;
         const weight = parseFloat(inp.getAttribute('data-weight')) || 0;
+        const pGroup = inp.getAttribute('data-priority') || 'B';
+
         totalWeighted += (score * weight / 100);
-        totalWeight += weight;
+        totalTemplateWeight += weight;
+
+        if (pGroup === 'A') {
+            groupAWeighted += (score * weight / 100);
+            groupAWeight += weight;
+        }
     });
 
-    const finalVal = totalWeight > 0 ? (totalWeighted / totalWeight * 100) : 0;
+    if (totalTemplateWeight <= 0) totalTemplateWeight = 100;
+    const finalVal = (totalWeighted / totalTemplateWeight * 100);
     const rounded = Math.round(finalVal * 10) / 10;
 
+    const groupAAvg = groupAWeight > 0 ? (groupAWeighted / groupAWeight * 100) : 100;
+
     if (type === 'self') {
-        document.getElementById('selfLiveScore').textContent = rounded.toFixed(1);
+        const el = document.getElementById('selfLiveScore');
+        if (el) el.textContent = rounded.toFixed(1);
     } else {
-        document.getElementById('mgrLiveScore').textContent = rounded.toFixed(1);
+        const el = document.getElementById('mgrLiveScore');
+        if (el) el.textContent = rounded.toFixed(1);
+
+        // Hiển thị cảnh báo nếu Nhóm A < 60%
+        const gateWarning = document.getElementById('mgrGroupAGateWarning');
+        if (gateWarning) {
+            if (groupAWeight > 0 && groupAAvg < 60) {
+                gateWarning.classList.remove('hidden');
+                gateWarning.textContent = '⚠ Lưu ý Link Power: Nhóm A cốt lõi đang đạt ' + groupAAvg.toFixed(1) + '% (< 60%). Kết quả xếp loại tối đa sẽ bị khống chế ở mức C (Trung Bình).';
+            } else {
+                gateWarning.classList.add('hidden');
+            }
+        }
     }
 }
 
-// Vẽ Radar Chart với Chart.js
+// Vẽ Radar Chart với Chart.js (Màu thương hiệu WinMart Red & Wine Ruby)
 function renderRadarChart() {
     const ctx = document.getElementById('kpiRadarChart');
     if (!ctx) return;
@@ -1176,17 +1314,17 @@ function renderRadarChart() {
                 {
                     label: 'Nhân viên tự chấm',
                     data: selfData,
-                    backgroundColor: 'rgba(99, 102, 241, 0.25)',
-                    borderColor: '#6366f1',
-                    pointBackgroundColor: '#6366f1',
+                    backgroundColor: 'rgba(218, 37, 28, 0.20)',
+                    borderColor: '#da251c',
+                    pointBackgroundColor: '#da251c',
                     borderWidth: 2
                 },
                 {
                     label: 'Quản lý chấm',
                     data: mgrData,
-                    backgroundColor: 'rgba(139, 92, 246, 0.25)',
-                    borderColor: '#8b5cf6',
-                    pointBackgroundColor: '#8b5cf6',
+                    backgroundColor: 'rgba(201, 42, 87, 0.20)',
+                    borderColor: '#c92a57',
+                    pointBackgroundColor: '#c92a57',
                     borderWidth: 2
                 }
             ]
@@ -1200,7 +1338,7 @@ function renderRadarChart() {
                     grid: { color: gridColor },
                     pointLabels: {
                         color: textColor,
-                        font: { size: 10, family: 'sans-serif', weight: 'bold' }
+                        font: { size: 10, family: '"Be Vietnam Pro", sans-serif', weight: 'bold' }
                     },
                     suggestedMin: 0,
                     suggestedMax: 100,
@@ -1218,7 +1356,7 @@ function renderRadarChart() {
     });
 }
 
-// Gửi kết quả đánh giá qua AJAX
+// Gửi kết quả đánh giá qua AJAX với CSRF Token
 async function submitEvaluation(event, reviewType, isSubmitFinal) {
     if (event) event.preventDefault();
 
@@ -1253,20 +1391,24 @@ async function submitEvaluation(event, reviewType, isSubmitFinal) {
     });
 
     const notes = reviewType === 'self' 
-        ? document.getElementById('self_notes').value 
-        : document.getElementById('mgr_notes').value;
+        ? (document.getElementById('self_notes')?.value || '')
+        : (document.getElementById('mgr_notes')?.value || '');
 
     const promotionRec = reviewType === 'manager' 
-        ? document.getElementById('mgr_promotion_recommendation').value 
+        ? (document.getElementById('mgr_promotion_recommendation')?.value || 'none')
         : 'none';
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     try {
         const response = await fetch('<?= base_url('modules/evaluations/ajax_evaluate.php') ?>', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
             },
             body: JSON.stringify({
+                _csrf_token: csrfToken,
                 evaluation_id: EVALUATION_ID,
                 review_type: reviewType,
                 scores: scores,
@@ -1296,6 +1438,51 @@ async function submitEvaluation(event, reviewType, isSubmitFinal) {
     }
 }
 
+// Mở lại hồ sơ đánh giá để điều chỉnh
+async function reopenEvaluation() {
+    const confirmed = await window.confirmAsync({
+        title: 'Mở Lại Hồ Sơ Đánh Giá',
+        message: 'Bạn có chắc chắn muốn mở lại hồ sơ đánh giá này? Phiếu sẽ chuyển về trạng thái [Chờ Quản Lý Chấm] để thẩm định lại điểm số.',
+        confirmText: 'Xác Nhận Mở Lại',
+        isDanger: true
+    });
+    if (!confirmed) return;
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    try {
+        const response = await fetch('<?= base_url('modules/evaluations/ajax_evaluate.php') ?>', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({
+                _csrf_token: csrfToken,
+                evaluation_id: EVALUATION_ID,
+                action: 'reopen',
+                reopen_to: 'manager'
+            })
+        });
+        const res = await response.json();
+        if (res.success) {
+            if (typeof window.showToast === 'function') {
+                window.showToast('success', res.message);
+            }
+            setTimeout(() => {
+                window.location.reload();
+            }, 800);
+        } else {
+            if (typeof window.showToast === 'function') {
+                window.showToast('danger', 'Lỗi: ' + res.message);
+            }
+        }
+    } catch (e) {
+        if (typeof window.showToast === 'function') {
+            window.showToast('danger', 'Có lỗi kết nối: ' + e.message);
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     calculateLiveScore('self');
     calculateLiveScore('manager');
@@ -1304,5 +1491,23 @@ document.addEventListener('DOMContentLoaded', () => {
     <?php endif; ?>
 });
 </script>
+
+<style>
+@media print {
+    /* Ẩn thanh công cụ, menu và các nút bấm khi in */
+    aside, header, #sidebar, .no-print, [onclick="window.print()"] {
+        display: none !important;
+    }
+    body, main {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    #tabContent_results {
+        display: block !important;
+    }
+}
+</style>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

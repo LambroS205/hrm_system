@@ -80,7 +80,7 @@ $year = date('Y', $effective_time);
         <!-- Header Quốc Hiệu & Cơ Quan -->
         <div class="grid grid-cols-2 gap-4 pb-6">
             <div class="text-center">
-                <div class="font-bold text-xs uppercase tracking-wider">AURA RETAIL GROUP JSC</div>
+                <div class="font-bold text-xs uppercase tracking-wider"><?= e(brand('company_legal')) ?></div>
                 <div class="font-bold text-sm uppercase mt-0.5"><?= e($t['from_branch_name']) ?></div>
                 <div class="text-xs mt-1">Số: <strong><?= e($t['decision_number']) ?></strong></div>
                 <div class="w-24 h-0.5 bg-slate-900 mx-auto mt-2"></div>
@@ -89,7 +89,7 @@ $year = date('Y', $effective_time);
             <div class="text-center">
                 <div class="font-bold text-xs uppercase tracking-wider">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
                 <div class="font-bold text-xs underline mt-0.5">Độc lập - Tự do - Hạnh phúc</div>
-                <div class="text-xs italic mt-2">Hà Nội, ngày <?= $day ?> tháng <?= $month ?> năm <?= $year ?></div>
+                <div class="text-xs italic mt-2">TP. Hồ Chí Minh, ngày <?= $day ?> tháng <?= $month ?> năm <?= $year ?></div>
             </div>
         </div>
 
@@ -97,17 +97,17 @@ $year = date('Y', $effective_time);
         <div class="text-center py-4 space-y-1">
             <h1 class="text-xl font-bold uppercase tracking-tight">QUYẾT ĐỊNH</h1>
             <div class="text-sm font-bold uppercase">Về việc điều động và bổ nhiệm cán bộ, nhân sự</div>
-            <div class="text-xs italic">Căn cứ nhu cầu phát triển kinh doanh & chuỗi chi nhánh của Tập đoàn Bán lẻ Aura</div>
+            <div class="text-xs italic">Căn cứ nhu cầu phát triển kinh doanh & chuỗi siêu thị, cửa hàng của <?= e(brand('company_short')) ?></div>
         </div>
 
         <!-- Thẩm Quyền Ban Hành -->
         <div class="text-center font-bold text-sm tracking-wide uppercase pt-2">
-            TỔNG GIÁM ĐỐC TẬP ĐOÀN AURA
+            TỔNG GIÁM ĐỐC <?= mb_strtoupper(brand('company_short'), 'UTF-8') ?>
         </div>
 
         <!-- Các Căn Cứ Pháp Lý -->
         <div class="text-justify text-sm space-y-1.5 leading-relaxed indent-6">
-            <p>• Căn cứ Điều lệ tổ chức và Quy chế quản lý nhân sự Tập đoàn Aura ban hành kèm theo các nghị quyết hiện hành;</p>
+            <p>• Căn cứ Điều lệ tổ chức và Quy chế quản lý nhân sự <?= e(brand('company_legal')) ?> ban hành kèm theo các nghị quyết hiện hành;</p>
             <p>• Căn cứ Kế hoạch mở rộng chuỗi chi nhánh và tối ưu định biên nhân lực toàn quốc năm 2026;</p>
             <p>• Căn cứ phẩm chất, năng lực chuyên môn và thâm niên cống hiến của cán bộ;</p>
             <p>• Xét đề nghị của Giám Đốc Nhân Sự (CHRO) và Giám đốc <?= e($t['to_branch_name']) ?>;</p>
@@ -155,7 +155,7 @@ $year = date('Y', $effective_time);
                 
                 <div class="pt-6">
                     <div class="p-2.5 rounded border border-slate-200 bg-slate-50 font-sans text-[10px] space-y-0.5 max-w-[200px]">
-                        <span class="font-bold text-slate-700 block"><i class="fa-solid fa-shield-check text-emerald-600"></i> AURA HRM SYSTEM</span>
+                        <span class="font-bold text-slate-700 block"><i class="fa-solid fa-shield-check text-emerald-600"></i> <?= e(brand('product_name')) ?></span>
                         <span class="text-slate-500 block">Chứng thực số: <?= e($t['transfer_code']) ?></span>
                         <span class="text-slate-500 block">Ngày ký: <?= date('d/m/Y H:i') ?></span>
                     </div>
@@ -170,7 +170,7 @@ $year = date('Y', $effective_time);
                 <!-- Mô Phỏng Dấu Đỏ & Chữ Ký Sang Trọng -->
                 <div class="relative h-28 flex items-center justify-center">
                     <div class="w-24 h-24 rounded-full border-2 border-rose-500 text-rose-600 flex flex-col items-center justify-center text-[9px] font-bold uppercase transform -rotate-12 opacity-85 select-none pointer-events-none">
-                        <span>AURA GROUP</span>
+                        <span>WINCOMMERCE</span>
                         <i class="fa-solid fa-star text-rose-500 text-[10px] my-0.5"></i>
                         <span>ĐÃ KÝ ĐIỆN TỬ</span>
                         <span class="text-[8px] mt-0.5"><?= date('d/m/Y') ?></span>

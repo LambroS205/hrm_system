@@ -12,7 +12,7 @@
                 </div>
                 <div>
                     <h3 id="helpModalTitle" class="text-lg font-extrabold text-slate-900 dark:text-white leading-tight">
-                        Trung Tâm Hướng Dẫn & Đào Tạo Vận Hành AURA HRM
+                        Trung Tâm Hướng Dẫn & Đào Tạo Vận Hành <?= e(brand('product_name')) ?>
                     </h3>
                     <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         Cẩm nang trực quan giúp nhân sự & quản lý mới làm chủ hệ thống trong 5 phút
@@ -55,7 +55,7 @@
                         Vòng Đời Nhân Sự & Sự Liên Thông Giữa Các Phân Hệ
                     </h4>
                     <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                        Mọi dữ liệu trong AURA HRM được liên kết chặt chẽ tự động. Hiểu rõ luồng dữ liệu sẽ giúp bạn thao tác chuẩn xác và không bỏ sót khâu nào.
+                        Mọi dữ liệu trong <?= e(brand('product_name')) ?> được liên kết chặt chẽ tự động. Hiểu rõ luồng dữ liệu sẽ giúp bạn thao tác chuẩn xác và không bỏ sót khâu nào.
                     </p>
                 </div>
 

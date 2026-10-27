@@ -1,9 +1,9 @@
-/* assets/css/app.css - AURA HRM Pure Flat (Metro UI) Design System */
+/* assets/css/app.css - WinCommerce People HRM Flat (Metro UI) Design System */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-    --font-sans: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-sans: 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     
     /* Metro Flat Radius & Borders */
@@ -12,10 +12,11 @@
     --border-subtle: #e2e8f0;      /* Slate 200 */
     --flat-border: 1px solid var(--border-color);
     
-    /* Brand Primary Accent (Solid Flat Indigo) */
-    --primary: #4338ca;            /* Indigo 700 */
-    --primary-hover: #3730a3;      /* Indigo 800 */
-    --primary-light: #e0e7ff;      /* Indigo 100 */
+    /* Brand Primary Accent (WinMart Red #DA251C) */
+    --primary: #da251c;            /* WinMart Red 600 */
+    --primary-hover: #b81d15;      /* WinMart Red 700 */
+    --primary-light: #ffe0de;      /* WinMart Red 100 */
+    --primary-accent: #ffc709;     /* WinMart Gold */
     --flat-focus: 2px solid var(--primary);
     
     /* Surface & Canvas Tokens (Pure Flat) */
@@ -52,9 +53,10 @@
     color-scheme: dark;
 
     /* Brand Primary Accent (Dark Flat) */
-    --primary: #6366f1;            /* Indigo 500 */
-    --primary-hover: #818cf8;      /* Indigo 400 */
-    --primary-light: #1e1b4b;      /* Indigo 950 */
+    --primary: #ee3a2e;            /* WinMart Red 500 */
+    --primary-hover: #f8645a;      /* WinMart Red 400 */
+    --primary-light: #450a07;      /* WinMart Red 950 */
+    --primary-accent: #ffd24d;     /* WinMart Gold */
     --flat-focus: 2px solid var(--primary);
     
     /* Surface & Canvas Tokens (Dark Flat) */
@@ -665,3 +667,16 @@ thead th.sticky-col-name {
         overflow: visible !important;
     }
 }
+
+/* WinCommerce Brand Custom Patterns & Gradients */
+.brand-gradient {
+    background: linear-gradient(135deg, #da251c 0%, #b81d15 50%, #7e1c17 100%);
+}
+.brand-gradient-wine {
+    background: linear-gradient(135deg, #da251c 0%, #c92a57 100%);
+}
+.brand-pattern {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+

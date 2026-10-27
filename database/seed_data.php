@@ -14,6 +14,8 @@ $sql = file_get_contents($sqlFile);
 try {
     $pdo->exec($sql);
     echo "Nạp dữ liệu mẫu Enterprise Grade thành công!\n";
+    // Tự động chuyển đổi thương hiệu sang WinCommerce
+    require_once __DIR__ . '/rebrand_wincommerce.php';
 } catch (Exception $e) {
     echo "Lỗi khi nạp dữ liệu: " . $e->getMessage() . "\n";
     exit(1);

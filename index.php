@@ -212,11 +212,11 @@ require_once __DIR__ . '/includes/header.php';
     <div class="bg-indigo-700 dark:bg-slate-800 rounded-sm p-6 sm:p-8 text-white border border-indigo-800 dark:border-slate-700 flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative">
         <div>
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-sm text-xs font-semibold bg-indigo-900 text-indigo-100 mb-3 border border-indigo-600/40">
-                <i class="fa-solid fa-sparkles text-amber-300"></i> Trung Tâm Điều Hành Nhân Sự - Aura Retail Group
+                <i class="fa-solid fa-sparkles text-amber-300"></i> Trung Tâm Điều Hành Nhân Sự - <?= e(brand('company_short')) ?> (<?= e(brand('retail_brands')) ?>)
             </div>
             <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Xin chào, <?= e($user['fullname']) ?>!</h2>
             <p class="text-indigo-100 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
-                Hôm nay là <strong class="text-white"><?= date('l, d/m/Y') ?></strong>. Hệ thống AURA HRM đang quản lý 
+                Hôm nay là <strong class="text-white"><?= date('l, d/m/Y') ?></strong>. Hệ thống <?= e(brand('product_name')) ?> đang quản lý 
                 <strong class="text-amber-200"><?= $total_employees ?></strong> nhân sự trực thuộc 
                 <strong class="text-amber-200"><?= $total_branches ?></strong> chi nhánh và 
                 <strong class="text-amber-200"><?= $total_departments ?></strong> khối phòng ban chức năng.
@@ -676,7 +676,7 @@ require_once __DIR__ . '/includes/header.php';
                 <div>
                     <h3 class="font-extrabold text-slate-900 dark:text-white text-base flex items-center gap-2">
                         <span>Top Nhân Sự Xuất Sắc Kỳ Này</span>
-                        <span class="px-2 py-0.5 rounded-sm text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700">AURA Leaders</span>
+                        <span class="px-2 py-0.5 rounded-sm text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700"><?= e(brand('company_short')) ?> Leaders</span>
                     </h3>
                     <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Nhân sự đạt điểm KPI cao nhất được cấp quản lý chứng nhận</p>
                 </div>

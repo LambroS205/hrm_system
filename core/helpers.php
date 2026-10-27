@@ -130,6 +130,27 @@ function verify_csrf() {
 }
 
 /**
+ * Xác thực CSRF Token cho các yêu cầu AJAX / JSON API
+ */
+function verify_csrf_json($customToken = null) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $token = $customToken ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($_POST['_csrf_token'] ?? ''));
+        $session_token = $_SESSION['_csrf_token'] ?? '';
+
+        if (empty($token) || empty($session_token) || !hash_equals($session_token, $token)) {
+            log_system_error("AJAX CSRF Verification Failed. IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN'));
+            http_response_code(403);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => false,
+                'message' => 'Mã bảo mật CSRF không hợp lệ hoặc phiên làm việc đã hết hạn. Vui lòng làm mới trang (F5) và thử lại.'
+            ]);
+            exit;
+        }
+    }
+}
+
+/**
  * Ghi log lỗi hệ thống an toàn
  */
 function log_system_error($message, $exception = null) {

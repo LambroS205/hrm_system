@@ -2,6 +2,7 @@
 // core/auth.php - Động cơ xác thực, bảo mật và ma trận phân quyền
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/brand.php';
 require_once __DIR__ . '/helpers.php';
 
 /**

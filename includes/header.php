@@ -11,7 +11,10 @@ $flash = get_flash();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= e($page_title ?? 'Quản Trị Nhân Sự') ?> - AURA HRM - Tập Đoàn Aura</title>
+    <title><?= e($page_title ?? 'Quản Trị Nhân Sự') ?> - <?= e(brand('product_name')) ?> - <?= e(brand('company_short')) ?></title>
+    <meta name="description" content="<?= e(brand('product_name')) ?> - Hệ thống Quản trị Nhân sự & Chuỗi Bán Lẻ WinCommerce (WinMart / Masan Group)">
+    <meta name="csrf-token" content="<?= csrf_token() ?>">
+    <link rel="icon" type="image/svg+xml" href="<?= asset('img/brand/favicon.svg') ?>">
     
     <!-- Script đồng bộ theme Dark/Light & trạng thái Mini Sidebar ngay lập tức để tránh chớp màn hình -->
     <script>
@@ -32,7 +35,7 @@ $flash = get_flash();
     <!-- Google Fonts & Font Awesome -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- HRMS App CSS -->

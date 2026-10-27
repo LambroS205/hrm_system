@@ -39,15 +39,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo->beginTransaction();
 
-        // 1. Tự sinh mã nhân viên kế tiếp (VD: NV007, NV008...)
+        // 1. Tự sinh mã nhân viên kế tiếp (VD: WCM086, WCM087...)
+        $emp_prefix = brand('emp_code_prefix') ?: 'WCM';
         $last_id = $pdo->query("SELECT MAX(id) FROM employees")->fetchColumn() ?: 0;
-        $next_emp_code = 'NV' . str_pad($last_id + 1, 3, '0', STR_PAD_LEFT);
+        $next_emp_code = $emp_prefix . str_pad($last_id + 1, 3, '0', STR_PAD_LEFT);
 
         // Đảm bảo không trùng mã
         $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM employees WHERE employee_code = ?");
         $checkStmt->execute([$next_emp_code]);
         if ($checkStmt->fetchColumn() > 0) {
-            $next_emp_code = 'NV' . str_pad($last_id + 2, 3, '0', STR_PAD_LEFT);
+            $next_emp_code = $emp_prefix . str_pad($last_id + 2, 3, '0', STR_PAD_LEFT);
         }
 
         $hire_date = !empty($_POST['hire_date']) ? $_POST['hire_date'] : date('Y-m-d');

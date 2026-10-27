@@ -5,21 +5,139 @@ $page_title = 'Quản Lý & Chấm Công Nhân Sự';
 require_once __DIR__ . '/../../core/auth.php';
 require_permission('attendance', 'view');
 
+$user = current_user();
+
+// Lấy hồ sơ nhân sự của tài khoản đang đăng nhập
+$curr_emp_stmt = $pdo->prepare("
+    SELECT e.*, d.name AS department_name, p.name AS position_name 
+    FROM employees e 
+    LEFT JOIN departments d ON e.department_id = d.id 
+    LEFT JOIN positions p ON e.position_id = p.id 
+    WHERE e.user_id = ?
+");
+$curr_emp_stmt->execute([$user['id']]);
+$current_emp = $curr_emp_stmt->fetch();
+$current_emp_id = $current_emp ? (int)$current_emp['id'] : 0;
+
+// Xác định quyền: Nếu là Super Admin hoặc có quyền edit/delete thì là quản lý công;
+// Ngược lại nếu là nhân viên thông thường (Role 4) thì chỉ xem & chấm công cá nhân
+$is_attendance_manager = is_superadmin() || has_permission('attendance', 'edit') || has_permission('attendance', 'delete');
+$is_personal_attendance_only = !$is_attendance_manager;
+
 // Lấy tham số tab hiển thị (daily = Chấm công ngày, monthly = Tổng hợp tháng, personal = Cá nhân)
-$active_tab = $_GET['tab'] ?? 'daily';
+$active_tab = $_GET['tab'] ?? ($is_personal_attendance_only ? 'personal' : 'daily');
+if ($is_personal_attendance_only) {
+    $active_tab = 'personal';
+}
+
 $selected_date = !empty($_GET['date']) ? $_GET['date'] : date('Y-m-d');
 
 // Lấy tham số tháng/năm cho bảng tổng hợp
 $selected_month = !empty($_GET['month']) ? (int)$_GET['month'] : (int)date('m');
 $selected_year = !empty($_GET['year']) ? (int)$_GET['year'] : (int)date('Y');
 $selected_dept = !empty($_GET['department_id']) ? (int)$_GET['department_id'] : 0;
-$selected_emp = !empty($_GET['employee_id']) ? (int)$_GET['employee_id'] : 0;
+// Nếu là nhân viên cá nhân: Khóa cứng selected_emp theo chính mình
+$selected_emp = $is_personal_attendance_only ? $current_emp_id : (!empty($_GET['employee_id']) ? (int)$_GET['employee_id'] : $current_emp_id);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
     verify_csrf();
     $action_type = $_POST['action_type'];
 
-    // 1. Lưu bảng điểm danh hàng loạt theo ngày
+    // 0. TỰ ĐIỂM DANH VÀO CA (SELF CHECK-IN) / TAN CA (SELF CHECK-OUT) DÀNH CHO NHÂN VIÊN
+    if ($action_type === 'self_check_in' || $action_type === 'self_check_out') {
+        if ($current_emp_id <= 0) {
+            set_flash('danger', 'Tài khoản người dùng của bạn chưa được liên kết với hồ sơ nhân viên.');
+            redirect('modules/attendance/index.php?tab=personal');
+        }
+
+        $today = date('Y-m-d');
+        $now_time = date('H:i:s');
+        $att_m = (int)date('m');
+        $att_y = (int)date('Y');
+
+        require_once __DIR__ . '/../../core/PayrollService.php';
+        if (PayrollService::isMonthLocked($pdo, $att_m, $att_y)) {
+            set_flash('danger', "Bảng tính lương tháng {$att_m}/{$att_y} đã được chốt và khóa sổ, không thể ghi nhận điểm danh.");
+            redirect('modules/attendance/index.php?tab=personal&month=' . $selected_month . '&year=' . $selected_year);
+        }
+
+        // Kiểm tra bản ghi hôm nay
+        $todayStmt = $pdo->prepare("SELECT * FROM attendance WHERE employee_id = ? AND date = ?");
+        $todayStmt->execute([$current_emp_id, $today]);
+        $todayAtt = $todayStmt->fetch();
+
+        if ($action_type === 'self_check_in') {
+            if ($todayAtt && !empty($todayAtt['check_in'])) {
+                set_flash('warning', "Bạn đã điểm danh vào ca hôm nay lúc " . date('H:i:s', strtotime($todayAtt['check_in'])));
+                redirect('modules/attendance/index.php?tab=personal&month=' . $selected_month . '&year=' . $selected_year);
+            }
+
+            // Mốc ca làm việc chuẩn: 08:00
+            $late_minutes = 0;
+            $status = 'present';
+            if ($now_time > '08:00:00') {
+                $late_minutes = max(0, (int)((strtotime($now_time) - strtotime('08:00:00')) / 60));
+                $status = 'late';
+            }
+
+            $upsert = $pdo->prepare("
+                INSERT INTO attendance (employee_id, date, check_in, late_minutes, status, note)
+                VALUES (?, ?, ?, ?, ?, 'Chấm công trực tuyến cá nhân')
+                ON DUPLICATE KEY UPDATE 
+                    check_in = VALUES(check_in),
+                    late_minutes = VALUES(late_minutes),
+                    status = VALUES(status)
+            ");
+            $upsert->execute([$current_emp_id, $today, $now_time, $late_minutes, $status]);
+
+            $msg = "Điểm danh vào ca thành công lúc " . date('H:i:s', strtotime($now_time)) . "!";
+            if ($late_minutes > 0) {
+                $msg .= " (Đi muộn {$late_minutes} phút so với ca chuẩn 08:00)";
+            }
+            set_flash('success', $msg);
+            redirect('modules/attendance/index.php?tab=personal&month=' . $selected_month . '&year=' . $selected_year);
+        } elseif ($action_type === 'self_check_out') {
+            if (!$todayAtt || empty($todayAtt['check_in'])) {
+                set_flash('danger', "Bạn chưa điểm danh vào ca hôm nay, vui lòng điểm danh vào ca trước.");
+                redirect('modules/attendance/index.php?tab=personal&month=' . $selected_month . '&year=' . $selected_year);
+            }
+
+            // Mốc tan ca chuẩn: 17:30. Sau 18:00 tính tăng ca OT
+            $early_minutes = 0;
+            if ($now_time < '17:30:00') {
+                $early_minutes = max(0, (int)((strtotime('17:30:00') - strtotime($now_time)) / 60));
+            }
+
+            $overtime_hours = 0;
+            if ($now_time > '18:00:00') {
+                $overtime_hours = max(0, round((strtotime($now_time) - strtotime('18:00:00')) / 3600, 2));
+            }
+
+            $status = $todayAtt['status'];
+            if ($early_minutes > 0 && $status === 'present') {
+                $status = 'early_leave';
+            }
+
+            $update = $pdo->prepare("
+                UPDATE attendance 
+                SET check_out = ?, early_minutes = ?, overtime_hours = ?, status = ?
+                WHERE id = ?
+            ");
+            $update->execute([$now_time, $early_minutes, $overtime_hours, $status, $todayAtt['id']]);
+
+            $msg = "Điểm danh tan ca thành công lúc " . date('H:i:s', strtotime($now_time)) . "!";
+            if ($early_minutes > 0) {
+                $msg .= " (Về sớm {$early_minutes} phút so với mốc 17:30)";
+            }
+            if ($overtime_hours > 0) {
+                $msg .= " (Ghi nhận {$overtime_hours} giờ tăng ca OT)";
+            }
+            set_flash('success', $msg);
+            redirect('modules/attendance/index.php?tab=personal&month=' . $selected_month . '&year=' . $selected_year);
+        }
+    }
+
+    // 1. Lưu bảng điểm danh hàng loạt theo ngày (Dành cho Quản trị nhân sự)
     if ($action_type === 'save_daily_attendance') {
         require_permission('attendance', 'create');
         $att_date = $_POST['attendance_date'] ?? date('Y-m-d');
@@ -243,12 +361,19 @@ if ($active_tab === 'personal') {
         $personalStmt = $pdo->prepare("SELECT * FROM attendance WHERE employee_id = ? AND date BETWEEN ? AND ? ORDER BY date ASC");
         $personalStmt->execute([$selected_emp, $start_date, $end_date]);
         $personalRows = $personalStmt->fetchAll();
-
         foreach ($personalRows as $pr) {
             $day = (int)date('j', strtotime($pr['date']));
             $personal_data[$day] = $pr;
         }
     }
+}
+
+// Lấy bản ghi chấm công ngày hôm nay của nhân viên đăng nhập để phục vụ Self Check-in
+$today_att = null;
+if ($current_emp_id > 0) {
+    $todayStmt = $pdo->prepare("SELECT * FROM attendance WHERE employee_id = ? AND date = ?");
+    $todayStmt->execute([$current_emp_id, date('Y-m-d')]);
+    $today_att = $todayStmt->fetch();
 }
 
 require_once __DIR__ . '/../../includes/header.php';
@@ -260,10 +385,14 @@ require_once __DIR__ . '/../../includes/header.php';
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm">
         <div>
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 mb-2">
-                <i class="fa-solid fa-calendar-check"></i> Quản Lý Công Tác & Điểm Danh
+                <i class="fa-solid fa-calendar-check"></i> <?= $is_personal_attendance_only ? 'Chấm Công Cá Nhân' : 'Quản Lý Công Tác & Điểm Danh' ?>
             </div>
-            <h2 class="text-xl font-bold text-slate-800 dark:text-white">Chấm Công & Bảng Tổng Hợp Ngày Công</h2>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Theo dõi lịch trình có mặt, đi muộn, nghỉ phép và xuất dữ liệu công tổng hợp làm căn cứ tính lương.</p>
+            <h2 class="text-xl font-bold text-slate-800 dark:text-white"><?= $is_personal_attendance_only ? 'Bảng Chấm Công & Điểm Danh Của Tôi' : 'Chấm Công & Bảng Tổng Hợp Ngày Công' ?></h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                <?= $is_personal_attendance_only 
+                    ? 'Thực hiện điểm danh trực tuyến hàng ngày, theo dõi lịch trình làm việc, đi muộn, nghỉ phép và số ngày công trong tháng.'
+                    : 'Theo dõi lịch trình có mặt, đi muộn, nghỉ phép và xuất dữ liệu công tổng hợp làm căn cứ tính lương.' ?>
+            </p>
         </div>
         <div class="flex items-center gap-2">
             <?php if ($active_tab === 'daily' && has_permission('attendance', 'create')): ?>
@@ -275,6 +404,87 @@ require_once __DIR__ . '/../../includes/header.php';
             <?php endif; ?>
         </div>
     </div>
+
+    <!-- Widget Điểm Danh Trực Tuyến & Chấm Công Tự Động (Self Check-in Station) -->
+    <?php if ($current_emp_id > 0): ?>
+        <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
+            <div class="absolute -right-6 -bottom-6 opacity-10 text-9xl pointer-events-none">
+                <i class="fa-solid fa-clock"></i>
+            </div>
+            
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+                <div class="space-y-2">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-white/20 backdrop-blur-sm border border-white/30 text-white">
+                        <span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
+                        Trạm Điểm Danh Trực Tuyến &bull; WinCommerce TimeClock
+                    </div>
+                    <div class="flex items-baseline gap-3 flex-wrap">
+                        <h3 class="text-3xl font-black font-mono tracking-tight text-white" id="liveClockText">--:--:--</h3>
+                        <span class="text-sm font-medium text-emerald-100" id="liveDateText"><?= date('d/m/Y') ?></span>
+                    </div>
+                    <p class="text-xs text-emerald-100 max-w-xl">
+                        Xin chào <strong><?= e($current_emp['fullname'] ?? '') ?></strong> (<?= e($current_emp['employee_code'] ?? '') ?> &bull; <?= e($current_emp['position_name'] ?? '') ?>). Ca hành chính chuẩn: <span class="font-bold underline">08:00 - 17:30</span>.
+                    </p>
+                </div>
+
+                <!-- Nút bấm Chấm Công Trực Tiếp -->
+                <div class="flex flex-wrap items-center gap-3 bg-white/10 dark:bg-slate-900/40 p-3 rounded-2xl backdrop-blur-md border border-white/20">
+                    <?php if (!$today_att || empty($today_att['check_in'])): ?>
+                        <!-- Chưa vào ca: Hiển thị nút Check-in -->
+                        <form method="POST" action="index.php?tab=personal" onsubmit="this.querySelector('button').disabled = true">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="action_type" value="self_check_in">
+                            <button type="submit" 
+                                    class="px-6 py-3.5 bg-white text-emerald-800 hover:bg-emerald-50 active:scale-95 font-extrabold rounded-xl text-sm transition shadow-md flex items-center gap-2.5 cursor-pointer">
+                                <i class="fa-solid fa-fingerprint text-xl text-emerald-600"></i>
+                                <span>ĐIỂM DANH VÀO CA (Check-in)</span>
+                            </button>
+                        </form>
+                    <?php elseif (!empty($today_att['check_in']) && empty($today_att['check_out'])): ?>
+                        <!-- Đã vào ca, chưa tan ca: Hiển thị trạng thái vào + Nút Check-out -->
+                        <div class="px-3.5 py-2.5 bg-emerald-950/40 rounded-xl border border-emerald-400/30 text-xs">
+                            <div class="text-[10px] text-emerald-200 uppercase font-semibold">Đã Vào Ca Lúc</div>
+                            <div class="font-mono font-bold text-sm text-emerald-300">
+                                <?= date('H:i:s', strtotime($today_att['check_in'])) ?>
+                                <?php if ((int)($today_att['late_minutes'] ?? 0) > 0): ?>
+                                    <span class="text-amber-300 text-[11px]">(Muộn <?= $today_att['late_minutes'] ?>')</span>
+                                <?php else: ?>
+                                    <span class="text-emerald-200 text-[11px]">(Đúng giờ)</span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <form method="POST" action="index.php?tab=personal" onsubmit="this.querySelector('button').disabled = true">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="action_type" value="self_check_out">
+                            <button type="submit" 
+                                    class="px-6 py-3.5 bg-amber-400 hover:bg-amber-300 active:scale-95 text-amber-950 font-extrabold rounded-xl text-sm transition shadow-md flex items-center gap-2.5 cursor-pointer">
+                                <i class="fa-solid fa-arrow-right-from-bracket text-xl text-amber-900"></i>
+                                <span>ĐIỂM DANH TAN CA (Check-out)</span>
+                            </button>
+                        </form>
+                    <?php else: ?>
+                        <!-- Đã hoàn tất ca: Hiển thị kết quả -->
+                        <div class="px-5 py-3 bg-emerald-950/50 rounded-xl border border-emerald-400/40 text-xs flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-emerald-400 text-emerald-950 flex items-center justify-center text-lg font-bold">
+                                <i class="fa-solid fa-check-double"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-white text-sm">Đã Hoàn Tất Điểm Danh Hôm Nay</div>
+                                <div class="text-emerald-200 text-[11px] font-mono mt-0.5">
+                                    Vào: <b><?= date('H:i:s', strtotime($today_att['check_in'])) ?></b> &bull;
+                                    Ra: <b><?= date('H:i:s', strtotime($today_att['check_out'])) ?></b>
+                                    <?php if ((float)($today_att['overtime_hours'] ?? 0) > 0): ?>
+                                        &bull; <span class="text-amber-300 font-bold">OT: <?= $today_att['overtime_hours'] ?>h</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <!-- Hướng Dẫn Quy Trình Chấm Công & Ký Hiệu Chuẩn Doanh Nghiệp -->
     <div class="workflow-guide-banner p-4 text-xs space-y-3">
@@ -320,20 +530,22 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <!-- Thanh Tabs Chuyển đổi chế độ xem -->
     <div class="flex border-b border-slate-200 dark:border-slate-700">
-        <a href="?tab=daily&date=<?= urlencode($selected_date) ?>&department_id=<?= $selected_dept ?>" 
-           class="px-5 py-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition <?= $active_tab === 'daily' ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200' ?>">
-            <i class="fa-solid fa-clipboard-user"></i>
-            <span>1. Điểm Danh Hàng Ngày</span>
-        </a>
-        <a href="?tab=monthly&month=<?= $selected_month ?>&year=<?= $selected_year ?>&department_id=<?= $selected_dept ?>" 
-           class="px-5 py-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition <?= $active_tab === 'monthly' ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200' ?>">
-            <i class="fa-solid fa-calendar-days"></i>
-            <span>2. Tổng Hợp Công Tháng</span>
-        </a>
+        <?php if ($is_attendance_manager): ?>
+            <a href="?tab=daily&date=<?= urlencode($selected_date) ?>&department_id=<?= $selected_dept ?>" 
+               class="px-5 py-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition <?= $active_tab === 'daily' ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200' ?>">
+                <i class="fa-solid fa-clipboard-user"></i>
+                <span>1. Điểm Danh Hàng Ngày</span>
+            </a>
+            <a href="?tab=monthly&month=<?= $selected_month ?>&year=<?= $selected_year ?>&department_id=<?= $selected_dept ?>" 
+               class="px-5 py-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition <?= $active_tab === 'monthly' ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200' ?>">
+                <i class="fa-solid fa-calendar-days"></i>
+                <span>2. Tổng Hợp Công Tháng</span>
+            </a>
+        <?php endif; ?>
         <a href="?tab=personal&month=<?= $selected_month ?>&year=<?= $selected_year ?>&employee_id=<?= $selected_emp ?>" 
            class="px-5 py-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition <?= $active_tab === 'personal' ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200' ?>">
             <i class="fa-solid fa-user-clock"></i>
-            <span>3. Lịch Sử Cá Nhân</span>
+            <span><?= $is_personal_attendance_only ? 'Lịch Sử Chấm Công Của Tôi' : '3. Lịch Sử Cá Nhân' ?></span>
         </a>
     </div>
 
@@ -752,20 +964,30 @@ require_once __DIR__ . '/../../includes/header.php';
             <form action="index.php" method="GET" class="flex flex-wrap items-center gap-3">
                 <input type="hidden" name="tab" value="personal">
 
-                <div class="flex items-center gap-2 flex-1 min-w-[200px]">
-                    <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Nhân Viên:</span>
-                    <select name="employee_id" onchange="this.form.submit()"
-                            class="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none">
-                        <option value="0">-- Chọn nhân viên --</option>
-                        <?php
-                        $all_emps = $pdo->query("SELECT e.id, e.employee_code, e.fullname, d.name AS dept FROM employees e LEFT JOIN departments d ON e.department_id = d.id WHERE e.employment_status != 'resigned' ORDER BY e.fullname ASC")->fetchAll();
-                        foreach ($all_emps as $ae): ?>
-                            <option value="<?= $ae['id'] ?>" <?= ($selected_emp == $ae['id']) ? 'selected' : '' ?>>
-                                <?= e($ae['employee_code']) ?> - <?= e($ae['fullname']) ?> (<?= e($ae['dept'] ?? '') ?>)
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
+                <?php if ($is_attendance_manager): ?>
+                    <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+                        <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Nhân Viên:</span>
+                        <select name="employee_id" onchange="this.form.submit()"
+                                class="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <option value="0">-- Chọn nhân viên --</option>
+                            <?php
+                            $all_emps = $pdo->query("SELECT e.id, e.employee_code, e.fullname, d.name AS dept FROM employees e LEFT JOIN departments d ON e.department_id = d.id WHERE e.employment_status != 'resigned' ORDER BY e.fullname ASC")->fetchAll();
+                            foreach ($all_emps as $ae): ?>
+                                <option value="<?= $ae['id'] ?>" <?= ($selected_emp == $ae['id']) ? 'selected' : '' ?>>
+                                    <?= e($ae['employee_code']) ?> - <?= e($ae['fullname']) ?> (<?= e($ae['dept'] ?? '') ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                <?php else: ?>
+                    <input type="hidden" name="employee_id" value="<?= $current_emp_id ?>">
+                    <div class="flex items-center gap-2 flex-1">
+                        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 text-xs font-bold">
+                            <i class="fa-solid fa-user-check text-emerald-600"></i>
+                            <?= e($current_emp['fullname'] ?? '') ?> (<?= e($current_emp['employee_code'] ?? '') ?>)
+                        </span>
+                    </div>
+                <?php endif; ?>
 
                 <div class="flex items-center gap-2">
                     <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">Tháng:</span>
@@ -943,6 +1165,30 @@ require_once __DIR__ . '/../../includes/header.php';
 </div>
 
 <script>
+// Đồng hồ số Live Clock thời gian thực
+function updateLiveClock() {
+    const clockEl = document.getElementById('liveClockText');
+    const dateEl = document.getElementById('liveDateText');
+    if (!clockEl) return;
+    
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+    clockEl.innerText = `${h}:${m}:${s}`;
+
+    if (dateEl) {
+        const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+        const dayName = days[now.getDay()];
+        const d = String(now.getDate()).padStart(2, '0');
+        const mo = String(now.getMonth() + 1).padStart(2, '0');
+        const y = now.getFullYear();
+        dateEl.innerText = `${dayName}, ${d}/${mo}/${y}`;
+    }
+}
+setInterval(updateLiveClock, 1000);
+updateLiveClock();
+
 // Hàm thao tác nhanh toàn bộ danh sách điểm danh
 function setAllAttendance(status) {
     document.querySelectorAll('.att-status-select').forEach(select => {

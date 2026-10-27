@@ -707,7 +707,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <div id="printablePayslip" class="space-y-5">
             <!-- Header phiếu lương -->
             <div class="text-center pb-3 border-b border-slate-200 dark:border-slate-700">
-                <div class="text-[11px] uppercase font-bold text-indigo-600 dark:text-indigo-400 tracking-wider">DOANH NGHIỆP CỔ PHẦN TẬP ĐOÀN AURA</div>
+                <div class="text-[11px] uppercase font-bold text-indigo-600 dark:text-indigo-400 tracking-wider"><?= e(brand('company_legal')) ?></div>
                 <h3 class="text-lg font-bold text-slate-800 dark:text-white mt-1">PHIẾU THANH TOÁN TIỀN LƯƠNG & BẢO HIỂM</h3>
                 <p class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Kỳ chi trả: Tháng <span id="slipMonth"></span>/<span id="slipYear"></span></p>
             </div>

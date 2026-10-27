@@ -79,6 +79,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action_type']
         $item_units = $_POST['criteria_unit'] ?? [];
         $item_calc_dirs = $_POST['criteria_calc_direction'] ?? [];
         $item_sources = $_POST['criteria_data_source'] ?? [];
+        $item_min_thresholds = $_POST['criteria_min_threshold'] ?? [];
+        $item_max_caps = $_POST['criteria_max_cap'] ?? [];
 
         if (empty($code) || empty($name)) {
             set_flash('danger', 'Vui lòng nhập đầy đủ mã và tên bộ tiêu chí KPI.');
@@ -93,6 +95,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action_type']
             if (empty($c_name)) continue;
             $c_weight = (float)($item_weights[$i] ?? 0);
             $total_weight += $c_weight;
+            $c_min_thresh = isset($item_min_thresholds[$i]) && $item_min_thresholds[$i] !== '' ? (float)$item_min_thresholds[$i] : 0.0;
+            $c_max_cap = isset($item_max_caps[$i]) && $item_max_caps[$i] !== '' ? (float)$item_max_caps[$i] : 120.0;
             $items_to_save[] = [
                 'criteria_name'  => $c_name,
                 'priority_group' => in_array($item_priorities[$i] ?? '', ['A', 'B', 'C']) ? $item_priorities[$i] : 'B',
@@ -104,6 +108,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action_type']
                 'unit'           => trim($item_units[$i] ?? '%') ?: '%',
                 'calc_direction' => in_array($item_calc_dirs[$i] ?? '', ['higher_better', 'lower_better', 'boolean']) ? $item_calc_dirs[$i] : 'higher_better',
                 'data_source'    => trim($item_sources[$i] ?? ''),
+                'min_threshold'  => max(0.0, min(100.0, $c_min_thresh)),
+                'max_cap'        => max(100.0, min(200.0, $c_max_cap)),
                 'sort_order'     => $i + 1
             ];
         }
@@ -155,13 +161,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action_type']
                 $template_id = (int)$pdo->lastInsertId();
             }
 
-            // Lưu các tiêu chí con với đầy đủ chuẩn SMART & Link Power
+            // Lưu các tiêu chí con với đầy đủ chuẩn SMART, Link Power & Min/Max Guards
             $item_stmt = $pdo->prepare("
                 INSERT INTO kpi_template_items (
                     template_id, criteria_name, priority_group, bsc_pillar, 
                     description, weight, target_type, target_value, unit, 
-                    calc_direction, data_source, sort_order
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    calc_direction, data_source, min_threshold, max_cap, sort_order
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             foreach ($items_to_save as $item) {
                 $item_stmt->execute([
@@ -176,6 +182,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action_type']
                     $item['unit'],
                     $item['calc_direction'],
                     $item['data_source'],
+                    $item['min_threshold'],
+                    $item['max_cap'],
                     $item['sort_order']
                 ]);
             }
@@ -220,8 +228,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action_type']
                     INSERT INTO kpi_template_items (
                         template_id, criteria_name, priority_group, bsc_pillar, 
                         description, weight, target_type, target_value, unit, 
-                        calc_direction, data_source, sort_order
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        calc_direction, data_source, min_threshold, max_cap, sort_order
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 foreach ($src_items as $si) {
                     $copy_item->execute([
@@ -236,6 +244,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action_type']
                         $si['unit'] ?? '%',
                         $si['calc_direction'] ?? 'higher_better',
                         $si['data_source'] ?? '',
+                        (float)($si['min_threshold'] ?? 0),
+                        (float)($si['max_cap'] ?? 120),
                         $si['sort_order']
                     ]);
                 }
@@ -816,9 +826,9 @@ function openTemplateModal() {
     container.innerHTML = '';
     criteriaIndex = 0;
     
-    addCriteriaRow('Khối lượng & Tiến độ công việc theo cam kết', 'A', 'internal_process', 'Hoàn thành các đầu việc đúng deadline cam kết', 50, 'percentage', '≥ 95%', '% Hoàn thành', 'higher_better', 'Jira / Báo cáo nội bộ');
-    addCriteriaRow('Chất lượng chuyên môn & Độ chính xác đầu ra', 'B', 'internal_process', 'Đảm bảo tiêu chuẩn không lỗi nghiêm trọng', 30, 'percentage', '≥ 90%', '% Chuẩn xác', 'higher_better', 'QA Review');
-    addCriteriaRow('Sáng kiến cải tiến & Kỷ luật phối hợp', 'C', 'learning_growth', 'Đóng góp giải pháp mới và tuân thủ kỷ luật', 20, 'numeric', '≥ 1 lần/quý', 'Sáng kiến', 'higher_better', 'Biên bản họp');
+    addCriteriaRow('Khối lượng & Tiến độ công việc theo cam kết', 'A', 'internal_process', 'Hoàn thành các đầu việc đúng deadline cam kết', 50, 'percentage', '≥ 95%', '% Hoàn thành', 'higher_better', 'Jira / Báo cáo nội bộ', 0, 120);
+    addCriteriaRow('Chất lượng chuyên môn & Độ chính xác đầu ra', 'B', 'internal_process', 'Đảm bảo tiêu chuẩn không lỗi nghiêm trọng', 30, 'percentage', '≥ 90%', '% Chuẩn xác', 'higher_better', 'QA Review', 0, 120);
+    addCriteriaRow('Sáng kiến cải tiến & Kỷ luật phối hợp', 'C', 'learning_growth', 'Đóng góp giải pháp mới và tuân thủ kỷ luật', 20, 'numeric', '≥ 1 lần/quý', 'Sáng kiến', 'higher_better', 'Biên bản họp', 0, 120);
     
     calculateTotalWeight();
     document.getElementById('templateModal').classList.remove('hidden');
@@ -828,7 +838,7 @@ function closeTemplateModal() {
     document.getElementById('templateModal').classList.add('hidden');
 }
 
-function addCriteriaRow(name = '', priority = 'B', bsc = 'internal_process', desc = '', weight = 20, type = 'percentage', target = '', unit = '%', calc_dir = 'higher_better', data_src = '') {
+function addCriteriaRow(name = '', priority = 'B', bsc = 'internal_process', desc = '', weight = 20, type = 'percentage', target = '', unit = '%', calc_dir = 'higher_better', data_src = '', min_thresh = 0, max_cap = 120) {
     criteriaIndex++;
     const container = document.getElementById('criteriaRowsContainer');
     const rowId = `criteria_row_${criteriaIndex}`;
@@ -881,9 +891,9 @@ function addCriteriaRow(name = '', priority = 'B', bsc = 'internal_process', des
                        class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white">
             </div>
 
-            <div class="sm:col-span-3">
+            <div class="sm:col-span-2">
                 <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Chiều Đo Lường</label>
-                <select name="criteria_calc_direction[]" class="w-full px-2.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white">
+                <select name="criteria_calc_direction[]" class="w-full px-2 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white">
                     <option value="higher_better" ${calc_dir === 'higher_better' ? 'selected' : ''}>Thuận (Càng cao càng tốt)</option>
                     <option value="lower_better" ${calc_dir === 'lower_better' ? 'selected' : ''}>Nghịch (Càng thấp càng tốt)</option>
                     <option value="boolean" ${calc_dir === 'boolean' ? 'selected' : ''}>Nhị phân (Đạt / Không đạt)</option>
@@ -891,15 +901,21 @@ function addCriteriaRow(name = '', priority = 'B', bsc = 'internal_process', des
             </div>
 
             <div class="sm:col-span-3">
-                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Chỉ Tiêu Kế Hoạch (Target)</label>
+                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Chỉ Tiêu (Target)</label>
                 <input type="text" name="criteria_target_value[]" value="${escapeHtml(target)}" placeholder="VD: ≥ 95%"
                        class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-800 dark:text-white">
             </div>
 
-            <div class="sm:col-span-3">
-                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Nguồn Dữ Liệu Kiểm Chứng</label>
-                <input type="text" name="criteria_data_source[]" value="${escapeHtml(data_src)}" placeholder="VD: ERP / POS / GitLab"
-                       class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white">
+            <div class="sm:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1" title="Dưới ngưỡng này điểm = 0 (VD: 50% hoặc 0% nếu không áp dụng)">Ngưỡng Liệt (%)</label>
+                <input type="number" step="5" min="0" max="100" name="criteria_min_threshold[]" value="${min_thresh}" placeholder="0"
+                       class="w-full px-2.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-800 dark:text-white">
+            </div>
+
+            <div class="sm:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1" title="Giới hạn điểm tối đa đạt được (VD: 120% hoặc 100%)">Trần Tối Đa (%)</label>
+                <input type="number" step="5" min="100" max="200" name="criteria_max_cap[]" value="${max_cap}" placeholder="120"
+                       class="w-full px-2.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-800 dark:text-white">
             </div>
 
             <div class="sm:col-span-1 text-right pt-4 sm:pt-0">
@@ -909,9 +925,15 @@ function addCriteriaRow(name = '', priority = 'B', bsc = 'internal_process', des
             </div>
         </div>
 
-        <div>
-            <input type="text" name="criteria_desc[]" value="${escapeHtml(desc)}" placeholder="Mô tả công thức tính, phương pháp thu thập hoặc hướng dẫn chấm..."
-                   class="w-full px-3 py-1.5 bg-white/70 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-[11px] text-slate-600 dark:text-slate-300">
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+            <div class="sm:col-span-4">
+                <input type="text" name="criteria_data_source[]" value="${escapeHtml(data_src)}" placeholder="Nguồn dữ liệu kiểm chứng: ERP / POS / GitLab..."
+                       class="w-full px-3 py-1.5 bg-white/70 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-[11px] text-slate-600 dark:text-slate-300">
+            </div>
+            <div class="sm:col-span-8">
+                <input type="text" name="criteria_desc[]" value="${escapeHtml(desc)}" placeholder="Mô tả công thức tính, phương pháp thu thập hoặc hướng dẫn chấm..."
+                       class="w-full px-3 py-1.5 bg-white/70 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-[11px] text-slate-600 dark:text-slate-300">
+            </div>
         </div>
     `;
 
@@ -976,7 +998,9 @@ function editTemplate(template, items) {
                 it.target_value || '',
                 it.unit || '%',
                 it.calc_direction || 'higher_better',
-                it.data_source || ''
+                it.data_source || '',
+                parseFloat(it.min_threshold || 0),
+                parseFloat(it.max_cap || 120)
             );
         });
     } else {

@@ -337,16 +337,16 @@ function generate_smart_scenarios(PDO $pdo, $branch_analytics) {
     $cost_source = null;
     $cost_target = null;
 
-    // Chi nhánh nguồn là chi nhánh có chi phí lương cao (thường là HN hoặc HCM)
+    // Chi nhánh nguồn là chi nhánh có chi phí lương cao (thường là HCM-HQ hoặc HN-RO)
     foreach ($branch_analytics as $ba) {
-        if ($ba['is_headquarter'] || $ba['code'] === 'HN-HQ' || $ba['code'] === 'HCM-BR') {
+        if ($ba['is_headquarter'] || in_array($ba['code'], ['HCM-HQ', 'HN-RO', 'HN-HQ', 'HCM-BR'])) {
             $cost_source = $ba;
             break;
         }
     }
-    // Chi nhánh đích là các hub vận hành có chi phí tối ưu (Đà Nẵng, Bình Dương, Hải Phòng)
+    // Chi nhánh đích là các hub vận hành có chi phí tối ưu (Đà Nẵng, Bình Dương, Hải Phòng, Cần Thơ)
     foreach ($branch_analytics as $ba) {
-        if ($cost_source && $ba['id'] != $cost_source['id'] && in_array($ba['code'], ['BD-HUB', 'HP-HUB', 'DN-HUB', 'BR-DNG'])) {
+        if ($cost_source && $ba['id'] != $cost_source['id'] && in_array($ba['code'], ['BD-HUB', 'HP-HUB', 'DN-HUB', 'BR-DNG', 'CT-HUB'])) {
             $cost_target = $ba;
             break;
         }

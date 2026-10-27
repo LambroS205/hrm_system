@@ -583,7 +583,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
                 <div>
                     <div class="inline-flex items-center gap-2 px-3 py-1 rounded-sm text-xs font-semibold bg-slate-800 text-amber-300 border border-slate-700 mb-2">
-                        <i class="fa-solid fa-sparkles"></i> Aura AI What-If Simulation Engine
+                        <i class="fa-solid fa-sparkles"></i> <?= e(brand('company_short')) ?> AI What-If Simulation Engine
                     </div>
                     <h3 class="text-xl sm:text-2xl font-bold tracking-tight text-white">4 Kịch Bản Tối Ưu Hóa & Luân Chuyển Khuyên Dùng</h3>
                     <p class="text-xs sm:text-sm text-indigo-200 mt-1 max-w-3xl">
