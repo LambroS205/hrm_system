@@ -5,30 +5,66 @@ $page_title = 'Bảng Điều Khiển & Thống Kê Nhân Sự';
 require_once __DIR__ . '/core/auth.php';
 require_login();
 
+// Nếu vai trò chỉ có phạm vi Cá nhân (Self), điều hướng trực tiếp sang Dashboard Tự Phục Vụ (ESS)
+if (is_self_scope()) {
+    require_once __DIR__ . '/includes/header.php';
+    require_once __DIR__ . '/includes/dashboard_personal.php';
+    require_once __DIR__ . '/includes/footer.php';
+    exit;
+}
+
 $user = current_user();
 $today = date('Y-m-d');
 $current_month = (int)date('m');
 $current_year = (int)date('Y');
 
-// 1. Thống kê nhân sự tổng quan
-$total_employees = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status != 'resigned'")->fetchColumn() ?: 0);
-$total_official = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status = 'official'")->fetchColumn() ?: 0);
-$total_probation = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status = 'probation'")->fetchColumn() ?: 0);
-$total_departments = (int)($pdo->query("SELECT COUNT(*) FROM departments")->fetchColumn() ?: 0);
-$total_branches = (int)($pdo->query("SELECT COUNT(*) FROM branches WHERE status = 'active'")->fetchColumn() ?: 0);
+$is_branch_mgr = is_branch_scope();
+$branch_id = current_user_branch_id();
+$branch_name = current_employee()['branch_name'] ?? 'Chi Nhánh';
+$can_view_payroll = has_permission('payroll', 'view');
+
+// 1. Thống kê nhân sự tổng quan (có lọc theo Data Scope)
+if ($is_branch_mgr && $branch_id) {
+    $total_employees = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status != 'resigned' AND branch_id = {$branch_id}")->fetchColumn() ?: 0);
+    $total_official = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status = 'official' AND branch_id = {$branch_id}")->fetchColumn() ?: 0);
+    $total_probation = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status = 'probation' AND branch_id = {$branch_id}")->fetchColumn() ?: 0);
+    $total_departments = (int)($pdo->query("SELECT COUNT(DISTINCT department_id) FROM employees WHERE branch_id = {$branch_id}")->fetchColumn() ?: 0);
+    $total_branches = 1;
+} else {
+    $total_employees = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status != 'resigned'")->fetchColumn() ?: 0);
+    $total_official = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status = 'official'")->fetchColumn() ?: 0);
+    $total_probation = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status = 'probation'")->fetchColumn() ?: 0);
+    $total_departments = (int)($pdo->query("SELECT COUNT(*) FROM departments")->fetchColumn() ?: 0);
+    $total_branches = (int)($pdo->query("SELECT COUNT(*) FROM branches WHERE status = 'active'")->fetchColumn() ?: 0);
+}
 
 // 2. Thống kê chấm công trong ngày hôm nay
-$att_today_stmt = $pdo->prepare("
-    SELECT 
-        COUNT(CASE WHEN status = 'present' THEN 1 END) as present_count,
-        COUNT(CASE WHEN status IN ('late', 'early_leave') THEN 1 END) as late_count,
-        COUNT(CASE WHEN status = 'leave_with_permit' THEN 1 END) as leave_count,
-        COUNT(CASE WHEN status = 'absent' THEN 1 END) as absent_count,
-        COUNT(*) as total_logged
-    FROM attendance 
-    WHERE date = ?
-");
-$att_today_stmt->execute([$today]);
+if ($is_branch_mgr && $branch_id) {
+    $att_today_stmt = $pdo->prepare("
+        SELECT 
+            COUNT(CASE WHEN a.status = 'present' THEN 1 END) as present_count,
+            COUNT(CASE WHEN a.status IN ('late', 'early_leave') THEN 1 END) as late_count,
+            COUNT(CASE WHEN a.status = 'leave_with_permit' THEN 1 END) as leave_count,
+            COUNT(CASE WHEN a.status = 'absent' THEN 1 END) as absent_count,
+            COUNT(*) as total_logged
+        FROM attendance a
+        JOIN employees e ON a.employee_id = e.id
+        WHERE a.date = ? AND e.branch_id = ?
+    ");
+    $att_today_stmt->execute([$today, $branch_id]);
+} else {
+    $att_today_stmt = $pdo->prepare("
+        SELECT 
+            COUNT(CASE WHEN status = 'present' THEN 1 END) as present_count,
+            COUNT(CASE WHEN status IN ('late', 'early_leave') THEN 1 END) as late_count,
+            COUNT(CASE WHEN status = 'leave_with_permit' THEN 1 END) as leave_count,
+            COUNT(CASE WHEN status = 'absent' THEN 1 END) as absent_count,
+            COUNT(*) as total_logged
+        FROM attendance 
+        WHERE date = ?
+    ");
+    $att_today_stmt->execute([$today]);
+}
 $att_today = $att_today_stmt->fetch() ?: [
     'present_count' => 0,
     'late_count' => 0,
@@ -39,35 +75,66 @@ $att_today = $att_today_stmt->fetch() ?: [
 
 $attendance_rate = $total_employees > 0 ? round(($att_today['present_count'] / $total_employees) * 100) : 0;
 
-// 3. Thống kê quỹ lương tháng hiện tại
-$payroll_fund_stmt = $pdo->prepare("SELECT SUM(COALESCE(gross_salary, final_salary)) as total_fund, SUM(CASE WHEN payment_status = 'paid' THEN final_salary ELSE 0 END) as paid_fund FROM payrolls WHERE month = ? AND year = ?");
-$payroll_fund_stmt->execute([$current_month, $current_year]);
-$fund_data = $payroll_fund_stmt->fetch();
+// 3. Thống kê quỹ lương tháng hiện tại (Bảo mật: Chỉ hiển thị nếu có quyền payroll:view)
+$current_fund = 0;
+$paid_fund = 0;
+$is_projected_fund = false;
 
-$current_fund = (float)($fund_data['total_fund'] ?? 0);
-$paid_fund = (float)($fund_data['paid_fund'] ?? 0);
+if ($can_view_payroll) {
+    if ($is_branch_mgr && $branch_id) {
+        $payroll_fund_stmt = $pdo->prepare("
+            SELECT SUM(COALESCE(pr.gross_salary, pr.final_salary)) as total_fund, 
+                   SUM(CASE WHEN pr.payment_status = 'paid' THEN pr.final_salary ELSE 0 END) as paid_fund 
+            FROM payrolls pr
+            JOIN employees e ON pr.employee_id = e.id
+            WHERE pr.month = ? AND pr.year = ? AND e.branch_id = ?
+        ");
+        $payroll_fund_stmt->execute([$current_month, $current_year, $branch_id]);
+    } else {
+        $payroll_fund_stmt = $pdo->prepare("
+            SELECT SUM(COALESCE(gross_salary, final_salary)) as total_fund, 
+                   SUM(CASE WHEN payment_status = 'paid' THEN final_salary ELSE 0 END) as paid_fund 
+            FROM payrolls 
+            WHERE month = ? AND year = ?
+        ");
+        $payroll_fund_stmt->execute([$current_month, $current_year]);
+    }
+    $fund_data = $payroll_fund_stmt->fetch();
+    $current_fund = (float)($fund_data['total_fund'] ?? 0);
+    $paid_fund = (float)($fund_data['paid_fund'] ?? 0);
 
-// Nếu tháng này chưa bấm tính lương thì lấy mức dự toán theo ngạch bậc chức danh
-if ($current_fund <= 0) {
-    $current_fund = (float)($pdo->query("
-        SELECT SUM(p.base_salary) 
-        FROM employees e 
-        JOIN positions p ON e.position_id = p.id 
-        WHERE e.employment_status != 'resigned'
-    ")->fetchColumn() ?: 0);
-    $is_projected_fund = true;
-} else {
-    $is_projected_fund = false;
+    // Dự toán nếu chưa tính lương
+    if ($current_fund <= 0) {
+        $proj_where = ($is_branch_mgr && $branch_id) ? "AND e.branch_id = {$branch_id}" : "";
+        $current_fund = (float)($pdo->query("
+            SELECT SUM(p.base_salary) 
+            FROM employees e 
+            JOIN positions p ON e.position_id = p.id 
+            WHERE e.employment_status != 'resigned' {$proj_where}
+        ")->fetchColumn() ?: 0);
+        $is_projected_fund = true;
+    }
 }
 
 // 4. Cơ cấu nhân sự theo phòng ban (Chart Donut)
-$dept_stats = $pdo->query("
-    SELECT d.name, COUNT(e.id) as emp_count
-    FROM departments d
-    LEFT JOIN employees e ON d.id = e.department_id AND e.employment_status != 'resigned'
-    GROUP BY d.id
-    ORDER BY emp_count DESC
-")->fetchAll();
+if ($is_branch_mgr && $branch_id) {
+    $dept_stats = $pdo->query("
+        SELECT d.name, COUNT(e.id) as emp_count
+        FROM departments d
+        JOIN employees e ON d.id = e.department_id AND e.employment_status != 'resigned'
+        WHERE e.branch_id = {$branch_id}
+        GROUP BY d.id
+        ORDER BY emp_count DESC
+    ")->fetchAll();
+} else {
+    $dept_stats = $pdo->query("
+        SELECT d.name, COUNT(e.id) as emp_count
+        FROM departments d
+        LEFT JOIN employees e ON d.id = e.department_id AND e.employment_status != 'resigned'
+        GROUP BY d.id
+        ORDER BY emp_count DESC
+    ")->fetchAll();
+}
 
 $dept_labels = [];
 $dept_counts = [];
@@ -76,28 +143,42 @@ foreach ($dept_stats as $ds) {
     $dept_counts[] = (int)$ds['emp_count'];
 }
 
-// 5. Xu hướng chi trả lương trong 6 tháng gần nhất
+// 5. Xu hướng chi trả lương trong 6 tháng gần nhất (nếu có quyền)
 $trend_labels = [];
 $trend_values = [];
 
-for ($i = 5; $i >= 0; $i--) {
-    $t_time = strtotime("-{$i} month");
-    $t_m = (int)date('m', $t_time);
-    $t_y = (int)date('Y', $t_time);
-    $trend_labels[] = "T{$t_m}/" . substr((string)$t_y, 2);
+if ($can_view_payroll) {
+    for ($i = 5; $i >= 0; $i--) {
+        $t_time = strtotime("-{$i} month");
+        $t_m = (int)date('m', $t_time);
+        $t_y = (int)date('Y', $t_time);
+        $trend_labels[] = "T{$t_m}/" . substr((string)$t_y, 2);
 
-    $t_stmt = $pdo->prepare("SELECT SUM(COALESCE(gross_salary, final_salary)) FROM payrolls WHERE month = ? AND year = ?");
-    $t_stmt->execute([$t_m, $t_y]);
-    $trend_val = (float)($t_stmt->fetchColumn() ?: 0);
-    $trend_values[] = round($trend_val / 1000000, 1); // Đơn vị Triệu VNĐ
+        if ($is_branch_mgr && $branch_id) {
+            $t_stmt = $pdo->prepare("
+                SELECT SUM(COALESCE(pr.gross_salary, pr.final_salary)) 
+                FROM payrolls pr
+                JOIN employees e ON pr.employee_id = e.id
+                WHERE pr.month = ? AND pr.year = ? AND e.branch_id = ?
+            ");
+            $t_stmt->execute([$t_m, $t_y, $branch_id]);
+        } else {
+            $t_stmt = $pdo->prepare("SELECT SUM(COALESCE(gross_salary, final_salary)) FROM payrolls WHERE month = ? AND year = ?");
+            $t_stmt->execute([$t_m, $t_y]);
+        }
+        $trend_val = (float)($t_stmt->fetchColumn() ?: 0);
+        $trend_values[] = round($trend_val / 1000000, 1);
+    }
 }
 
 // 6. Danh sách 5 nhân sự mới tuyển dụng gần đây
+$rec_where = ($is_branch_mgr && $branch_id) ? "WHERE e.branch_id = {$branch_id}" : "";
 $recent_employees = $pdo->query("
     SELECT e.*, d.name AS department_name, p.name AS position_name 
     FROM employees e
     LEFT JOIN departments d ON e.department_id = d.id
     LEFT JOIN positions p ON e.position_id = p.id
+    {$rec_where}
     ORDER BY e.hire_date DESC, e.id DESC
     LIMIT 5
 ")->fetchAll();
@@ -106,13 +187,14 @@ $recent_employees = $pdo->query("
 $pending_proposals_count = 0;
 $pending_proposals = [];
 if (has_permission('proposals', 'view') || has_permission('proposals', 'create')) {
-    $pending_proposals_count = (int)($pdo->query("SELECT COUNT(*) FROM proposals WHERE status = 'pending'")->fetchColumn() ?: 0);
+    $prop_branch_where = ($is_branch_mgr && $branch_id) ? "AND e.branch_id = {$branch_id}" : "";
+    $pending_proposals_count = (int)($pdo->query("SELECT COUNT(*) FROM proposals p JOIN employees e ON p.employee_id = e.id WHERE p.status = 'pending' {$prop_branch_where}")->fetchColumn() ?: 0);
     $pending_stmt = $pdo->query("
         SELECT p.*, e.fullname, e.employee_code, e.avatar, d.name AS department_name
         FROM proposals p
         JOIN employees e ON p.employee_id = e.id
         LEFT JOIN departments d ON e.department_id = d.id
-        WHERE p.status = 'pending'
+        WHERE p.status = 'pending' {$prop_branch_where}
         ORDER BY p.id DESC
         LIMIT 5
     ");
@@ -212,11 +294,11 @@ require_once __DIR__ . '/includes/header.php';
     <div class="bg-indigo-700 dark:bg-slate-800 rounded-sm p-6 sm:p-8 text-white border border-indigo-800 dark:border-slate-700 flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative">
         <div>
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-sm text-xs font-semibold bg-indigo-900 text-indigo-100 mb-3 border border-indigo-600/40">
-                <i class="fa-solid fa-sparkles text-amber-300"></i> Trung Tâm Điều Hành Nhân Sự - <?= e(brand('company_short')) ?> (<?= e(brand('retail_brands')) ?>)
+                <i class="fa-solid fa-sparkles text-amber-300"></i> Trung Tâm Điều Hành Nhân Sự &bull; <?= $is_branch_mgr ? e($branch_name) : (e(brand('company_short')) . ' (' . e(brand('retail_brands')) . ')') ?>
             </div>
             <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Xin chào, <?= e($user['fullname']) ?>!</h2>
             <p class="text-indigo-100 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
-                Hôm nay là <strong class="text-white"><?= date('l, d/m/Y') ?></strong>. Hệ thống <?= e(brand('product_name')) ?> đang quản lý 
+                Hôm nay là <strong class="text-white"><?= date('l, d/m/Y') ?></strong>. <?= $is_branch_mgr ? "Khu vực <strong class='text-amber-200'>" . e($branch_name) . "</strong> đang quản lý" : ("Hệ thống " . e(brand('product_name')) . " đang quản lý") ?> 
                 <strong class="text-amber-200"><?= $total_employees ?></strong> nhân sự trực thuộc 
                 <strong class="text-amber-200"><?= $total_branches ?></strong> chi nhánh và 
                 <strong class="text-amber-200"><?= $total_departments ?></strong> khối phòng ban chức năng.
@@ -388,22 +470,38 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         </div>
 
-        <!-- KPI 3: Quỹ lương tháng này -->
-        <div class="kpi-stripe-amber bg-white dark:bg-slate-800 p-5 rounded-sm border border-slate-300 dark:border-slate-700 flex items-center justify-between card-hover">
-            <div>
-                <span class="kpi-label">
-                    <?= $is_projected_fund ? 'Dự Toán Quỹ Lương' : 'Tổng Quỹ Lương T' . $current_month ?>
-                </span>
-                <div class="kpi-value text-lg mt-1 font-mono"><?= format_money($current_fund) ?></div>
-                <div class="text-xs <?= $is_projected_fund ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300' ?> mt-1.5 font-bold flex items-center gap-1.5">
-                    <i class="fa-solid fa-coins text-amber-500"></i>
-                    <span><?= $is_projected_fund ? 'Định mức ngạch bậc' : ('Đã chi: ' . format_money($paid_fund)) ?></span>
+        <!-- KPI 3: Quỹ lương tháng này HOẶC Đề xuất chờ duyệt -->
+        <?php if ($can_view_payroll): ?>
+            <div class="kpi-stripe-amber bg-white dark:bg-slate-800 p-5 rounded-sm border border-slate-300 dark:border-slate-700 flex items-center justify-between card-hover">
+                <div>
+                    <span class="kpi-label">
+                        <?= $is_projected_fund ? 'Dự Toán Quỹ Lương' : ('Tổng Quỹ Lương ' . ($is_branch_mgr ? "({$branch_name})" : "T{$current_month}")) ?>
+                    </span>
+                    <div class="kpi-value text-lg mt-1 font-mono"><?= format_money($current_fund) ?></div>
+                    <div class="text-xs <?= $is_projected_fund ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300' ?> mt-1.5 font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-coins text-amber-500"></i>
+                        <span><?= $is_projected_fund ? 'Định mức ngạch bậc' : ('Đã chi: ' . format_money($paid_fund)) ?></span>
+                    </div>
+                </div>
+                <div class="w-12 h-12 rounded-sm bg-amber-500 text-white flex items-center justify-center text-lg p-3">
+                    <i class="fa-solid fa-sack-dollar"></i>
                 </div>
             </div>
-            <div class="w-12 h-12 rounded-sm bg-amber-500 text-white flex items-center justify-center text-lg p-3">
-                <i class="fa-solid fa-sack-dollar"></i>
+        <?php else: ?>
+            <div class="kpi-stripe-amber bg-white dark:bg-slate-800 p-5 rounded-sm border border-slate-300 dark:border-slate-700 flex items-center justify-between card-hover">
+                <div>
+                    <span class="kpi-label">Đề Xuất Chờ Xử Lý</span>
+                    <div class="kpi-value text-amber-600 dark:text-amber-400 mt-1 font-mono"><?= $pending_proposals_count ?></div>
+                    <div class="text-xs text-amber-700 dark:text-amber-300 mt-1.5 font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-paper-plane text-amber-500"></i>
+                        <span>Cần xử lý trong kỳ</span>
+                    </div>
+                </div>
+                <div class="w-12 h-12 rounded-sm bg-amber-500 text-white flex items-center justify-center text-lg p-3">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
             </div>
-        </div>
+        <?php endif; ?>
 
         <!-- KPI 4: Quy mô tổ chức -->
         <div class="kpi-stripe-sky bg-white dark:bg-slate-800 p-5 rounded-sm border border-slate-300 dark:border-slate-700 flex items-center justify-between card-hover">
@@ -471,22 +569,55 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         </div>
 
-        <!-- Biểu đồ 2: Biến Động Quỹ Lương 6 Tháng Gần Nhất (Bar Chart) -->
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 xl:col-span-2 min-w-0">
-            <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
-                <div>
-                    <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Biến Động Quỹ Lương (6 Tháng Gần Nhất)</h3>
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Đơn vị: Triệu VNĐ &bull; Dựa trên dữ liệu quyết toán thực tế</p>
+        <!-- Biểu đồ 2: Biến Động Quỹ Lương 6 Tháng Gần Nhất (Bar Chart) HOẶC Điểm Danh Hôm Nay -->
+        <?php if ($can_view_payroll): ?>
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 xl:col-span-2 min-w-0">
+                <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Biến Động Quỹ Lương <?= $is_branch_mgr ? "({$branch_name})" : "(6 Tháng Gần Nhất)" ?></h3>
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Đơn vị: Triệu VNĐ &bull; Dựa trên dữ liệu quyết toán thực tế</p>
+                    </div>
+                    <div class="w-9 h-9 rounded-sm bg-emerald-600 text-white flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-chart-column"></i>
+                    </div>
                 </div>
-                <div class="w-9 h-9 rounded-sm bg-emerald-600 text-white flex items-center justify-center text-sm">
-                    <i class="fa-solid fa-chart-column"></i>
-                </div>
-            </div>
 
-            <div class="relative h-64">
-                <canvas id="payrollTrendChart"></canvas>
+                <div class="relative h-64">
+                    <canvas id="payrollTrendChart"></canvas>
+                </div>
             </div>
-        </div>
+        <?php else: ?>
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 xl:col-span-2 min-w-0">
+                <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Tỷ Lệ Chấm Công Trong Ngày</h3>
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Tổng quan quân số có mặt và vắng mặt</p>
+                    </div>
+                    <div class="w-9 h-9 rounded-sm bg-emerald-600 text-white flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6">
+                    <div class="p-4 rounded-sm bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-center">
+                        <span class="text-xs uppercase font-extrabold text-emerald-800 dark:text-emerald-300">Có Mặt</span>
+                        <div class="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono mt-1"><?= $att_today['present_count'] ?></div>
+                    </div>
+                    <div class="p-4 rounded-sm bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-center">
+                        <span class="text-xs uppercase font-extrabold text-amber-800 dark:text-amber-300">Đi Trễ / Sớm</span>
+                        <div class="text-3xl font-black text-amber-600 dark:text-amber-400 font-mono mt-1"><?= $att_today['late_count'] ?></div>
+                    </div>
+                    <div class="p-4 rounded-sm bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-center">
+                        <span class="text-xs uppercase font-extrabold text-sky-800 dark:text-sky-300">Nghỉ Có Phép</span>
+                        <div class="text-3xl font-black text-sky-600 dark:text-sky-400 font-mono mt-1"><?= $att_today['leave_count'] ?></div>
+                    </div>
+                    <div class="p-4 rounded-sm bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-center">
+                        <span class="text-xs uppercase font-extrabold text-rose-800 dark:text-rose-300">Vắng Mặt</span>
+                        <div class="text-3xl font-black text-rose-600 dark:text-rose-400 font-mono mt-1"><?= $att_today['absent_count'] ?></div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
 
     </div>
 
@@ -898,8 +1029,10 @@ new Chart(ctxDept, {
 const trendLabels = <?= json_encode($trend_labels) ?>;
 const trendValues = <?= json_encode($trend_values) ?>;
 
-const ctxTrend = document.getElementById('payrollTrendChart').getContext('2d');
-new Chart(ctxTrend, {
+const trendElem = document.getElementById('payrollTrendChart');
+if (trendElem) {
+    const ctxTrend = trendElem.getContext('2d');
+    new Chart(ctxTrend, {
     type: 'bar',
     data: {
         labels: trendLabels,
@@ -943,8 +1076,8 @@ new Chart(ctxTrend, {
                 }
             }
         }
-    }
-});
+    });
+}
 
 // 3. Vẽ biểu đồ Cột: Phân bổ xếp loại KPI & Hiệu suất
 const ctxKpi = document.getElementById('kpiRatingChart');

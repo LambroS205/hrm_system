@@ -48,6 +48,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type']) && $_P
                 }
             }
 
+            // Cập nhật Phạm vi dữ liệu (Data Scope) cho vai trò
+            $data_scope = $_POST['data_scope'] ?? 'self';
+            if (in_array($data_scope, ['all', 'branch', 'department', 'self'], true)) {
+                $upScope = $pdo->prepare("UPDATE roles SET data_scope = ? WHERE id = ?");
+                $upScope->execute([$data_scope, $target_role_id]);
+            }
+
             $pdo->commit();
 
             // Cập nhật lại session nếu chính tài khoản đang đăng nhập thuộc vai trò này
@@ -222,6 +229,36 @@ require_once __DIR__ . '/../../includes/header.php';
                             <button type="submit" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5">
                                 <i class="fa-solid fa-floppy-disk"></i> Lưu Ma Trận
                             </button>
+                        </div>
+                    </div>
+
+                                        <!-- Cấu hình Phạm Vi Dữ Liệu (Data Scope) cho Vai Trò -->
+                    <?php 
+                    $role_idx = array_search($current_role_id, array_column($roles, 'id'));
+                    $current_scope = ($role_idx !== false && isset($roles[$role_idx]['data_scope'])) ? $roles[$role_idx]['data_scope'] : 'self';
+                    ?>
+                    <div class="px-5 py-3.5 bg-indigo-50/70 border-b border-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-indigo-600 text-sm"></i>
+                            <span class="text-xs font-bold text-slate-800">Phạm Vi Dữ Liệu Cho Phép (Data Scope):</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-4 text-xs">
+                            <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
+                                <input type="radio" name="data_scope" value="all" <?= $current_scope === 'all' ? 'checked' : '' ?> class="text-indigo-600 focus:ring-indigo-500">
+                                <span>Toàn Tập Đoàn (All)</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
+                                <input type="radio" name="data_scope" value="branch" <?= $current_scope === 'branch' ? 'checked' : '' ?> class="text-indigo-600 focus:ring-indigo-500">
+                                <span>Theo Chi Nhánh (Branch)</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
+                                <input type="radio" name="data_scope" value="department" <?= $current_scope === 'department' ? 'checked' : '' ?> class="text-indigo-600 focus:ring-indigo-500">
+                                <span>Theo Khối / Phòng (Dept)</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
+                                <input type="radio" name="data_scope" value="self" <?= $current_scope === 'self' ? 'checked' : '' ?> class="text-indigo-600 focus:ring-indigo-500">
+                                <span>Cá Nhân (Self)</span>
+                            </label>
                         </div>
                     </div>
 

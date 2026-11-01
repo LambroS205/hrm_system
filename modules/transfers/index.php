@@ -115,6 +115,16 @@ $keyword = trim($_GET['search'] ?? '');
 $where = ['1=1'];
 $params = [];
 
+// Áp dụng Data Scope cho điều động luân chuyển
+if (data_scope() === 'branch' && current_user_branch_id()) {
+    $where[] = "(t.from_branch_id = ? OR t.to_branch_id = ?)";
+    $params[] = current_user_branch_id();
+    $params[] = current_user_branch_id();
+} elseif (data_scope() === 'self' && current_employee()) {
+    $where[] = "t.employee_id = ?";
+    $params[] = current_employee()['id'];
+}
+
 if (!empty($status_filter)) {
     $where[] = "t.status = ?";
     $params[] = $status_filter;
@@ -174,11 +184,32 @@ $transfers_stmt = $pdo->prepare("
 $transfers_stmt->execute($params);
 $transfers = $transfers_stmt->fetchAll();
 
-// Thống kê nhanh theo trạng thái
-$count_all = $pdo->query("SELECT COUNT(*) FROM transfers")->fetchColumn() ?: 0;
-$count_pending = $pdo->query("SELECT COUNT(*) FROM transfers WHERE status = 'pending'")->fetchColumn() ?: 0;
-$count_approved = $pdo->query("SELECT COUNT(*) FROM transfers WHERE status = 'approved'")->fetchColumn() ?: 0;
-$count_executed = $pdo->query("SELECT COUNT(*) FROM transfers WHERE status = 'executed'")->fetchColumn() ?: 0;
+// Thống kê nhanh theo trạng thái & Data Scope
+$t_scope_where = "1=1";
+$t_scope_params = [];
+if (data_scope() === 'branch' && current_user_branch_id()) {
+    $t_scope_where = "(from_branch_id = ? OR to_branch_id = ?)";
+    $t_scope_params[] = current_user_branch_id();
+    $t_scope_params[] = current_user_branch_id();
+} elseif (data_scope() === 'self' && current_employee()) {
+    $t_scope_where = "employee_id = ?";
+    $t_scope_params[] = current_employee()['id'];
+}
+$t_cnt_stmt = $pdo->prepare("
+    SELECT 
+        COUNT(*) as count_all,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as count_pending,
+        COUNT(CASE WHEN status = 'approved' THEN 1 END) as count_approved,
+        COUNT(CASE WHEN status = 'executed' THEN 1 END) as count_executed
+    FROM transfers
+    WHERE {$t_scope_where}
+");
+$t_cnt_stmt->execute($t_scope_params);
+$t_counts = $t_cnt_stmt->fetch();
+$count_all = (int)($t_counts['count_all'] ?? 0);
+$count_pending = (int)($t_counts['count_pending'] ?? 0);
+$count_approved = (int)($t_counts['count_approved'] ?? 0);
+$count_executed = (int)($t_counts['count_executed'] ?? 0);
 
 // Danh sách chi nhánh cho bộ lọc
 $branches_list = $pdo->query("SELECT id, name, code FROM branches ORDER BY name ASC")->fetchAll();

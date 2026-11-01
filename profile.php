@@ -3,10 +3,37 @@
 $page_title = 'Hồ Sơ & Bảo Mật Tài Khoản';
 
 require_once __DIR__ . '/core/auth.php';
+require_once __DIR__ . '/core/LeaveService.php';
 require_login();
 
 $user = current_user();
 $user_id = (int)$user['id'];
+
+// Lấy thông tin hồ sơ nhân sự liên kết (nếu có)
+$emp_profile = current_employee();
+$contract = null;
+$insurance = null;
+$dep_count = 0;
+$leave_data = null;
+
+if ($emp_profile) {
+    $emp_id = (int)$emp_profile['id'];
+    try {
+        $cStmt = $pdo->prepare("SELECT * FROM employee_contracts WHERE employee_id = ? ORDER BY start_date DESC LIMIT 1");
+        $cStmt->execute([$emp_id]);
+        $contract = $cStmt->fetch();
+
+        $iStmt = $pdo->prepare("SELECT * FROM employee_insurance WHERE employee_id = ? LIMIT 1");
+        $iStmt->execute([$emp_id]);
+        $insurance = $iStmt->fetch();
+
+        $dStmt = $pdo->prepare("SELECT COUNT(*) FROM employee_dependents WHERE employee_id = ?");
+        $dStmt->execute([$emp_id]);
+        $dep_count = (int)$dStmt->fetchColumn();
+
+        $leave_data = LeaveService::getLeaveSummary($pdo, $emp_id);
+    } catch (Exception $e) {}
+}
 
 // Lấy lại thông tin user mới nhất từ DB
 $stmt = $pdo->prepare("
@@ -128,6 +155,100 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         </div>
     </div>
+
+    <?php if ($emp_profile): ?>
+        <!-- Card Thông Tin Hồ Sơ Nhân Sự & Chế Độ Phúc Lợi (ESS) -->
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-700 shadow-sm space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-address-card"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-base text-slate-800 dark:text-white">Thông Tin Hồ Sơ & Quyền Lợi Lao Động</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Dữ liệu nhân sự chính thức tại <?= e(brand('company_legal')) ?></p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a href="<?= base_url('modules/payroll/my_payslip.php') ?>" class="px-3.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-200 text-xs font-bold border border-emerald-200 dark:border-emerald-800 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-receipt"></i>
+                        <span>Phiếu Lương</span>
+                    </a>
+                    <a href="<?= base_url('modules/proposals/create.php') ?>" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Gửi Đề Xuất</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                <div class="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-700/60">
+                    <span class="text-slate-400 block mb-1">Mã nhân viên:</span>
+                    <span class="font-mono font-bold text-base text-indigo-600 dark:text-indigo-400 block"><?= e($emp_profile['employee_code']) ?></span>
+                    <span class="text-slate-500 text-[11px] mt-0.5 block">Vào làm: <?= format_date($emp_profile['join_date'] ?? 'now') ?></span>
+                </div>
+
+                <div class="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-700/60">
+                    <span class="text-slate-400 block mb-1">Vị trí & Khối:</span>
+                    <strong class="text-slate-800 dark:text-slate-100 block text-sm"><?= e($emp_profile['position_name']) ?></strong>
+                    <span class="text-slate-500 text-[11px] mt-0.5 block"><?= e($emp_profile['department_name']) ?></span>
+                </div>
+
+                <div class="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-700/60">
+                    <span class="text-slate-400 block mb-1">Đơn vị công tác:</span>
+                    <strong class="text-slate-800 dark:text-slate-100 block text-sm"><?= e($emp_profile['branch_name']) ?></strong>
+                    <span class="text-slate-500 text-[11px] mt-0.5 block">Vùng lương: Vùng <?= $emp_profile['wage_region'] ?? 1 ?></span>
+                </div>
+
+                <div class="p-4 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-2xl border border-emerald-200/80 dark:border-emerald-800">
+                    <span class="text-emerald-700 dark:text-emerald-300 block mb-1 font-semibold">Quỹ phép năm <?= date('Y') ?>:</span>
+                    <div class="text-xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+                        <?= $leave_data['remaining'] ?? 12 ?> <span class="text-xs font-normal">ngày còn lại</span>
+                    </div>
+                    <span class="text-[11px] text-emerald-600/80 mt-0.5 block">Đã nghỉ: <?= $leave_data['used'] ?? 0 ?> / <?= $leave_data['entitled'] ?? 12 ?> ngày</span>
+                </div>
+            </div>
+
+            <!-- Khối Hợp Đồng & BHXH & Thuế -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 text-xs">
+                <div class="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-700/60">
+                    <div class="font-bold text-slate-800 dark:text-white mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-contract text-indigo-500"></i>
+                        Hợp Đồng Lao Động
+                    </div>
+                    <div class="space-y-1.5 text-slate-600 dark:text-slate-300">
+                        <div>Số HĐ: <b class="font-mono"><?= e($contract['contract_number'] ?? 'Chính thức') ?></b></div>
+                        <div>Loại: <b><?= e($emp_profile['employment_status'] === 'official' ? 'Không xác định thời hạn' : 'Thử việc') ?></b></div>
+                        <div>Hiệu lực: <?= format_date($contract['start_date'] ?? $emp_profile['join_date'] ?? 'now') ?></div>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-700/60">
+                    <div class="font-bold text-slate-800 dark:text-white mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-heart-pulse text-rose-500"></i>
+                        Bảo Hiểm Xã Hội & Y Tế
+                    </div>
+                    <div class="space-y-1.5 text-slate-600 dark:text-slate-300">
+                        <div>Mã số BHXH: <b class="font-mono"><?= e($insurance['insurance_book_number'] ?? 'Đang quản lý tập trung') ?></b></div>
+                        <div>Mã thẻ BHYT: <b class="font-mono"><?= e($insurance['health_card_number'] ?? 'BHYT Masan Group') ?></b></div>
+                        <div class="truncate">Nơi KCB: <?= e($insurance['hospital_name'] ?? 'Bệnh viện Quận 1') ?></div>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-700/60">
+                    <div class="font-bold text-slate-800 dark:text-white mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-users text-sky-500"></i>
+                        Giảm Trừ Gia Cảnh & Tài Khoản
+                    </div>
+                    <div class="space-y-1.5 text-slate-600 dark:text-slate-300">
+                        <div>Người phụ thuộc: <b><?= $dep_count ?> người</b></div>
+                        <div>Giảm trừ TNCN: <b><?= number_format(11000000 + $dep_count * 4400000) ?> đ/tháng</b></div>
+                        <div>Tài khoản nhận lương: <b class="font-mono"><?= e($emp_profile['bank_account'] ?: 'Techcombank') ?></b></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <!-- Cụm Form Cập nhật Thông tin & Đổi Mật Khẩu -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

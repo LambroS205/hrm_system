@@ -42,6 +42,10 @@
                 <i class="fa-solid fa-book-bookmark"></i>
                 <span>Chú Giải Thuật Ngữ & Trạng Thái</span>
             </button>
+            <button type="button" onclick="switchHelpTab('data_scope_guide')" id="helpTabBtn-data_scope_guide" class="help-tab-btn py-2.5 px-3.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white flex items-center gap-2 transition">
+                <i class="fa-solid fa-masks-theater text-amber-500"></i>
+                <span>5 Persona & Data Scope</span>
+            </button>
         </div>
 
         <!-- Body Scrollable Content -->
@@ -273,6 +277,77 @@
                 </div>
             </div>
 
+            <!-- TAB 5: 5 PERSONA TRÌNH DIỄN & PHẠM VI DỮ LIỆU (DATA SCOPE) -->
+            <div id="helpTabContent-data_scope_guide" class="space-y-6 hidden">
+                <div>
+                    <h4 class="text-sm font-extrabold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-masks-theater text-amber-500"></i>
+                        Ma Trận 2 Chiều: Chức Năng (RBAC) &bull; Phạm Vi Dữ Liệu (Data Scope)
+                    </h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Hệ thống áp dụng kiến trúc kiểm soát truy cập đa chiều tuân thủ nghiêm ngặt Nghị định 13/2023/NĐ-CP về Bảo vệ dữ liệu cá nhân.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div class="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
+                        <div class="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5 mb-1">
+                            <span class="px-1.5 py-0.5 rounded font-mono font-black bg-emerald-200 dark:bg-emerald-900 text-[10px]">ALL</span>
+                            Toàn Tập Đoàn (Corporate Scope)
+                        </div>
+                        <p class="text-[11px] text-emerald-700 dark:text-emerald-400 leading-relaxed">
+                            Áp dụng cho Ban Tổng Giám Đốc (CEO), Giám Đốc Khối Nhân Sự (CHRO) và Chuyên Viên C&B Chuỗi. Được xem và tác nghiệp trên toàn bộ 6 chi nhánh & tổng kho.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-2xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800">
+                        <div class="font-bold text-sky-800 dark:text-sky-300 flex items-center gap-1.5 mb-1">
+                            <span class="px-1.5 py-0.5 rounded font-mono font-black bg-sky-200 dark:bg-sky-900 text-[10px]">BRANCH</span>
+                            Theo Chi Nhánh (Branch Scope)
+                        </div>
+                        <p class="text-[11px] text-sky-700 dark:text-sky-400 leading-relaxed">
+                            Áp dụng cho Giám Đốc Chi Nhánh / Quản Lý Kho DC. Chỉ xem, quản lý, chấm công và phê duyệt đề xuất cho nhân viên thuộc chi nhánh phụ trách.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800">
+                        <div class="font-bold text-blue-800 dark:text-blue-300 flex items-center gap-1.5 mb-1">
+                            <span class="px-1.5 py-0.5 rounded font-mono font-black bg-blue-200 dark:bg-blue-900 text-[10px]">DEPT</span>
+                            Theo Khối / Phòng (Department Scope)
+                        </div>
+                        <p class="text-[11px] text-blue-700 dark:text-blue-400 leading-relaxed">
+                            Dành cho Trưởng phòng, Quản lý bộ phận. Quản lý công việc và đánh giá KPI cấp dưới trong cùng phòng ban.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800">
+                        <div class="font-bold text-purple-800 dark:text-purple-300 flex items-center gap-1.5 mb-1">
+                            <span class="px-1.5 py-0.5 rounded font-mono font-black bg-purple-200 dark:bg-purple-900 text-[10px]">SELF</span>
+                            Tự Phục Vụ Cá Nhân (ESS Scope)
+                        </div>
+                        <p class="text-[11px] text-purple-700 dark:text-purple-400 leading-relaxed">
+                            Dành cho Nhân viên chuỗi. Chỉ xem hồ sơ bản thân, phiếu lương của mình, chấm công cá nhân, theo dõi quỹ phép năm và tự đánh giá KPI.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700">
+                    <h5 class="font-bold text-xs text-slate-800 dark:text-white mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-play text-indigo-600"></i> Danh Sách 5 Tài Khoản Demo Chuẩn
+                    </h5>
+                    <div class="text-[11px] space-y-1.5 text-slate-600 dark:text-slate-300">
+                        <div>1. <b>admin@wincommerce.vn</b> &bull; Nguyễn Hoàng Nam (CEO &bull; Toàn quyền Super Admin)</div>
+                        <div>2. <b>phuong.le@wincommerce.vn</b> &bull; Lê Mai Phương (CHRO &bull; Toàn quyền Nhân sự, Scope: ALL)</div>
+                        <div>3. <b>cb@wincommerce.vn</b> &bull; Phạm Thu Thảo (Chuyên Viên C&B &bull; Tính lương & BHXH, Scope: ALL)</div>
+                        <div>4. <b>mienbac@wincommerce.vn</b> &bull; Trần Quốc Bảo (GĐ Chi Nhánh &bull; Scope: BRANCH Miền Bắc)</div>
+                        <div>5. <b>ngoc.do@wincommerce.vn</b> &bull; Đỗ Thị Bích Ngọc (Nhân Viên Tech Lead &bull; Cổng ESS, Scope: SELF)</div>
+                        <div class="pt-2 text-indigo-600 dark:text-indigo-400 font-bold">
+                            Mật khẩu chung cho tất cả tài khoản: <code class="font-mono bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-800">WinMart@2026</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <!-- Footer Modal -->
@@ -307,7 +382,7 @@ function closeHelpModal() {
 
 function switchHelpTab(tabId) {
     // Hide all contents
-    ['pipeline', 'shortcuts', 'payroll_guide', 'glossary'].forEach(id => {
+    ['pipeline', 'shortcuts', 'payroll_guide', 'glossary', 'data_scope_guide'].forEach(id => {
         const content = document.getElementById('helpTabContent-' + id);
         const btn = document.getElementById('helpTabBtn-' + id);
         if (content) content.classList.add('hidden');

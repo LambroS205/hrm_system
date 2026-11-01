@@ -38,6 +38,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
                 redirect('modules/proposals/index.php');
             }
 
+            // Kiểm tra phân quyền phạm vi dữ liệu (Data Scope)
+            if (!can_access_employee((int)$proposal['employee_id'])) {
+                set_flash('danger', 'Đề xuất này thuộc nhân sự ngoài phạm vi thẩm quyền phê duyệt của bạn.');
+                redirect('modules/proposals/index.php');
+            }
+
             // Kiểm tra xem tháng có bị khóa bảng lương không
             require_once __DIR__ . '/../../core/PayrollService.php';
             if ($proposal['start_date']) {
@@ -108,6 +114,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         $rejection_reason = trim($_POST['rejection_reason'] ?? '');
 
         if ($proposal_id > 0 && !empty($rejection_reason)) {
+            $propStmt = $pdo->prepare("SELECT employee_id FROM proposals WHERE id = ?");
+            $propStmt->execute([$proposal_id]);
+            $propEmpId = (int)$propStmt->fetchColumn();
+
+            if (!can_access_employee($propEmpId)) {
+                set_flash('danger', 'Đề xuất này thuộc nhân sự ngoài phạm vi thẩm quyền phê duyệt của bạn.');
+                redirect('modules/proposals/index.php');
+            }
+
             $user = current_user();
             $stmt = $pdo->prepare("UPDATE proposals SET status = 'rejected', approved_by = ?, approved_at = NOW(), rejection_reason = ? WHERE id = ? AND status = 'pending'");
             $stmt->execute([$user['id'], $rejection_reason, $proposal_id]);
@@ -150,16 +165,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
 // Lấy danh sách phòng ban
 $departments = $pdo->query("SELECT id, name, code FROM departments ORDER BY name ASC")->fetchAll();
 
-// Thống kê KPI
+// Thống kê KPI theo Data Scope
+$kpi_params = [];
+$kpi_scope = scope_where('e', $kpi_params);
+$kpi_where = $kpi_scope !== '1=1' ? "WHERE {$kpi_scope}" : "";
 $kpi_sql = "
     SELECT 
         COUNT(*) as total,
-        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_count,
-        COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved_count,
-        COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected_count
-    FROM proposals
+        COUNT(CASE WHEN p.status = 'pending' THEN 1 END) as pending_count,
+        COUNT(CASE WHEN p.status = 'approved' THEN 1 END) as approved_count,
+        COUNT(CASE WHEN p.status = 'rejected' THEN 1 END) as rejected_count
+    FROM proposals p
+    JOIN employees e ON p.employee_id = e.id
+    {$kpi_where}
 ";
-$kpi = $pdo->query($kpi_sql)->fetch();
+$kpi_stmt = $pdo->prepare($kpi_sql);
+$kpi_stmt->execute($kpi_params);
+$kpi = $kpi_stmt->fetch();
 
 // Query danh sách đề xuất
 $sql = "
@@ -176,6 +198,12 @@ $sql = "
     WHERE 1=1
 ";
 $params = [];
+
+// Áp dụng Data Scope cho danh sách đề xuất
+$scope_clause = scope_where('e', $params);
+if ($scope_clause !== '1=1') {
+    $sql .= " AND {$scope_clause}";
+}
 
 if (!empty($filter_type)) {
     $sql .= " AND p.type = ?";

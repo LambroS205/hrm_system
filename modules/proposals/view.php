@@ -36,6 +36,9 @@ if (!$p) {
     redirect('modules/proposals/index.php');
 }
 
+// Kiểm tra quyền hạn theo Data Scope
+require_employee_access((int)$p['employee_id']);
+
 $page_title = 'Chi Tiết Đề Xuất ' . $p['proposal_code'];
 
 // Map labels

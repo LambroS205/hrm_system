@@ -8,16 +8,8 @@ require_permission('attendance', 'view');
 $user = current_user();
 
 // Lấy hồ sơ nhân sự của tài khoản đang đăng nhập
-$curr_emp_stmt = $pdo->prepare("
-    SELECT e.*, d.name AS department_name, p.name AS position_name 
-    FROM employees e 
-    LEFT JOIN departments d ON e.department_id = d.id 
-    LEFT JOIN positions p ON e.position_id = p.id 
-    WHERE e.user_id = ?
-");
-$curr_emp_stmt->execute([$user['id']]);
-$current_emp = $curr_emp_stmt->fetch();
-$current_emp_id = $current_emp ? (int)$current_emp['id'] : 0;
+$curr_emp = current_employee();
+$current_emp_id = $curr_emp ? (int)$curr_emp['id'] : 0;
 
 // Xác định quyền: Nếu là Super Admin hoặc có quyền edit/delete thì là quản lý công;
 // Ngược lại nếu là nhân viên thông thường (Role 4) thì chỉ xem & chấm công cá nhân
@@ -248,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
 // Danh sách phòng ban cho bộ lọc
 $departments = $pdo->query("SELECT id, name, code FROM departments ORDER BY name ASC")->fetchAll();
 
-// Truy vấn danh sách nhân viên đang làm việc (loại bỏ nhân viên đã nghỉ)
+// Truy vấn danh sách nhân viên đang làm việc theo Data Scope
 $emp_sql = "
     SELECT e.id, e.employee_code, e.fullname, e.avatar, d.name AS department_name, p.name AS position_name
     FROM employees e
@@ -257,6 +249,11 @@ $emp_sql = "
     WHERE e.employment_status != 'resigned'
 ";
 $emp_params = [];
+
+$scope_att = scope_where('e', $emp_params);
+if ($scope_att !== '1=1') {
+    $emp_sql .= " AND {$scope_att}";
+}
 
 if ($selected_dept > 0) {
     $emp_sql .= " AND e.department_id = ?";
@@ -971,7 +968,12 @@ require_once __DIR__ . '/../../includes/header.php';
                                 class="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none">
                             <option value="0">-- Chọn nhân viên --</option>
                             <?php
-                            $all_emps = $pdo->query("SELECT e.id, e.employee_code, e.fullname, d.name AS dept FROM employees e LEFT JOIN departments d ON e.department_id = d.id WHERE e.employment_status != 'resigned' ORDER BY e.fullname ASC")->fetchAll();
+                            $ae_params = [];
+                            $ae_scope = scope_where('e', $ae_params);
+                            $ae_where = $ae_scope !== '1=1' ? "AND {$ae_scope}" : "";
+                            $ae_stmt = $pdo->prepare("SELECT e.id, e.employee_code, e.fullname, d.name AS dept FROM employees e LEFT JOIN departments d ON e.department_id = d.id WHERE e.employment_status != 'resigned' {$ae_where} ORDER BY e.fullname ASC");
+                            $ae_stmt->execute($ae_params);
+                            $all_emps = $ae_stmt->fetchAll();
                             foreach ($all_emps as $ae): ?>
                                 <option value="<?= $ae['id'] ?>" <?= ($selected_emp == $ae['id']) ? 'selected' : '' ?>>
                                     <?= e($ae['employee_code']) ?> - <?= e($ae['fullname']) ?> (<?= e($ae['dept'] ?? '') ?>)

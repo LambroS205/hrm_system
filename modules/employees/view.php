@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../core/auth.php';
 require_permission('employees', 'view');
 
 $id = (int)($_GET['id'] ?? 0);
+require_employee_access($id);
 
 // =========================================================================
 // XỬ LÝ CÁC HÀNH ĐỘNG FORM POST (THÊM / XÓA CÁC HẠNG MỤC HỒ SƠ)

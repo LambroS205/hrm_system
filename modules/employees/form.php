@@ -7,6 +7,7 @@ $is_edit = $id > 0;
 
 if ($is_edit) {
     require_permission('employees', 'edit');
+    require_employee_access($id);
     $page_title = 'Cập Nhật Hồ Sơ Nhân Viên';
 } else {
     require_permission('employees', 'create');
@@ -14,7 +15,10 @@ if ($is_edit) {
 }
 
 // Lấy danh sách chi nhánh, phòng ban & chức vụ cho thẻ select
-$branches = $pdo->query("SELECT id, name, code, is_headquarter FROM branches ORDER BY is_headquarter DESC, name ASC")->fetchAll();
+$branches_query = (data_scope() === 'branch' && current_user_branch_id())
+    ? "SELECT id, name, code, is_headquarter FROM branches WHERE id = " . (int)current_user_branch_id()
+    : "SELECT id, name, code, is_headquarter FROM branches ORDER BY is_headquarter DESC, name ASC";
+$branches = $pdo->query($branches_query)->fetchAll();
 $departments = $pdo->query("SELECT id, name, code, branch_id FROM departments ORDER BY name ASC")->fetchAll();
 $positions = $pdo->query("SELECT id, name, base_salary FROM positions ORDER BY base_salary DESC")->fetchAll();
 

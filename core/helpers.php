@@ -71,6 +71,14 @@ function set_flash($type, $message) {
 }
 
 /**
+ * Kiểm tra xem hệ thống có đang ở chế độ Trình Diễn (Demo Mode) không
+ */
+function is_demo_mode() {
+    $val = getenv('DEMO_MODE') ?: ($_ENV['DEMO_MODE'] ?? 'true');
+    return filter_var($val, FILTER_VALIDATE_BOOLEAN);
+}
+
+/**
  * Hiển thị thông báo Flash nếu có
  */
 function get_flash() {

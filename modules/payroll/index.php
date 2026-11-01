@@ -149,6 +149,12 @@ $departments = $pdo->query("SELECT id, name, code FROM departments ORDER BY name
 $where_clauses = ["pr.month = ?", "pr.year = ?"];
 $params = [$selected_month, $selected_year];
 
+// Áp dụng Data Scope cho bảng lương (GĐ chi nhánh chỉ thấy lương nhân sự chi nhánh mình)
+$scope_payroll = scope_where('e', $params);
+if ($scope_payroll !== '1=1') {
+    $where_clauses[] = $scope_payroll;
+}
+
 if ($selected_dept > 0) {
     $where_clauses[] = "e.department_id = ?";
     $params[] = $selected_dept;

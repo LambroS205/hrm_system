@@ -152,11 +152,30 @@ if (userMenuBtn && userMenuDropdown) {
     userMenuBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         userMenuDropdown.classList.toggle('hidden');
+        if (personaSwitcherDropdown) personaSwitcherDropdown.classList.add('hidden');
     });
 
     document.addEventListener('click', (e) => {
         if (!userMenuDropdown.contains(e.target) && !userMenuBtn.contains(e.target)) {
             userMenuDropdown.classList.add('hidden');
+        }
+    });
+}
+
+// Xử lý bật tắt Dropdown Menu của Persona Switcher
+const personaSwitcherBtn = document.getElementById('personaSwitcherBtn');
+const personaSwitcherDropdown = document.getElementById('personaSwitcherDropdown');
+
+if (personaSwitcherBtn && personaSwitcherDropdown) {
+    personaSwitcherBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        personaSwitcherDropdown.classList.toggle('hidden');
+        if (userMenuDropdown) userMenuDropdown.classList.add('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!personaSwitcherDropdown.contains(e.target) && !personaSwitcherBtn.contains(e.target)) {
+            personaSwitcherDropdown.classList.add('hidden');
         }
     });
 }

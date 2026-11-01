@@ -3,29 +3,32 @@
 $page_title = 'Tạo Đề Xuất Mới';
 
 require_once __DIR__ . '/../../core/auth.php';
+require_once __DIR__ . '/../../core/LeaveService.php';
 require_permission('proposals', 'create');
 
 $user = current_user();
+$curr_emp = current_employee();
+$current_emp_id = $curr_emp ? (int)$curr_emp['id'] : 0;
 
-// Lấy danh sách nhân viên (để admin tạo hộ)
-$employees = $pdo->query("
+// Lấy danh sách nhân viên theo Data Scope
+$emp_params = [];
+$emp_scope = scope_where('e', $emp_params);
+$emp_where = $emp_scope !== '1=1' ? "AND {$emp_scope}" : "";
+
+$emp_stmt = $pdo->prepare("
     SELECT e.id, e.employee_code, e.fullname, e.avatar,
            d.name AS department_name, p.name AS position_name
     FROM employees e
     LEFT JOIN departments d ON e.department_id = d.id
     LEFT JOIN positions p ON e.position_id = p.id
-    WHERE e.employment_status != 'resigned'
+    WHERE e.employment_status != 'resigned' {$emp_where}
     ORDER BY e.fullname ASC
-")->fetchAll();
+");
+$emp_stmt->execute($emp_params);
+$employees = $emp_stmt->fetchAll();
 
-// Tìm employee_id của user hiện tại (nếu có liên kết)
-$current_emp_id = 0;
-$empCheck = $pdo->prepare("SELECT id FROM employees WHERE user_id = ?");
-$empCheck->execute([$user['id']]);
-$current_emp = $empCheck->fetch();
-if ($current_emp) {
-    $current_emp_id = $current_emp['id'];
-}
+// Lấy tổng hợp quỹ phép năm
+$leave_summary = $current_emp_id ? LeaveService::getLeaveSummary($pdo, $current_emp_id) : null;
 
 // Xử lý POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -45,6 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validation
     $errors = [];
     if ($employee_id <= 0) $errors[] = 'Vui lòng chọn nhân viên.';
+    if ($employee_id > 0 && !can_access_employee($employee_id)) $errors[] = 'Bạn không có quyền tạo đề xuất cho nhân viên này.';
     if (empty($title)) $errors[] = 'Tiêu đề không được để trống.';
     if ($type === 'leave' && empty($leave_type)) $errors[] = 'Vui lòng chọn loại nghỉ phép.';
     if (in_array($type, ['leave', 'overtime', 'business_trip']) && (empty($start_date) || empty($end_date))) {
@@ -144,6 +148,33 @@ require_once __DIR__ . '/../../includes/header.php';
                 </select>
             </div>
         </div>
+
+        <?php if ($leave_summary): ?>
+            <!-- Hộp Thông Tin Quỹ Phép Năm (BLLĐ 2019) -->
+            <div class="p-4 rounded-2xl bg-gradient-to-r from-sky-50 to-indigo-50 dark:from-sky-950/40 dark:to-indigo-950/40 border border-sky-200 dark:border-sky-800 text-xs text-sky-900 dark:text-sky-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-sky-500 text-white flex items-center justify-center text-lg flex-shrink-0">
+                        <i class="fa-solid fa-umbrella-beach"></i>
+                    </div>
+                    <div>
+                        <div class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+                            <span>Quỹ Phép Năm <?= $leave_summary['year'] ?></span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 dark:bg-sky-900 text-sky-800 dark:text-sky-200">BLLĐ 2019 Đ.113</span>
+                        </div>
+                        <div class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">
+                            Hưởng: <b><?= $leave_summary['entitled'] ?></b> ngày &bull; Đã nghỉ: <b><?= $leave_summary['used'] ?></b> ngày &bull; Chờ duyệt: <b><?= $leave_summary['pending'] ?></b> ngày
+                            <?php if ($leave_summary['seniority_years'] >= 5): ?>
+                                <span class="text-amber-600 font-bold ml-1">(+<?= floor($leave_summary['seniority_years']/5) ?> ngày thâm niên)</span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                <div class="sm:text-right bg-white dark:bg-slate-800/80 px-4 py-2 rounded-xl border border-sky-200 dark:border-sky-800">
+                    <div class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Khả dụng còn lại</div>
+                    <div class="font-black text-xl font-mono text-emerald-600 dark:text-emerald-400"><?= $leave_summary['remaining'] ?> <span class="text-xs font-normal">ngày</span></div>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <!-- Loại Đề Xuất -->
         <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">

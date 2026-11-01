@@ -38,6 +38,12 @@ try {
         $emp_wheres = ['1=1'];
         $emp_params = [];
 
+        // Áp dụng Data Scope
+        $emp_scope = scope_where('e', $emp_params);
+        if ($emp_scope !== '1=1') {
+            $emp_wheres[] = $emp_scope;
+        }
+
         if (!empty($keyword)) {
             $emp_wheres[] = "(e.fullname LIKE ? OR e.employee_code LIKE ? OR e.email LIKE ? OR e.phone LIKE ? OR e.identity_card LIKE ?)";
             $emp_params = array_merge($emp_params, [$search_param, $search_param, $search_param, $search_param, $search_param]);
@@ -203,6 +209,11 @@ try {
         $rw_wheres = ['1=1'];
         $rw_params = [];
 
+        $rw_scope = scope_where('e', $rw_params);
+        if ($rw_scope !== '1=1') {
+            $rw_wheres[] = $rw_scope;
+        }
+
         if (!empty($keyword)) {
             $rw_wheres[] = "(r.title LIKE ? OR r.decision_number LIKE ? OR e.fullname LIKE ?)";
             $rw_params = array_merge($rw_params, [$search_param, $search_param, $search_param]);
@@ -253,6 +264,11 @@ try {
         $dc_wheres = ['1=1'];
         $dc_params = [];
 
+        $dc_scope = scope_where('e', $dc_params);
+        if ($dc_scope !== '1=1') {
+            $dc_wheres[] = $dc_scope;
+        }
+
         if (!empty($keyword)) {
             $dc_wheres[] = "(dc.title LIKE ? OR dc.decision_number LIKE ? OR e.fullname LIKE ?)";
             $dc_params = array_merge($dc_params, [$search_param, $search_param, $search_param]);
@@ -302,6 +318,15 @@ try {
     if (($category === 'all' || $category === 'transfers') && has_permission('transfers', 'view')) {
         $tr_wheres = ['1=1'];
         $tr_params = [];
+
+        if (data_scope() === 'branch' && current_user_branch_id()) {
+            $tr_wheres[] = "(t.from_branch_id = ? OR t.to_branch_id = ?)";
+            $tr_params[] = current_user_branch_id();
+            $tr_params[] = current_user_branch_id();
+        } elseif (data_scope() === 'self' && current_employee()) {
+            $tr_wheres[] = "t.employee_id = ?";
+            $tr_params[] = current_employee()['id'];
+        }
 
         if (!empty($keyword)) {
             $tr_wheres[] = "(t.reason LIKE ? OR t.decision_number LIKE ? OR e.fullname LIKE ?)";

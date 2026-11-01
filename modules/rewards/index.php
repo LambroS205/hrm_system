@@ -12,17 +12,40 @@ $filter_stat = trim($_GET['status'] ?? '');
 $filter_dept = (int)($_GET['department_id'] ?? 0);
 $current_view = trim($_GET['view'] ?? 'kanban'); // Mặc định là kanban để thể hiện tính năng Kéo - Thả
 
-// 2. Truy vấn thống kê tổng quan
-$stats = [
-    'total_count'    => (int)$pdo->query("SELECT COUNT(*) FROM rewards")->fetchColumn(),
-    'total_amount'   => (float)$pdo->query("SELECT SUM(amount) FROM rewards WHERE status IN ('approved', 'executed')")->fetchColumn(),
-    'pending_count'  => (int)$pdo->query("SELECT COUNT(*) FROM rewards WHERE status = 'pending'")->fetchColumn(),
-    'executed_count' => (int)$pdo->query("SELECT COUNT(*) FROM rewards WHERE status = 'executed'")->fetchColumn(),
-];
+// 2. Truy vấn thống kê tổng quan theo Data Scope
+$r_scope_where = "1=1";
+$r_scope_params = [];
+if (data_scope() === 'branch' && current_user_branch_id()) {
+    $r_scope_where = "e.branch_id = ?";
+    $r_scope_params[] = current_user_branch_id();
+} elseif (data_scope() === 'self' && current_employee()) {
+    $r_scope_where = "e.id = ?";
+    $r_scope_params[] = current_employee()['id'];
+}
+$r_stat_stmt = $pdo->prepare("
+    SELECT 
+        COUNT(*) as total_count,
+        SUM(CASE WHEN r.status IN ('approved', 'executed') THEN r.amount ELSE 0 END) as total_amount,
+        COUNT(CASE WHEN r.status = 'pending' THEN 1 END) as pending_count,
+        COUNT(CASE WHEN r.status = 'executed' THEN 1 END) as executed_count
+    FROM rewards r
+    JOIN employees e ON r.employee_id = e.id
+    WHERE {$r_scope_where}
+");
+$r_stat_stmt->execute($r_scope_params);
+$stats = $r_stat_stmt->fetch();
 
 // 3. Xây dựng truy vấn danh sách có lọc
 $where_clauses = ['1=1'];
 $params = [];
+
+if (data_scope() === 'branch' && current_user_branch_id()) {
+    $where_clauses[] = "e.branch_id = :scope_branch";
+    $params[':scope_branch'] = current_user_branch_id();
+} elseif (data_scope() === 'self' && current_employee()) {
+    $where_clauses[] = "e.id = :scope_emp";
+    $params[':scope_emp'] = current_employee()['id'];
+}
 
 if (!empty($search)) {
     $where_clauses[] = "(r.reward_code LIKE :search OR r.title LIKE :search OR e.fullname LIKE :search OR e.employee_code LIKE :search)";

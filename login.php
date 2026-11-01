@@ -27,13 +27,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             try {
                 $stmt = $pdo->prepare("
-                    SELECT u.*, r.name as role_name 
+                    SELECT u.*, r.name as role_name, r.data_scope 
                     FROM users u
                     LEFT JOIN roles r ON u.role_id = r.id
-                    WHERE u.username = ? AND u.status = 'active'
+                    WHERE (u.username = ? OR u.email = ?) AND u.status = 'active'
                     LIMIT 1
                 ");
-                $stmt->execute([$username]);
+                $stmt->execute([$username, $username]);
                 $user = $stmt->fetch();
 
                 // Xác thực mật khẩu theo chuẩn mã hóa an toàn bcrypt
@@ -44,6 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Xóa đếm đăng nhập thất bại
                     clear_login_rate_attempts();
 
+                    // Xóa cache thông tin nhân viên cũ
+                    unset($_SESSION['current_employee']);
+
                     // Lưu session thông tin tài khoản
                     $_SESSION['user'] = [
                         'id' => (int)$user['id'],
@@ -52,7 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'email' => $user['email'],
                         'role_id' => $user['role_id'] ? (int)$user['role_id'] : null,
                         'role_name' => $user['role_name'] ?? ($user['is_superadmin'] ? 'Tổng Quản Trị (Super Admin)' : 'Chưa gán vai trò'),
-                        'is_superadmin' => (int)$user['is_superadmin']
+                        'is_superadmin' => (int)$user['is_superadmin'],
+                        'data_scope' => (int)$user['is_superadmin'] === 1 ? 'all' : ($user['data_scope'] ?? 'self')
                     ];
 
                     // Tải ma trận quyền tương ứng vào session
@@ -255,52 +259,76 @@ $flash = get_flash();
                     </button>
                 </form>
 
-                <!-- Khối tài khoản trình diễn -->
+                <!-- Khối tài khoản trình diễn chuẩn hóa theo 5 Persona -->
                 <div class="mt-6 pt-5 border-t border-slate-200 dark:border-slate-700/60">
-                    <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5 text-center flex items-center justify-center gap-1.5">
+                    <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 text-center flex items-center justify-center gap-1.5">
                         <i class="fa-solid fa-circle-play text-indigo-600 dark:text-indigo-400"></i>
-                        <span>Tài Khoản Demo (Mật khẩu: <span class="text-indigo-600 dark:text-indigo-400 font-extrabold">WinMart@2026</span>)</span>
+                        <span>5 Persona Trình Diễn (Mật khẩu: <span class="text-indigo-600 dark:text-indigo-400 font-extrabold">WinMart@2026</span>)</span>
                     </h4>
                     <div class="grid grid-cols-1 gap-2 text-xs">
+                        <!-- Persona 1: CEO / Super Admin -->
                         <button type="button" onclick="fillAccount('admin@wincommerce.vn')"
                                 class="p-2.5 rounded-sm bg-amber-50/70 hover:bg-amber-100 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 text-amber-900 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800 flex items-center justify-between text-left transition cursor-pointer">
                             <div>
-                                <span class="font-bold text-xs">admin@wincommerce.vn</span>
-                                <div class="text-[11px] opacity-80">Nguyễn Hoàng Nam (Tổng Giám Đốc WinCommerce / Toàn quyền)</div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold text-xs">admin@wincommerce.vn</span>
+                                    <span class="px-1.5 py-0.2 text-[9px] font-extrabold uppercase bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 rounded">CEO &bull; All</span>
+                                </div>
+                                <div class="text-[11px] opacity-90 mt-0.5">Nguyễn Hoàng Nam &bull; Tổng quan tập đoàn & Quản trị hệ thống</div>
                             </div>
-                            <i class="fa-solid fa-crown text-amber-500"></i>
+                            <i class="fa-solid fa-crown text-amber-500 text-sm"></i>
                         </button>
-                        <button type="button" onclick="fillAccount('mienbac@wincommerce.vn')"
-                                class="p-2.5 rounded-sm bg-sky-50/70 hover:bg-sky-100 dark:bg-sky-950/30 dark:hover:bg-sky-950/50 text-sky-900 dark:text-sky-300 border border-sky-200/80 dark:border-sky-800 flex items-center justify-between text-left transition cursor-pointer">
-                            <div>
-                                <span class="font-bold text-xs">mienbac@wincommerce.vn</span>
-                                <div class="text-[11px] opacity-80">Trần Quốc Bảo (Giám Đốc VP Điều Hành Miền Bắc)</div>
-                            </div>
-                            <i class="fa-solid fa-building-user text-sky-500"></i>
-                        </button>
-                        <button type="button" onclick="fillAccount('nhanvien@wincommerce.vn')"
-                                class="p-2.5 rounded-sm bg-emerald-50/70 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 text-emerald-900 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 flex items-center justify-between text-left transition cursor-pointer">
-                            <div>
-                                <span class="font-bold text-xs">nhanvien@wincommerce.vn</span>
-                                <div class="text-[11px] opacity-80">Phạm Thu Thảo (Chuyên Viên Nhân Sự & Quản Trị C&B)</div>
-                            </div>
-                            <i class="fa-solid fa-id-badge text-emerald-500"></i>
-                        </button>
-                        <button type="button" onclick="fillAccount('ngoc.do@wincommerce.vn')"
-                                class="p-2.5 rounded-sm bg-purple-50/70 hover:bg-purple-100 dark:bg-purple-950/30 dark:hover:bg-purple-950/50 text-purple-900 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800 flex items-center justify-between text-left transition cursor-pointer">
-                            <div>
-                                <span class="font-bold text-xs">ngoc.do@wincommerce.vn</span>
-                                <div class="text-[11px] opacity-80">Đỗ Thị Bích Ngọc (Nhân Viên Tech Lead / Demo Tự Đánh Giá KPI)</div>
-                            </div>
-                            <i class="fa-solid fa-user-check text-purple-500"></i>
-                        </button>
+
+                        <!-- Persona 2: CHRO -->
                         <button type="button" onclick="fillAccount('phuong.le@wincommerce.vn')"
                                 class="p-2.5 rounded-sm bg-teal-50/70 hover:bg-teal-100 dark:bg-teal-950/30 dark:hover:bg-teal-950/50 text-teal-900 dark:text-teal-300 border border-teal-200/80 dark:border-teal-800 flex items-center justify-between text-left transition cursor-pointer">
                             <div>
-                                <span class="font-bold text-xs">phuong.le@wincommerce.vn</span>
-                                <div class="text-[11px] opacity-80">Lê Mai Phương (Giám Đốc Khối CHRO / Demo Quản Lý Chấm KPI)</div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold text-xs">phuong.le@wincommerce.vn</span>
+                                    <span class="px-1.5 py-0.2 text-[9px] font-extrabold uppercase bg-teal-200 dark:bg-teal-900/60 text-teal-800 dark:text-teal-200 rounded">CHRO &bull; All</span>
+                                </div>
+                                <div class="text-[11px] opacity-90 mt-0.5">Lê Mai Phương &bull; Phê duyệt nhân sự, Chiến lược KPI & Định biên</div>
                             </div>
-                            <i class="fa-solid fa-user-tie text-teal-500"></i>
+                            <i class="fa-solid fa-user-tie text-teal-500 text-sm"></i>
+                        </button>
+
+                        <!-- Persona 3: C&B Specialist -->
+                        <button type="button" onclick="fillAccount('cb@wincommerce.vn')"
+                                class="p-2.5 rounded-sm bg-emerald-50/70 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 text-emerald-900 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 flex items-center justify-between text-left transition cursor-pointer">
+                            <div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold text-xs">cb@wincommerce.vn</span>
+                                    <span class="px-1.5 py-0.2 text-[9px] font-extrabold uppercase bg-emerald-200 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 rounded">C&B &bull; All</span>
+                                </div>
+                                <div class="text-[11px] opacity-90 mt-0.5">Phạm Thu Thảo &bull; Tính bảng lương tháng, BHXH & Quyết toán</div>
+                            </div>
+                            <i class="fa-solid fa-money-bill-wave text-emerald-500 text-sm"></i>
+                        </button>
+
+                        <!-- Persona 4: Branch Manager -->
+                        <button type="button" onclick="fillAccount('mienbac@wincommerce.vn')"
+                                class="p-2.5 rounded-sm bg-sky-50/70 hover:bg-sky-100 dark:bg-sky-950/30 dark:hover:bg-sky-950/50 text-sky-900 dark:text-sky-300 border border-sky-200/80 dark:border-sky-800 flex items-center justify-between text-left transition cursor-pointer">
+                            <div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold text-xs">mienbac@wincommerce.vn</span>
+                                    <span class="px-1.5 py-0.2 text-[9px] font-extrabold uppercase bg-sky-200 dark:bg-sky-900/60 text-sky-800 dark:text-sky-200 rounded">GĐ Chi Nhánh &bull; Branch</span>
+                                </div>
+                                <div class="text-[11px] opacity-90 mt-0.5">Trần Quốc Bảo &bull; Duyệt đề xuất, Chấm KPI Chi nhánh Miền Bắc</div>
+                            </div>
+                            <i class="fa-solid fa-building-user text-sky-500 text-sm"></i>
+                        </button>
+
+                        <!-- Persona 5: Employee -->
+                        <button type="button" onclick="fillAccount('ngoc.do@wincommerce.vn')"
+                                class="p-2.5 rounded-sm bg-purple-50/70 hover:bg-purple-100 dark:bg-purple-950/30 dark:hover:bg-purple-950/50 text-purple-900 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800 flex items-center justify-between text-left transition cursor-pointer">
+                            <div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold text-xs">ngoc.do@wincommerce.vn</span>
+                                    <span class="px-1.5 py-0.2 text-[9px] font-extrabold uppercase bg-purple-200 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200 rounded">Nhân Viên &bull; Self</span>
+                                </div>
+                                <div class="text-[11px] opacity-90 mt-0.5">Đỗ Thị Bích Ngọc &bull; Tự phục vụ: Chấm công, Phiếu lương, Quỹ phép & KPI</div>
+                            </div>
+                            <i class="fa-solid fa-user text-purple-500 text-sm"></i>
                         </button>
                     </div>
                     <div class="mt-3.5 p-2 rounded-sm bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/80 text-center text-[11px] text-slate-500 dark:text-slate-400">

@@ -179,7 +179,12 @@ $getIconClass = function($isActive) {
             $pending_proposals_count = 0;
             if (has_permission('proposals', 'approve')) {
                 try {
-                    $pending_proposals_count = (int)($pdo->query("SELECT COUNT(*) FROM proposals WHERE status = 'pending'")->fetchColumn() ?: 0);
+                    $sb_p_params = [];
+                    $sb_p_scope = scope_where('e', $sb_p_params);
+                    $sb_p_where = $sb_p_scope !== '1=1' ? "AND {$sb_p_scope}" : "";
+                    $sb_stmt = $pdo->prepare("SELECT COUNT(*) FROM proposals p JOIN employees e ON p.employee_id = e.id WHERE p.status = 'pending' {$sb_p_where}");
+                    $sb_stmt->execute($sb_p_params);
+                    $pending_proposals_count = (int)($sb_stmt->fetchColumn() ?: 0);
                 } catch (Exception $e) { $pending_proposals_count = 0; }
             }
             ?>
@@ -277,8 +282,19 @@ $getIconClass = function($isActive) {
         <?php endif; ?>
 
         <div class="sidebar-section-header pt-4 px-3 pb-1.5 text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-            Cá Nhân
+            Cá Nhân (ESS)
         </div>
+
+        <?php if (current_employee()): ?>
+            <?php $is_active = (strpos($current_uri, '/my_payslip.php') !== false); ?>
+            <a href="<?= base_url('modules/payroll/my_payslip.php') ?>" 
+               data-tooltip="Phiếu Lương Cá Nhân & Tra Cứu Thu Nhập"
+               class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition <?= $getActiveClass($is_active) ?>">
+                <i class="fa-solid fa-file-invoice-dollar w-5 text-center text-sm <?= $getIconClass($is_active) ?>"></i>
+                <span class="sidebar-text truncate">Phiếu Lương Của Tôi</span>
+            </a>
+        <?php endif; ?>
+
         <?php $is_active = ($current_page == 'profile.php'); ?>
         <a href="<?= base_url('profile.php') ?>" 
            data-tooltip="Hồ Sơ Cá Nhân & Bảo Mật"

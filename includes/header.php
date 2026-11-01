@@ -103,6 +103,62 @@ $flash = get_flash();
                 <i class="fa-regular fa-sun hidden dark:inline text-sm theme-icon-sun text-amber-400"></i>
             </button>
 
+            <?php if (is_demo_mode()): ?>
+                <!-- Bộ Chuyển Nhanh Persona Trình Diễn (1-Click Switcher) -->
+                <div class="relative" id="personaSwitcherContainer">
+                    <button type="button" id="personaSwitcherBtn" 
+                            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm bg-gradient-to-r from-amber-500/15 to-indigo-500/15 hover:from-amber-500/25 hover:to-indigo-500/25 text-slate-800 dark:text-slate-100 text-xs font-bold border border-amber-300 dark:border-amber-700/80 transition shadow-2xs cursor-pointer"
+                            title="Chuyển nhanh vai trò trình diễn (Demo Persona)">
+                        <i class="fa-solid fa-masks-theater text-amber-600 dark:text-amber-400 text-sm"></i>
+                        <span class="hidden md:inline font-extrabold text-[11px] uppercase tracking-wide text-amber-800 dark:text-amber-300">Persona</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-500"></i>
+                    </button>
+
+                    <div id="personaSwitcherDropdown" class="hidden absolute right-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-sm border border-slate-300 dark:border-slate-700 py-1.5 z-50 shadow-xl animate-scale-up">
+                        <div class="px-3 py-1.5 border-b border-slate-200 dark:border-slate-700 text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center justify-between">
+                            <span>5 Persona Trình Diễn</span>
+                            <span class="text-amber-600 dark:text-amber-400"><i class="fa-solid fa-bolt"></i> 1-Click</span>
+                        </div>
+                        <?php
+                        $personas_list = [
+                            ['email' => 'admin@wincommerce.vn', 'name' => 'Nguyễn Hoàng Nam', 'role' => 'CEO / Super Admin', 'scope' => 'ALL', 'badge_color' => 'amber', 'icon' => 'fa-crown'],
+                            ['email' => 'phuong.le@wincommerce.vn', 'name' => 'Lê Mai Phương', 'role' => 'CHRO (HR Director)', 'scope' => 'ALL', 'badge_color' => 'teal', 'icon' => 'fa-user-tie'],
+                            ['email' => 'cb@wincommerce.vn', 'name' => 'Phạm Thu Thảo', 'role' => 'Chuyên Viên C&B Chuỗi', 'scope' => 'ALL', 'badge_color' => 'emerald', 'icon' => 'fa-money-bill-wave'],
+                            ['email' => 'mienbac@wincommerce.vn', 'name' => 'Trần Quốc Bảo', 'role' => 'GĐ Chi Nhánh Miền Bắc', 'scope' => 'BRANCH', 'badge_color' => 'sky', 'icon' => 'fa-building-user'],
+                            ['email' => 'ngoc.do@wincommerce.vn', 'name' => 'Đỗ Thị Bích Ngọc', 'role' => 'Nhân Viên Tech Lead (ESS)', 'scope' => 'SELF', 'badge_color' => 'purple', 'icon' => 'fa-user'],
+                        ];
+                        $curr_user_email = $_SESSION['user']['email'] ?? '';
+                        $curr_user_name = $_SESSION['user']['username'] ?? '';
+                        $current_redirect = urlencode($_SERVER['REQUEST_URI']);
+                        ?>
+                        <div class="divide-y divide-slate-100 dark:divide-slate-700/60 max-h-80 overflow-y-auto">
+                            <?php foreach ($personas_list as $p): 
+                                $is_current = ($curr_user_email === $p['email'] || $curr_user_name === $p['email']);
+                            ?>
+                                <a href="<?= base_url('demo_switch.php?account=' . urlencode($p['email']) . '&redirect=' . $current_redirect) ?>" 
+                                   class="block px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700/70 transition <?= $is_current ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-l-2 border-indigo-600' : '' ?>">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                            <i class="fa-solid <?= $p['icon'] ?> text-[11px] text-slate-500"></i>
+                                            <?= e($p['name']) ?>
+                                        </span>
+                                        <span class="text-[9px] px-1 py-0.2 rounded font-extrabold uppercase font-mono bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300"><?= $p['scope'] ?></span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center justify-between">
+                                        <span><?= e($p['role']) ?></span>
+                                        <?php if ($is_current): ?>
+                                            <span class="text-indigo-600 dark:text-indigo-400 font-bold text-[10px] flex items-center gap-0.5">
+                                                <i class="fa-solid fa-check"></i> Đang xem
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <!-- Khối thông tin User & Avatar Dropdown -->
             <div class="relative" id="userMenuDropdownContainer">
                 <button type="button" id="userMenuBtn" class="flex items-center gap-2.5 p-1.5 rounded-sm hover:bg-slate-100 dark:hover:bg-slate-700/60 transition focus:outline-none border border-transparent hover:border-slate-200 dark:hover:border-slate-600">
@@ -120,6 +176,18 @@ $flash = get_flash();
                                     <i class="fa-solid fa-user-shield text-[9px] mr-1 text-indigo-600 dark:text-indigo-400"></i> <?= e($user['role_name'] ?? 'Admin Phân Hệ') ?>
                                 </span>
                             <?php endif; ?>
+                            <?php 
+                            $curr_scope = data_scope();
+                            $scope_badge = [
+                                'all' => ['bg' => 'bg-emerald-100 dark:bg-emerald-900/60', 'text' => 'text-emerald-800 dark:text-emerald-200', 'border' => 'border-emerald-300 dark:border-emerald-700', 'label' => 'ALL'],
+                                'branch' => ['bg' => 'bg-sky-100 dark:bg-sky-900/60', 'text' => 'text-sky-800 dark:text-sky-200', 'border' => 'border-sky-300 dark:border-sky-700', 'label' => 'BRANCH'],
+                                'department' => ['bg' => 'bg-blue-100 dark:bg-blue-900/60', 'text' => 'text-blue-800 dark:text-blue-200', 'border' => 'border-blue-300 dark:border-blue-700', 'label' => 'DEPT'],
+                                'self' => ['bg' => 'bg-purple-100 dark:bg-purple-900/60', 'text' => 'text-purple-800 dark:text-purple-200', 'border' => 'border-purple-300 dark:border-purple-700', 'label' => 'SELF']
+                            ][$curr_scope] ?? ['bg' => 'bg-slate-100 dark:bg-slate-700', 'text' => 'text-slate-800 dark:text-slate-200', 'border' => 'border-slate-300', 'label' => strtoupper($curr_scope)];
+                            ?>
+                            <span class="inline-flex items-center px-1 py-0.2 rounded-sm text-[9px] font-extrabold uppercase font-mono <?= $scope_badge['bg'] ?> <?= $scope_badge['text'] ?> border <?= $scope_badge['border'] ?>" title="Phạm vi dữ liệu: <?= $curr_scope ?>">
+                                <?= $scope_badge['label'] ?>
+                            </span>
                         </div>
                     </div>
 

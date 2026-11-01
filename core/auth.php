@@ -4,6 +4,7 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/brand.php';
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/scope.php';
 
 /**
  * Kiểm tra xem người dùng đã đăng nhập chưa
@@ -166,6 +167,14 @@ function reload_user_permissions($pdo, $role_id) {
     if (!$role_id) return;
 
     try {
+        // Cập nhật lại data_scope cho user
+        $scopeStmt = $pdo->prepare("SELECT data_scope FROM roles WHERE id = ?");
+        $scopeStmt->execute([$role_id]);
+        $scope = $scopeStmt->fetchColumn();
+        if ($scope && isset($_SESSION['user'])) {
+            $_SESSION['user']['data_scope'] = $scope;
+        }
+
         $stmt = $pdo->prepare("
             SELECT p.module, p.action 
             FROM role_permissions rp

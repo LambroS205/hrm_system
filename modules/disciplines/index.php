@@ -12,17 +12,40 @@ $filter_stat = trim($_GET['status'] ?? '');
 $filter_dept = (int)($_GET['department_id'] ?? 0);
 $current_view = trim($_GET['view'] ?? 'kanban');
 
-// 2. Thống kê tổng quan
-$stats = [
-    'total_count'    => (int)$pdo->query("SELECT COUNT(*) FROM disciplines")->fetchColumn(),
-    'total_penalty'  => (float)$pdo->query("SELECT SUM(penalty_amount) FROM disciplines WHERE status IN ('approved', 'executed')")->fetchColumn(),
-    'pending_count'  => (int)$pdo->query("SELECT COUNT(*) FROM disciplines WHERE status = 'pending'")->fetchColumn(),
-    'executed_count' => (int)$pdo->query("SELECT COUNT(*) FROM disciplines WHERE status = 'executed'")->fetchColumn(),
-];
+// 2. Thống kê tổng quan theo Data Scope
+$disc_scope_where = "1=1";
+$disc_scope_params = [];
+if (data_scope() === 'branch' && current_user_branch_id()) {
+    $disc_scope_where = "e.branch_id = ?";
+    $disc_scope_params[] = current_user_branch_id();
+} elseif (data_scope() === 'self' && current_employee()) {
+    $disc_scope_where = "e.id = ?";
+    $disc_scope_params[] = current_employee()['id'];
+}
+$disc_stat_stmt = $pdo->prepare("
+    SELECT 
+        COUNT(*) as total_count,
+        SUM(CASE WHEN d.status IN ('approved', 'executed') THEN d.penalty_amount ELSE 0 END) as total_penalty,
+        COUNT(CASE WHEN d.status = 'pending' THEN 1 END) as pending_count,
+        COUNT(CASE WHEN d.status = 'executed' THEN 1 END) as executed_count
+    FROM disciplines d
+    JOIN employees e ON d.employee_id = e.id
+    WHERE {$disc_scope_where}
+");
+$disc_stat_stmt->execute($disc_scope_params);
+$stats = $disc_stat_stmt->fetch();
 
 // 3. Xây dựng truy vấn lọc
 $where_clauses = ['1=1'];
 $params = [];
+
+if (data_scope() === 'branch' && current_user_branch_id()) {
+    $where_clauses[] = "e.branch_id = :scope_branch";
+    $params[':scope_branch'] = current_user_branch_id();
+} elseif (data_scope() === 'self' && current_employee()) {
+    $where_clauses[] = "e.id = :scope_emp";
+    $params[':scope_emp'] = current_employee()['id'];
+}
 
 if (!empty($search)) {
     $where_clauses[] = "(d.discipline_code LIKE :search OR d.title LIKE :search OR e.fullname LIKE :search OR e.employee_code LIKE :search)";

@@ -56,6 +56,12 @@ $offset = ($page - 1) * $limit;
 $where_clauses = ['1=1'];
 $params = [];
 
+// Áp dụng giới hạn phạm vi dữ liệu (Data Scope)
+$scope_sql = scope_where('e', $params);
+if ($scope_sql !== '1=1') {
+    $where_clauses[] = $scope_sql;
+}
+
 if (!empty($keyword)) {
     $where_clauses[] = "(e.fullname LIKE ? OR e.employee_code LIKE ? OR e.email LIKE ? OR e.phone LIKE ?)";
     $search_param = "%{$keyword}%";
@@ -107,14 +113,35 @@ $stmt->execute($params);
 $employees = $stmt->fetchAll();
 
 // Lấy danh sách chi nhánh & phòng ban để làm dropdown bộ lọc
-$branches = $pdo->query("SELECT id, name, code FROM branches ORDER BY is_headquarter DESC, name ASC")->fetchAll();
+$branches_query = (data_scope() === 'branch' && current_user_branch_id())
+    ? "SELECT id, name, code FROM branches WHERE id = " . (int)current_user_branch_id()
+    : "SELECT id, name, code FROM branches ORDER BY is_headquarter DESC, name ASC";
+$branches = $pdo->query($branches_query)->fetchAll();
 $departments = $pdo->query("SELECT id, name, code, branch_id FROM departments ORDER BY name ASC")->fetchAll();
 
 // Thống kê nhanh cho các tab số liệu
-$total_all = $pdo->query("SELECT COUNT(*) FROM employees")->fetchColumn() ?: 0;
-$total_official = $pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status = 'official'")->fetchColumn() ?: 0;
-$total_probation = $pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status = 'probation'")->fetchColumn() ?: 0;
-$total_resigned = $pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status = 'resigned'")->fetchColumn() ?: 0;
+$stat_params = [];
+$stat_scope = scope_where('', $stat_params);
+$stat_where = $stat_scope !== '1=1' ? "WHERE {$stat_scope}" : "";
+$stat_stmt = $pdo->prepare("
+    SELECT 
+        COUNT(*) as total_all,
+        COUNT(CASE WHEN employment_status = 'official' THEN 1 END) as total_official,
+        COUNT(CASE WHEN employment_status = 'probation' THEN 1 END) as total_probation,
+        COUNT(CASE WHEN employment_status = 'resigned' THEN 1 END) as total_resigned
+    FROM employees
+    {$stat_where}
+");
+$stat_stmt->execute($stat_params);
+$emp_counts = $stat_stmt->fetch();
+$total_all = (int)($emp_counts['total_all'] ?? 0);
+$total_official = (int)($emp_counts['total_official'] ?? 0);
+$total_probation = (int)($emp_counts['total_probation'] ?? 0);
+$total_resigned = (int)($emp_counts['total_resigned'] ?? 0);
+// Old queries bypassed: if (false) $total_all = 0;
+// Scoped counts already computed above
+// Scoped counts computed above
+// Scoped counts computed above
 
 require_once __DIR__ . '/../../includes/header.php';
 ?>
