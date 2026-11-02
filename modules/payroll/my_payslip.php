@@ -57,7 +57,7 @@ foreach ($payslips as $ps) {
     $ytd_gross += (float)($ps['gross_salary'] ?: $ps['final_salary']);
     $ytd_insurance += (float)($ps['bhxh_employee'] + $ps['bhyt_employee'] + $ps['bhtn_employee']);
     $ytd_pit += (float)$ps['pit_amount'];
-    $ytd_work_days += (float)$ps['actual_work_days'];
+    $ytd_work_days += (float)($ps['work_days'] ?? 0);
 }
 
 require_once __DIR__ . '/../../includes/header.php';
@@ -183,10 +183,11 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <?php endif; ?>
                                 </div>
                                 <div class="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-x-4 gap-y-1 font-medium">
-                                    <span>Công chuẩn: <b><?= (float)$item['standard_work_days'] ?></b></span>
-                                    <span>Công thực tế: <b class="text-indigo-600 dark:text-indigo-400"><?= (float)$item['actual_work_days'] ?></b></span>
-                                    <?php if ((float)$item['overtime_hours'] > 0): ?>
-                                        <span>Tăng ca: <b class="text-violet-600 font-mono"><?= (float)$item['overtime_hours'] ?>h</b></span>
+                                    <span>Công chuẩn: <b><?= (float)($item['standard_days'] ?: 22) ?></b></span>
+                                    <span>Công thực tế: <b class="text-indigo-600 dark:text-indigo-400"><?= (float)($item['work_days'] ?? 0) ?></b></span>
+                                    <?php $item_ot = (float)($item['ot_weekday_hours'] ?? 0) + (float)($item['ot_weekend_hours'] ?? 0) + (float)($item['ot_holiday_hours'] ?? 0); ?>
+                                    <?php if ($item_ot > 0): ?>
+                                        <span>Tăng ca: <b class="text-violet-600 font-mono"><?= $item_ot ?>h</b></span>
                                     <?php endif; ?>
                                     <span>Tài khoản nhận: <b class="font-mono text-slate-700 dark:text-slate-200"><?= e($item['bank_account'] ?: 'Chưa cập nhật') ?></b></span>
                                 </div>
@@ -204,7 +205,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 </div>
                             </div>
 
-                            <button type="button" onclick='viewPayslip(<?= json_encode($item) ?>)'
+                            <button type="button" onclick="viewPayslip(<?= htmlspecialchars(json_encode($item), ENT_QUOTES, 'UTF-8') ?>)"
                                     class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm shadow-indigo-200 dark:shadow-none flex items-center gap-2 transition cursor-pointer flex-shrink-0">
                                 <i class="fa-solid fa-receipt"></i>
                                 <span>Xem Chi Tiết & In</span>
@@ -359,29 +360,44 @@ function viewPayslip(item) {
     document.getElementById('slipDept').innerText = item.department_name || 'N/A';
     document.getElementById('slipPos').innerText = item.position_name || 'N/A';
     document.getElementById('slipContract').innerText = (item.employment_status === 'official' ? 'Hợp đồng lao động chính thức' : (item.employment_status === 'probation' ? 'Hợp đồng thử việc' : 'Đã nghỉ việc'));
-    document.getElementById('slipDependents').innerText = (item.dependent_count || 0) + ' người';
+    document.getElementById('slipDependents').innerText = (item.dependents_count || item.dependent_count || 0) + ' người';
 
     // Thu nhập
-    document.getElementById('slipBaseSalary').innerText = formatMoney(item.base_salary);
-    document.getElementById('slipWorkDays').innerText = item.actual_work_days + ' / ' + item.standard_work_days + ' ngày';
-    document.getElementById('slipTimeSalary').innerText = formatMoney(item.time_based_salary || item.base_salary);
-    document.getElementById('slipAllowance').innerText = '+ ' + formatMoney(item.allowances || 0);
-    document.getElementById('slipOtPay').innerText = '+ ' + formatMoney(item.ot_pay || 0);
-    document.getElementById('slipBonus').innerText = '+ ' + formatMoney(item.bonus || 0);
-    document.getElementById('slipGrossSalary').innerText = formatMoney(item.gross_salary || item.final_salary);
+    const baseSal = parseFloat(item.basic_salary || item.base_salary || 0);
+    const workDays = parseFloat(item.work_days ?? item.actual_work_days ?? 0);
+    const stdDays = parseFloat(item.standard_days || item.standard_work_days || 22);
+    const timeSal = parseFloat(item.time_salary || item.time_based_salary || baseSal);
+    const allowances = parseFloat(item.allowance || 0) + parseFloat(item.contract_allowance || 0) + parseFloat(item.allowances || 0);
+    const otPay = parseFloat(item.ot_pay || 0);
+    const bonus = parseFloat(item.bonus || 0);
+    const grossSal = parseFloat(item.gross_salary || (timeSal + allowances + otPay + bonus));
+
+    document.getElementById('slipBaseSalary').innerText = formatMoney(baseSal);
+    document.getElementById('slipWorkDays').innerText = workDays + ' / ' + stdDays + ' ngày';
+    document.getElementById('slipTimeSalary').innerText = formatMoney(timeSal);
+    document.getElementById('slipAllowance').innerText = '+ ' + formatMoney(allowances);
+    document.getElementById('slipOtPay').innerText = '+ ' + formatMoney(otPay);
+    document.getElementById('slipBonus').innerText = '+ ' + formatMoney(bonus);
+    document.getElementById('slipGrossSalary').innerText = formatMoney(grossSal);
 
     // Khấu trừ
-    document.getElementById('slipBhxh').innerText = '- ' + formatMoney(item.bhxh_employee || 0);
-    document.getElementById('slipBhyt').innerText = '- ' + formatMoney(item.bhyt_employee || 0);
-    document.getElementById('slipBhtn').innerText = '- ' + formatMoney(item.bhtn_employee || 0);
-    document.getElementById('slipDiscipline').innerText = '- ' + formatMoney(item.discipline_deduction || 0);
-    document.getElementById('slipPit').innerText = '- ' + formatMoney(item.pit_amount || 0);
+    const bhxh = parseFloat(item.bhxh_employee || 0);
+    const bhyt = parseFloat(item.bhyt_employee || 0);
+    const bhtn = parseFloat(item.bhtn_employee || 0);
+    const pit = parseFloat(item.pit_amount || 0);
+    const otherDeduct = parseFloat(item.deduction || 0) + parseFloat(item.compensation_deduction || 0) + parseFloat(item.discipline_deduction || 0);
 
-    const totalDeduct = (parseFloat(item.bhxh_employee || 0) + parseFloat(item.bhyt_employee || 0) + parseFloat(item.bhtn_employee || 0) + parseFloat(item.pit_amount || 0) + parseFloat(item.discipline_deduction || 0));
+    document.getElementById('slipBhxh').innerText = '- ' + formatMoney(bhxh);
+    document.getElementById('slipBhyt').innerText = '- ' + formatMoney(bhyt);
+    document.getElementById('slipBhtn').innerText = '- ' + formatMoney(bhtn);
+    document.getElementById('slipDiscipline').innerText = '- ' + formatMoney(otherDeduct);
+    document.getElementById('slipPit').innerText = '- ' + formatMoney(pit);
+
+    const totalDeduct = bhxh + bhyt + bhtn + pit + otherDeduct;
     document.getElementById('slipTotalDeduction').innerText = '- ' + formatMoney(totalDeduct);
 
     // Thực lĩnh
-    document.getElementById('slipFinalSalary').innerText = formatMoney(item.final_salary);
+    document.getElementById('slipFinalSalary').innerText = formatMoney(item.final_salary || (grossSal - totalDeduct));
 
     document.getElementById('payslipModal').classList.remove('hidden');
 }

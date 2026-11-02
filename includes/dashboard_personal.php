@@ -208,7 +208,7 @@ $type_map = [
                     <span class="text-xs font-normal text-slate-400">/100</span>
                 </div>
                 <div class="text-xs text-slate-600 dark:text-slate-300 font-semibold mt-1">
-                    <?= $my_latest_kpi ? ('Xếp loại: ' . e($my_latest_kpi['grade'] ?: 'Đang chấm')) : 'Chưa có kỳ đánh giá' ?>
+                    <?= $my_latest_kpi ? ('Xếp loại: ' . e($my_latest_kpi['rating_grade'] ?? $my_latest_kpi['rating'] ?? 'Đang chấm')) : 'Chưa có kỳ đánh giá' ?>
                 </div>
             </div>
             <div class="w-12 h-12 rounded-sm bg-violet-600 text-white flex items-center justify-center text-lg">
@@ -342,7 +342,7 @@ $type_map = [
                         <div class="p-3.5 rounded-sm bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800">
                             <div class="flex items-center justify-between">
                                 <span class="font-extrabold text-xs text-slate-900 dark:text-white"><?= e($h['name']) ?></span>
-                                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200"><?= (float)$h['days_off'] ?> ngày nghỉ</span>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200"><?= !empty($h['days_off']) ? ((float)$h['days_off'] . ' ngày nghỉ') : 'Nghỉ lễ' ?></span>
                             </div>
                             <div class="text-[11px] text-slate-600 dark:text-slate-300 mt-1 flex items-center gap-1.5 font-medium">
                                 <i class="fa-regular fa-calendar text-indigo-500"></i>

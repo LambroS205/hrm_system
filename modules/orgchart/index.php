@@ -70,10 +70,12 @@ $emp_stmt = $pdo->query("
 ");
 $employees_all = $emp_stmt->fetchAll();
 
-// Gom nhóm nhân sự theo department_id
+// Gom nhóm nhân sự theo department_id và kết hợp chi nhánh
 $employees_by_dept = [];
+$employees_by_branch_dept = [];
 foreach ($employees_all as $emp) {
     $employees_by_dept[$emp['department_id']][] = $emp;
+    $employees_by_branch_dept[$emp['branch_id'] . '_' . $emp['department_id']][] = $emp;
 }
 
 // Danh sách tất cả chi nhánh để làm dropdown bộ lọc
@@ -188,22 +190,23 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <?php if ($view_mode === 'tree'): ?>
         <!-- ================= CHẾ ĐỘ 1: CÂY SƠ ĐỒ TỔ CHỨC HIỆN ĐẠI ================= -->
+        <?php $tree_min_w = (count($branches) > 2) ? (count($branches) * 350) . 'px' : '100% '; ?>
         <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 overflow-x-auto min-h-[600px] select-none">
             
-            <div class="min-w-[900px] flex flex-col items-center py-4 space-y-8">
+            <div class="flex flex-col items-center py-4 space-y-8" style="min-width: <?= $tree_min_w ?>;">
 
                 <!-- 1. Node Đỉnh: BAN LÃNH ĐẠO / CƠ QUAN TRUNG ƯƠNG -->
                 <div class="flex flex-col items-center">
-                    <div class="bg-slate-900 text-white px-8 py-5 rounded-sm border border-slate-800 flex items-center gap-4 cursor-pointer hover:border-amber-400 transition duration-150"
-                         onclick="openDetailDrawer('agency', 0, 'CƠ QUAN TRUNG ƯƠNG', 'Trụ sở điều hành cao nhất', '<?= $total_employees_count ?> cán bộ')">
-                        <div class="w-12 h-12 rounded-sm bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-xl">
+                    <div class="bg-slate-900 text-white px-8 py-5 rounded-2xl border border-slate-800 flex items-center gap-4 cursor-pointer hover:border-amber-400 transition duration-150 shadow-xl"
+                         onclick="openDetailDrawer('agency', 0, 'HỘI ĐỒNG QUẢN TRỊ & BAN TỔNG GIÁM ĐỐC', 'Cơ quan đầu não quản trị và hoạch định chiến lược WinCommerce toàn quốc', '<?= $total_employees_count ?> cán bộ nhân viên')">
+                        <div class="w-12 h-12 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-xl shadow-md">
                             <i class="fa-solid fa-landmark"></i>
                         </div>
                         <div>
                             <div class="text-[10px] uppercase tracking-widest text-amber-300 font-bold">Ban Lãnh Đạo & Điều Hành Cao Nhất</div>
-                            <div class="text-lg font-black tracking-tight text-white">TRUNG TÂM ĐIỀU HÀNH CƠ QUAN</div>
+                            <div class="text-lg font-black tracking-tight text-white"><?= e(brand('company_short')) ?> (MASAN GROUP)</div>
                             <div class="text-xs text-slate-300 mt-0.5">
-                                <?= $total_branches_count ?> Chi Nhánh Toàn Quốc • <?= $total_employees_count ?> Cán Bộ Công Chức
+                                <?= $total_branches_count ?> Chi Nhánh & HUB Vận Hành • <?= $total_employees_count ?> Cán Bộ Nhân Viên (<?= round(($total_employees_count / 175) * 100) ?>% định biên)
                             </div>
                         </div>
                     </div>
@@ -214,9 +217,9 @@ require_once __DIR__ . '/../../includes/header.php';
 
                 <!-- 2. Tầng Chi Nhánh: Ngang nối nhánh -->
                 <div class="w-full relative">
-                    <!-- Đường ngang kết nối các chi nhánh -->
+                    <!-- Đường ngang kết nối các chi nhánh (bắt đầu và kết thúc chuẩn tâm thẻ) -->
                     <?php if (count($branches) > 1): ?>
-                        <div class="absolute top-0 left-16 right-16 h-0.5 bg-indigo-200 -z-0"></div>
+                        <div class="absolute top-0 left-40 right-40 h-0.5 bg-indigo-300 -z-0"></div>
                     <?php endif; ?>
 
                     <div class="flex items-start justify-center gap-8 relative z-10">
@@ -225,10 +228,10 @@ require_once __DIR__ . '/../../includes/header.php';
                                 $b_depts = $departments_by_branch[$b['id']] ?? [];
                                 $fill_percent = $b['target_headcount'] > 0 ? round(($b['total_employees'] / $b['target_headcount']) * 100) : 0;
                             ?>
-                            <div class="flex flex-col items-center flex-1 max-w-sm">
+                            <div class="flex flex-col items-center w-80 flex-shrink-0">
                                 
                                 <!-- Đường kẻ đứng nối từ đường ngang xuống thẻ chi nhánh -->
-                                <div class="w-0.5 h-6 bg-indigo-200"></div>
+                                <div class="w-0.5 h-6 bg-indigo-300"></div>
 
                                 <!-- Thẻ Chi Nhánh (Branch Node) -->
                                 <div class="w-full bg-white rounded-2xl border-2 <?= $b['is_headquarter'] ? 'border-indigo-600 shadow-lg shadow-indigo-100' : 'border-slate-300 shadow-sm' ?> p-4 hover:border-indigo-400 hover:shadow-md transition cursor-pointer"
@@ -276,7 +279,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <!-- Danh Sách Các Phòng Ban Trực Thuộc Chi Nhánh -->
                                     <div class="w-full space-y-3">
                                         <?php foreach ($b_depts as $dept): ?>
-                                            <?php $d_emps = $employees_by_dept[$dept['id']] ?? []; ?>
+                                            <?php $d_emps = $employees_by_branch_dept[$b['id'] . '_' . $dept['id']] ?? $employees_by_dept[$dept['id']] ?? []; ?>
                                             
                                             <div class="w-full bg-slate-50 hover:bg-white rounded-xl border border-slate-200 p-3 hover:border-indigo-300 hover:shadow-sm transition cursor-pointer"
                                                  onclick="openDeptDrawer(<?= htmlspecialchars(json_encode($dept), ENT_QUOTES, 'UTF-8') ?>, <?= htmlspecialchars(json_encode($d_emps), ENT_QUOTES, 'UTF-8') ?>)">
@@ -346,7 +349,7 @@ require_once __DIR__ . '/../../includes/header.php';
                         <?php endif; ?>
                         
                         <?php foreach ($b_depts as $dept): ?>
-                            <?php $d_emps = $employees_by_dept[$dept['id']] ?? []; ?>
+                            <?php $d_emps = $employees_by_branch_dept[$b['id'] . '_' . $dept['id']] ?? $employees_by_dept[$dept['id']] ?? []; ?>
                             <div class="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-3 hover:border-indigo-300 transition">
                                 <div class="flex items-start justify-between gap-2">
                                     <div>
