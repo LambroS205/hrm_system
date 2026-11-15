@@ -1,5 +1,6 @@
 <?php
 // tests/PayrollCalculatorTest.php - Bộ kiểm thử tự động thuật toán tính lương theo luật Việt Nam
+if (PHP_SAPI !== 'cli') { http_response_code(403); exit('CLI only.'); }
 
 require_once __DIR__ . '/../config/payroll_rules.php';
 require_once __DIR__ . '/../core/PayrollCalculator.php';

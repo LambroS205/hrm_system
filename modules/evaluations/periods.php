@@ -131,13 +131,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action_type']
             $general_template_id = $templates[0]['id'];
         }
 
-        // Đếm mã phiếu hiện tại của kỳ
+        // Đếm mã phiếu hiện tại của kỳ (dùng MAX số thứ tự để tránh trùng khi mã cuối không theo thứ tự)
         $code_prefix = 'DG-' . $period['year'] . ($period['quarter'] ? '-Q' . $period['quarter'] : '');
-        $last_code = $pdo->query("SELECT evaluation_code FROM evaluations WHERE evaluation_code LIKE '{$code_prefix}-%' ORDER BY id DESC LIMIT 1")->fetchColumn();
-        $curr_seq = 0;
-        if ($last_code && preg_match('/-(\d+)$/', $last_code, $matches)) {
-            $curr_seq = (int)$matches[1];
-        }
+        $seqStmt = $pdo->prepare("SELECT MAX(CAST(SUBSTRING_INDEX(evaluation_code, '-', -1) AS UNSIGNED)) FROM evaluations WHERE evaluation_code LIKE ?");
+        $seqStmt->execute([$code_prefix . '-%']);
+        $curr_seq = (int)($seqStmt->fetchColumn() ?: 0);
 
         $created_count = 0;
         $skipped_count = 0;

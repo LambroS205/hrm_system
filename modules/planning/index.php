@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
                 $pdo->prepare("
                     UPDATE branch_workforce_requests 
                     SET status = 'incorporated', linked_plan_id = ?, reviewed_by = ?, reviewed_at = NOW(),
-                        review_notes = CONCAT(COALESCE(review_notes, ''), ' [Đã tích hợp vào Kế hoạch #', ?)
+                        review_notes = CONCAT(COALESCE(review_notes, ''), ' [Đã tích hợp vào Kế hoạch #', ?, ']')
                     WHERE id = ?
                 ")->execute([$target_plan_id, $user['id'], $target_plan_id, $request_id]);
 
@@ -142,9 +142,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
 
     // 5. Xóa đề xuất
     if ($action_type === 'delete_request') {
+        require_permission('planning', 'delete');
         $req_id = (int)($_POST['request_id'] ?? 0);
         if ($req_id > 0) {
-            $pdo->prepare("DELETE FROM branch_workforce_requests WHERE id = ? AND status IN ('pending', 'rejected')")->execute([$req_id]);
+            if (is_branch_scope() && current_user_branch_id()) {
+                $delReq = $pdo->prepare("DELETE FROM branch_workforce_requests WHERE id = ? AND branch_id = ? AND status IN ('pending', 'rejected')");
+                $delReq->execute([$req_id, current_user_branch_id()]);
+            } elseif (is_dept_scope() && current_user_dept_id()) {
+                $delReq = $pdo->prepare("DELETE FROM branch_workforce_requests WHERE id = ? AND department_id = ? AND status IN ('pending', 'rejected')");
+                $delReq->execute([$req_id, current_user_dept_id()]);
+            } else {
+                $delReq = $pdo->prepare("DELETE FROM branch_workforce_requests WHERE id = ? AND status IN ('pending', 'rejected')");
+                $delReq->execute([$req_id]);
+            }
             set_flash('success', 'Đã xóa đề xuất.');
             redirect('modules/planning/index.php?tab=requests');
         }

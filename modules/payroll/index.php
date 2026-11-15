@@ -23,8 +23,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         $calc_year  = (int)$_POST['calc_year'];
 
         try {
+            $onlyEmpIds = null;
+            if (is_branch_scope() && current_user_branch_id()) {
+                $bEmpStmt = $pdo->prepare("SELECT id FROM employees WHERE branch_id = ?");
+                $bEmpStmt->execute([current_user_branch_id()]);
+                $onlyEmpIds = $bEmpStmt->fetchAll(PDO::FETCH_COLUMN) ?: [0];
+            } elseif (is_self_scope()) {
+                throw new Exception('Bạn không có quyền tính bảng lương.');
+            }
+
             $pdo->beginTransaction();
-            $res = PayrollService::calculateMonth($pdo, $calc_month, $calc_year, null, $current_user['id']);
+            $res = PayrollService::calculateMonth($pdo, $calc_month, $calc_year, $onlyEmpIds, $current_user['id']);
             $pdo->commit();
 
             $msg = "Đã tính toán thành công bảng lương cho {$res['calculated_count']} nhân sự Tháng {$calc_month}/{$calc_year} (Công chuẩn: {$res['standard_days']} ngày, Lễ: {$res['holiday_count']} ngày).";
@@ -42,6 +51,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
     // 2. Chốt & Khóa bảng lương
     if ($action_type === 'lock_monthly_payroll') {
         require_permission('payroll', 'edit');
+        if (!is_all_scope()) {
+            set_flash('danger', 'Chỉ nhân sự C&B/Quản trị toàn hệ thống mới có quyền chốt & khóa bảng lương tháng.');
+            redirect("modules/payroll/index.php?month={$selected_month}&year={$selected_year}");
+        }
         $l_month = (int)$_POST['month'];
         $l_year  = (int)$_POST['year'];
 
@@ -57,6 +70,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
     // 3. Mở khóa bảng lương
     if ($action_type === 'unlock_monthly_payroll') {
         require_permission('payroll', 'edit');
+        if (!is_all_scope()) {
+            set_flash('danger', 'Chỉ nhân sự C&B/Quản trị toàn hệ thống mới có quyền mở khóa bảng lương tháng.');
+            redirect("modules/payroll/index.php?month={$selected_month}&year={$selected_year}");
+        }
         $u_month = (int)$_POST['month'];
         $u_year  = (int)$_POST['year'];
 
@@ -83,6 +100,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
 
         if ($payroll_id > 0) {
             try {
+                $ownerStmt = $pdo->prepare("SELECT employee_id FROM payrolls WHERE id = ?");
+                $ownerStmt->execute([$payroll_id]);
+                $ownerEmpId = (int)$ownerStmt->fetchColumn();
+                if ($ownerEmpId > 0) {
+                    require_employee_access($ownerEmpId);
+                }
+
                 $pdo->beginTransaction();
                 PayrollService::recalculateOne($pdo, $payroll_id, [
                     'work_days' => $work_days,
@@ -106,6 +130,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         $status = $_POST['status'] === 'paid' ? 'paid' : 'pending';
 
         if ($payroll_id > 0) {
+            $ownerStmt = $pdo->prepare("SELECT employee_id FROM payrolls WHERE id = ?");
+            $ownerStmt->execute([$payroll_id]);
+            $ownerEmpId = (int)$ownerStmt->fetchColumn();
+            if ($ownerEmpId > 0) {
+                require_employee_access($ownerEmpId);
+            }
+
             $upStmt = $pdo->prepare("
                 UPDATE payrolls 
                 SET payment_status = ?,
@@ -121,6 +152,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
     // 6. Xóa bảng lương nháp của tháng
     if ($action_type === 'delete_monthly_payroll') {
         require_permission('payroll', 'delete');
+        if (!is_all_scope()) {
+            set_flash('danger', 'Chỉ nhân sự C&B/Quản trị toàn hệ thống mới có quyền xóa bảng lương tháng.');
+            redirect("modules/payroll/index.php?month={$selected_month}&year={$selected_year}");
+        }
         $del_m = (int)$_POST['month'];
         $del_y = (int)$_POST['year'];
 
@@ -471,21 +506,21 @@ require_once __DIR__ . '/../../includes/header.php';
     </div>
 
     <!-- Bảng Danh Sách Lương Chi Tiết -->
-    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-        <div class="overflow-x-auto table-sticky-container">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs">
+        <div class="table-wrapper-scientific border-0" tabindex="0" role="region" aria-label="Bảng Danh Sách Lương Chi Tiết Tháng <?= $selected_month ?>/<?= $selected_year ?>">
             <table class="w-full min-w-[1280px] text-left text-sm table-enterprise">
                 <thead>
-                    <tr class="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider font-semibold">
-                        <th class="py-3.5 px-6 sticky-col-code bg-slate-50 dark:bg-slate-900/90 shadow-xs">Cán Bộ / Nhân Viên</th>
-                        <th class="py-3.5 px-4 text-right">Lương Cơ Bản</th>
-                        <th class="py-3.5 px-4 text-center">Ngày Công</th>
-                        <th class="py-3.5 px-4 text-right">GROSS</th>
-                        <th class="py-3.5 px-4 text-right text-indigo-700 dark:text-indigo-400">BH NLĐ (10.5%)</th>
-                        <th class="py-3.5 px-4 text-right text-rose-600 dark:text-rose-400">Thuế TNCN</th>
-                        <th class="py-3.5 px-4 text-right">Khấu Trừ Khác</th>
-                        <th class="py-3.5 px-6 text-right bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300">Thực Lĩnh NET</th>
-                        <th class="py-3.5 px-4 text-center">Trạng Thái</th>
-                        <th class="py-3.5 px-6 text-right">Thao Tác</th>
+                    <tr class="text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider font-bold">
+                        <th class="py-3.5 px-6 sticky-col min-w-[250px] whitespace-nowrap">Cán Bộ / Nhân Viên</th>
+                        <th class="py-3.5 px-4 text-right whitespace-nowrap">Lương Cơ Bản</th>
+                        <th class="py-3.5 px-4 text-center whitespace-nowrap">Ngày Công</th>
+                        <th class="py-3.5 px-4 text-right whitespace-nowrap">GROSS</th>
+                        <th class="py-3.5 px-4 text-right text-indigo-700 dark:text-indigo-400 whitespace-nowrap">BH NLĐ (10.5%)</th>
+                        <th class="py-3.5 px-4 text-right text-rose-600 dark:text-rose-400 whitespace-nowrap">Thuế TNCN</th>
+                        <th class="py-3.5 px-4 text-right whitespace-nowrap">Khấu Trừ Khác</th>
+                        <th class="py-3.5 px-6 text-right bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 whitespace-nowrap">Thực Lĩnh NET</th>
+                        <th class="py-3.5 px-4 text-center whitespace-nowrap">Trạng Thái</th>
+                        <th class="py-3.5 px-6 text-right whitespace-nowrap">Thao Tác</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
@@ -525,7 +560,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     ?>
                         <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/40 transition">
                             <!-- Nhân viên -->
-                            <td class="py-4 px-6 sticky-col-code bg-white dark:bg-slate-800">
+                            <td class="py-4 px-6 sticky-col">
                                 <div class="flex items-center gap-3">
                                     <?php if (!empty($item['avatar']) && file_exists(__DIR__ . '/../../assets/uploads/' . $item['avatar'])): ?>
                                         <img src="<?= base_url('assets/uploads/' . e($item['avatar'])) ?>" class="w-9 h-9 rounded-xl object-cover border border-slate-200" alt="">
@@ -573,27 +608,27 @@ require_once __DIR__ . '/../../includes/header.php';
                             </td>
 
                             <!-- Lương GROSS -->
-                            <td class="py-4 px-4 text-right font-mono font-semibold text-xs text-slate-800 dark:text-slate-200">
+                            <td class="py-4 px-4 text-right font-mono tabular-nums font-semibold text-xs text-slate-800 dark:text-slate-200 bg-slate-50/50 dark:bg-slate-900/20">
                                 <?= format_money($grossVal) ?>
                             </td>
 
                             <!-- Bảo hiểm NLĐ -->
-                            <td class="py-4 px-4 text-right font-mono text-xs text-indigo-600 dark:text-indigo-400">
+                            <td class="py-4 px-4 text-right font-mono tabular-nums text-xs text-indigo-600 dark:text-indigo-400">
                                 <?= $insEmp > 0 ? ('-' . format_money($insEmp)) : '0 ₫' ?>
                             </td>
 
                             <!-- Thuế TNCN -->
-                            <td class="py-4 px-4 text-right font-mono text-xs text-rose-500">
+                            <td class="py-4 px-4 text-right font-mono tabular-nums text-xs text-rose-500">
                                 <?= (float)$item['pit_amount'] > 0 ? ('-' . format_money($item['pit_amount'])) : '0 ₫' ?>
                             </td>
 
                             <!-- Khấu trừ khác / bồi thường -->
-                            <td class="py-4 px-4 text-right font-mono text-xs text-slate-500">
+                            <td class="py-4 px-4 text-right font-mono tabular-nums text-xs text-slate-500">
                                 <?= $otherDeduct > 0 ? ('-' . format_money($otherDeduct)) : '0 ₫' ?>
                             </td>
 
                             <!-- Thực lĩnh NET -->
-                            <td class="py-4 px-6 text-right font-mono font-bold text-sm text-emerald-700 dark:text-emerald-300 bg-emerald-50/40 dark:bg-emerald-950/20">
+                            <td class="py-4 px-6 text-right font-mono tabular-nums font-bold text-sm text-emerald-700 dark:text-emerald-300 bg-emerald-50/50 dark:bg-emerald-950/25">
                                 <?= format_money($item['final_salary']) ?>
                             </td>
 

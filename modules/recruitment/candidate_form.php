@@ -114,24 +114,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Xử lý upload tệp CV (Drag & Drop)
     $cv_name = $candidate['cv_file'];
     if (isset($_FILES['cv_file']) && $_FILES['cv_file']['error'] === UPLOAD_ERR_OK) {
-        $file_tmp = $_FILES['cv_file']['tmp_name'];
-        $file_name = $_FILES['cv_file']['name'];
-        $file_size = $_FILES['cv_file']['size'];
-        $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-
-        $allowed_exts = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
-        if (!in_array($ext, $allowed_exts)) {
-            $errors[] = 'Tệp CV chỉ chấp nhận định dạng PDF, Word (DOC, DOCX) hoặc Ảnh.';
-        } elseif ($file_size > 10 * 1024 * 1024) {
-            $errors[] = 'Kích thước tệp CV không được vượt quá 10MB.';
+        $check = validate_uploaded_file($_FILES['cv_file'], ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'], 10 * 1024 * 1024);
+        if (!$check['ok']) {
+            $errors[] = 'Tệp CV không hợp lệ: ' . $check['error'];
         } else {
             $upload_dir = __DIR__ . '/../../assets/uploads/cvs/';
             if (!is_dir($upload_dir)) {
                 mkdir($upload_dir, 0777, true);
             }
 
-            $new_cv_name = 'cv_' . time() . '_' . rand(1000, 9999) . '.' . $ext;
-            if (move_uploaded_file($file_tmp, $upload_dir . $new_cv_name)) {
+            $new_cv_name = 'cv_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $check['ext'];
+            if (move_uploaded_file($_FILES['cv_file']['tmp_name'], $upload_dir . $new_cv_name)) {
                 if (!empty($cv_name) && file_exists($upload_dir . $cv_name)) {
                     @unlink($upload_dir . $cv_name);
                 }

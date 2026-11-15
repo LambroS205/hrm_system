@@ -83,23 +83,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
             $items_stmt->execute([$id]);
             $pending_items = $items_stmt->fetchAll();
 
+            $last_t_id = (int)($pdo->query("SELECT MAX(id) FROM transfers")->fetchColumn() ?: 0);
+
+            $insTrans = $pdo->prepare("
+                INSERT INTO transfers (
+                    transfer_code, employee_id, from_branch_id, to_branch_id,
+                    from_department_id, to_department_id, from_position_id, to_position_id,
+                    transfer_type, reason, effective_date, decision_number,
+                    allowance_support, status, requested_by, approved_by,
+                    approved_at, executed_at, notes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'branch_transfer', ?, CURDATE(), ?, ?, 'executed', ?, ?, NOW(), NOW(), ?)
+            ");
+            $upItem = $pdo->prepare("UPDATE transfer_plan_items SET transfer_id = ? WHERE id = ?");
+            $upEmp = $pdo->prepare("
+                UPDATE employees 
+                SET branch_id = ?, department_id = ?, position_id = ? 
+                WHERE id = ?
+            ");
+
             $executed_count = 0;
             foreach ($pending_items as $item) {
-                // Sinh mã phiếu thuyên chuyển
-                $last_t_id = (int)($pdo->query("SELECT MAX(id) FROM transfers")->fetchColumn() ?: 0);
-                $trans_code = 'TC-' . date('Y') . '-' . str_pad($last_t_id + 1, 3, '0', STR_PAD_LEFT);
+                $last_t_id++;
+                $trans_code = 'TC-' . date('Y') . '-' . str_pad($last_t_id, 3, '0', STR_PAD_LEFT);
                 $dec_no = 'QĐ-KH' . $id . '-' . str_pad($item['id'], 2, '0', STR_PAD_LEFT) . '/QĐ-ĐĐ';
 
-                // Tạo phiếu transfer executed
-                $insTrans = $pdo->prepare("
-                    INSERT INTO transfers (
-                        transfer_code, employee_id, from_branch_id, to_branch_id,
-                        from_department_id, to_department_id, from_position_id, to_position_id,
-                        transfer_type, reason, effective_date, decision_number,
-                        allowance_support, status, requested_by, approved_by,
-                        approved_at, executed_at, notes
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'branch_transfer', ?, CURDATE(), ?, ?, 'executed', ?, ?, NOW(), NOW(), ?)
-                ");
                 $reason_text = "Thực thi theo Kế hoạch quy hoạch: " . $plan['title'] . ". " . $item['rationale'];
                 $insTrans->execute([
                     $trans_code, $item['employee_id'], $item['from_branch_id'], $item['to_branch_id'],
@@ -110,15 +117,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
                 $transfer_id = $pdo->lastInsertId();
 
                 // Cập nhật ngược lại vào transfer_plan_items
-                $upItem = $pdo->prepare("UPDATE transfer_plan_items SET transfer_id = ? WHERE id = ?");
                 $upItem->execute([$transfer_id, $item['id']]);
 
                 // Cập nhật trực tiếp nhân viên sang chi nhánh và phòng ban mới
-                $upEmp = $pdo->prepare("
-                    UPDATE employees 
-                    SET branch_id = ?, department_id = ?, position_id = ? 
-                    WHERE id = ?
-                ");
                 $upEmp->execute([
                     $item['to_branch_id'],
                     $item['to_department_id'],
@@ -168,10 +169,14 @@ $items_stmt = $pdo->prepare("
     JOIN positions tp ON tpi.to_position_id = tp.id
     LEFT JOIN transfers tr ON tpi.transfer_id = tr.id
     LEFT JOIN (
-        SELECT employee_id, final_score, rating_grade
-        FROM evaluations
-        WHERE status = 'approved'
-        ORDER BY created_at DESC
+        SELECT e1.employee_id, e1.final_score, e1.rating_grade
+        FROM evaluations e1
+        INNER JOIN (
+            SELECT employee_id, MAX(id) AS max_id
+            FROM evaluations
+            WHERE status = 'completed'
+            GROUP BY employee_id
+        ) e2 ON e1.id = e2.max_id
     ) ev ON e.id = ev.employee_id
     WHERE tpi.plan_id = ?
     ORDER BY FIELD(tpi.priority, 'high', 'medium', 'low'), tpi.id ASC
@@ -214,16 +219,32 @@ foreach ($items as $it) {
     $branches_impact[$tb_id]['in_count']++;
 }
 
-// Bổ sung số liệu thực tế & định biên vào bảng impact
-foreach ($branches_impact as $bId => &$bImp) {
-    $bInfo = $pdo->query("SELECT target_headcount, (SELECT COUNT(*) FROM employees WHERE branch_id = {$bId} AND employment_status != 'resigned') AS cur_hc FROM branches WHERE id = {$bId}")->fetch();
-    $bImp['target_headcount'] = (int)($bInfo['target_headcount'] ?? 50);
-    $bImp['current_headcount'] = (int)($bInfo['cur_hc'] ?? 0);
-    $bImp['projected_headcount'] = $bImp['current_headcount'] - $bImp['out_count'] + $bImp['in_count'];
-    $bImp['current_rate'] = round(($bImp['current_headcount'] / max(1, $bImp['target_headcount'])) * 100);
-    $bImp['projected_rate'] = round(($bImp['projected_headcount'] / max(1, $bImp['target_headcount'])) * 100);
+// Bổ sung số liệu thực tế & định biên vào bảng impact bằng 1 truy vấn duy nhất (khử N+1)
+if (!empty($branches_impact)) {
+    $impactIds = array_map('intval', array_keys($branches_impact));
+    $inClause = implode(',', array_fill(0, count($impactIds), '?'));
+    $bInfoStmt = $pdo->prepare("
+        SELECT b.id, b.target_headcount,
+               (SELECT COUNT(*) FROM employees e WHERE e.branch_id = b.id AND e.employment_status != 'resigned') AS cur_hc
+        FROM branches b
+        WHERE b.id IN ({$inClause})
+    ");
+    $bInfoStmt->execute($impactIds);
+    $bInfoMap = [];
+    foreach ($bInfoStmt->fetchAll() as $row) {
+        $bInfoMap[(int)$row['id']] = $row;
+    }
+
+    foreach ($branches_impact as $bId => &$bImp) {
+        $bInfo = $bInfoMap[$bId] ?? null;
+        $bImp['target_headcount'] = (int)($bInfo['target_headcount'] ?? 50);
+        $bImp['current_headcount'] = (int)($bInfo['cur_hc'] ?? 0);
+        $bImp['projected_headcount'] = $bImp['current_headcount'] - $bImp['out_count'] + $bImp['in_count'];
+        $bImp['current_rate'] = round(($bImp['current_headcount'] / max(1, $bImp['target_headcount'])) * 100);
+        $bImp['projected_rate'] = round(($bImp['projected_headcount'] / max(1, $bImp['target_headcount'])) * 100);
+    }
+    unset($bImp);
 }
-unset($bImp);
 
 // Dữ liệu cho modal thêm đề xuất
 $all_employees = $pdo->query("

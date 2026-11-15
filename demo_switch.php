@@ -62,7 +62,7 @@ try {
         }
 
         $scopeLabel = strtoupper($_SESSION['user']['data_scope']);
-        set_flash('info', "Đang trình diễn với vai trò: <b>{$user['fullname']}</b> — {$user['role_name']} [Scope: {$scopeLabel}]");
+        set_flash('info', "Đang trình diễn với vai trò: {$user['fullname']} — {$user['role_name']} [Scope: {$scopeLabel}]");
     } else {
         set_flash('danger', "Không tìm thấy người dùng demo {$target}.");
     }

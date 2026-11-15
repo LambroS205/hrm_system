@@ -13,17 +13,21 @@ if ($is_edit) {
     $page_title = 'Khởi Tạo Phiếu Đánh Giá KPI';
 }
 
-// Lấy danh sách nhân viên kèm Vị trí & Phòng ban
-$employees = $pdo->query("
+// Lấy danh sách nhân viên kèm Vị trí & Phòng ban (có áp dụng Data Scope)
+$empParams = [];
+$empScopeSql = scope_where('e', $empParams);
+$empStmt = $pdo->prepare("
     SELECT e.id, e.employee_code, e.fullname, e.avatar, e.department_id, e.position_id,
            b.name AS branch_name, d.name AS department_name, p.name AS position_name
     FROM employees e
     LEFT JOIN branches b ON e.branch_id = b.id
     LEFT JOIN departments d ON e.department_id = d.id
     LEFT JOIN positions p ON e.position_id = p.id
-    WHERE e.employment_status != 'resigned'
+    WHERE e.employment_status != 'resigned' AND ({$empScopeSql})
     ORDER BY e.fullname ASC
-")->fetchAll();
+");
+$empStmt->execute($empParams);
+$employees = $empStmt->fetchAll();
 
 // Lấy danh sách các kỳ đánh giá
 $periods = $pdo->query("SELECT * FROM evaluation_periods ORDER BY status = 'active' DESC, year DESC, quarter DESC")->fetchAll();
@@ -74,6 +78,7 @@ if ($is_edit) {
         set_flash('danger', 'Không tìm thấy phiếu đánh giá này.');
         redirect('modules/evaluations/index.php');
     }
+    require_employee_access((int)$existing['employee_id']);
     $evaluation = $existing;
     // Nếu custom_items_json còn trống đối với phiếu cũ, fallback lấy từ template
     if (empty($evaluation['custom_items_json']) && !empty($evaluation['template_id'])) {

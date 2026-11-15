@@ -135,10 +135,14 @@ function generate_smart_scenarios(PDO $pdo, $branch_analytics) {
         LEFT JOIN departments d ON e.department_id = d.id
         LEFT JOIN positions p ON e.position_id = p.id
         LEFT JOIN (
-            SELECT employee_id, final_score, rating_grade
-            FROM evaluations
-            WHERE status = 'approved'
-            ORDER BY created_at DESC
+            SELECT e1.employee_id, e1.final_score, e1.rating_grade
+            FROM evaluations e1
+            INNER JOIN (
+                SELECT employee_id, MAX(id) AS max_id
+                FROM evaluations
+                WHERE status = 'completed'
+                GROUP BY employee_id
+            ) e2 ON e1.id = e2.max_id
         ) ev ON e.id = ev.employee_id
         WHERE e.employment_status = 'official'
         ORDER BY b.is_headquarter DESC, ev.final_score DESC, e.hire_date ASC

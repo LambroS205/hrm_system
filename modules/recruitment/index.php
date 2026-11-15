@@ -12,12 +12,19 @@ $branch_filter  = (int)($_GET['branch_id'] ?? 0);
 $source_filter  = trim($_GET['source'] ?? '');
 $current_view   = trim($_GET['view'] ?? 'kanban'); // Mặc định là Kanban Kéo - Thả
 
-// 2. Thống kê tổng quan KPI Tuyển dụng
+// 2. Thống kê tổng quan KPI Tuyển dụng (Gộp truy vấn bảng candidates)
+$cand_stats = $pdo->query("
+    SELECT
+        COUNT(*) AS total_candidates,
+        COUNT(CASE WHEN stage = 'interview' THEN 1 END) AS interviewing_count,
+        COUNT(CASE WHEN stage = 'hired' THEN 1 END) AS hired_count
+    FROM candidates
+")->fetch() ?: [];
 $stats = [
     'total_jobs'        => (int)$pdo->query("SELECT COUNT(*) FROM job_positions WHERE status = 'open'")->fetchColumn(),
-    'total_candidates'  => (int)$pdo->query("SELECT COUNT(*) FROM candidates")->fetchColumn(),
-    'interviewing_count'=> (int)$pdo->query("SELECT COUNT(*) FROM candidates WHERE stage = 'interview'")->fetchColumn(),
-    'hired_count'       => (int)$pdo->query("SELECT COUNT(*) FROM candidates WHERE stage = 'hired'")->fetchColumn(),
+    'total_candidates'  => (int)($cand_stats['total_candidates'] ?? 0),
+    'interviewing_count'=> (int)($cand_stats['interviewing_count'] ?? 0),
+    'hired_count'       => (int)($cand_stats['hired_count'] ?? 0),
 ];
 
 // 3. Xây dựng truy vấn danh sách ứng viên có lọc

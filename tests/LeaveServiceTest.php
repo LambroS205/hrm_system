@@ -1,5 +1,6 @@
 <?php
 // tests/LeaveServiceTest.php
+if (PHP_SAPI !== 'cli') { http_response_code(403); exit('CLI only.'); }
 
 require_once __DIR__ . '/../core/LeaveService.php';
 
@@ -39,6 +40,11 @@ $emp5 = ['join_date' => '2026-08-20'];
 $ent5 = LeaveService::getAnnualLeaveEntitlement($emp5, 2026);
 // Tháng 8 sau ngày 15 -> tính từ tháng 9 (9, 10, 11, 12 = 4 tháng -> 4 ngày)
 assert_equals(4.0, $ent5, "Nhân viên vào làm ngày 20/08/2026 được hưởng 4 ngày phép tỷ lệ");
+
+// 6. Nhân viên sử dụng cột `hire_date` chuẩn CSDL với thâm niên 6 năm (từ 2020)
+$emp6 = ['hire_date' => '2020-02-15'];
+$ent6 = LeaveService::getAnnualLeaveEntitlement($emp6, 2026);
+assert_equals(13.0, $ent6, "Nhân viên dùng cột hire_date thâm niên 6 năm được hưởng 13 ngày phép");
 
 echo "\n[✓] Hoàn thành kiểm thử LeaveService!\n";
 

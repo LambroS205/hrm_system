@@ -57,6 +57,12 @@ try {
         exit;
     }
 
+    if (!can_access_employee((int)$reward['employee_id'])) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Nhân sự này nằm ngoài phạm vi chi nhánh/quyền hạn của bạn.']);
+        exit;
+    }
+
     $updateSql = "UPDATE rewards SET status = :status";
     $params = [':status' => $new_status, ':id' => $id];
 

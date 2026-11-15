@@ -1,5 +1,6 @@
 <?php
 // database/migration_kpi_consistency.php - Đồng bộ hóa dữ liệu KPI & Snapshot tiêu chí
+if (PHP_SAPI !== 'cli') { http_response_code(403); exit('CLI only.'); }
 require_once __DIR__ . '/../core/auth.php';
 require_once __DIR__ . '/../config/kpi_rules.php';
 require_once __DIR__ . '/../core/KpiCalculator.php';

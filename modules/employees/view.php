@@ -21,19 +21,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         @mkdir($upload_dir, 0755, true);
     }
 
-    // Helper xử lý upload file đính kèm
+    // Helper xử lý upload file đính kèm (kiểm tra cả đuôi file + MIME thực tế)
     $handle_upload = function($file_key) use ($upload_dir) {
         if (!isset($_FILES[$file_key]) || $_FILES[$file_key]['error'] !== UPLOAD_ERR_OK) {
             return null;
         }
-        $file = $_FILES[$file_key];
-        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        $allowed = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp'];
-        if (!in_array($ext, $allowed) || $file['size'] > 10 * 1024 * 1024) {
+        $check = validate_uploaded_file($_FILES[$file_key], ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp'], 10 * 1024 * 1024);
+        if (!$check['ok']) {
             return null;
         }
-        $filename = 'doc_' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
-        if (move_uploaded_file($file['tmp_name'], $upload_dir . $filename)) {
+        $filename = 'doc_' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $check['ext'];
+        if (move_uploaded_file($_FILES[$file_key]['tmp_name'], $upload_dir . $filename)) {
             return $filename;
         }
         return null;

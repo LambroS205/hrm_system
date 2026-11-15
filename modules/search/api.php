@@ -323,6 +323,10 @@ try {
             $tr_wheres[] = "(t.from_branch_id = ? OR t.to_branch_id = ?)";
             $tr_params[] = current_user_branch_id();
             $tr_params[] = current_user_branch_id();
+        } elseif (data_scope() === 'department' && current_user_dept_id()) {
+            $tr_wheres[] = "(t.from_department_id = ? OR t.to_department_id = ?)";
+            $tr_params[] = current_user_dept_id();
+            $tr_params[] = current_user_dept_id();
         } elseif (data_scope() === 'self' && current_employee()) {
             $tr_wheres[] = "t.employee_id = ?";
             $tr_params[] = current_employee()['id'];

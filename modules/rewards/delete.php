@@ -9,11 +9,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($id > 0) {
         try {
-            $stmt = $pdo->prepare("SELECT reward_code, attachment FROM rewards WHERE id = ?");
+            $stmt = $pdo->prepare("SELECT employee_id, reward_code, attachment FROM rewards WHERE id = ?");
             $stmt->execute([$id]);
             $reward = $stmt->fetch();
 
             if ($reward) {
+                require_employee_access((int)$reward['employee_id']);
                 // Xóa tệp đính kèm trên đĩa nếu có
                 if (!empty($reward['attachment'])) {
                     $filePath = __DIR__ . '/../../assets/uploads/attachments/' . $reward['attachment'];

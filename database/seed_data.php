@@ -1,5 +1,6 @@
 <?php
 // database/seed_data.php - Nạp dữ liệu mẫu Enterprise Grade vào cơ sở dữ liệu hrm_system
+if (PHP_SAPI !== 'cli') { http_response_code(403); exit('CLI only.'); }
 
 require_once __DIR__ . '/../config/database.php';
 

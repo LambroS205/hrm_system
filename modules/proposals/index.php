@@ -139,17 +139,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         $proposal_id = (int)($_POST['proposal_id'] ?? 0);
 
         if ($proposal_id > 0) {
-            $propStmt = $pdo->prepare("SELECT start_date FROM proposals WHERE id = ?");
+            $propStmt = $pdo->prepare("SELECT start_date, employee_id FROM proposals WHERE id = ?");
             $propStmt->execute([$proposal_id]);
-            $startDate = $propStmt->fetchColumn();
+            $propRow = $propStmt->fetch();
 
-            if ($startDate) {
-                require_once __DIR__ . '/../../core/PayrollService.php';
-                $p_m = (int)date('m', strtotime($startDate));
-                $p_y = (int)date('Y', strtotime($startDate));
-                if (PayrollService::isMonthLocked($pdo, $p_m, $p_y)) {
-                    set_flash('danger', "Không thể xóa đề xuất do bảng tính lương Tháng {$p_m}/{$p_y} đã bị khóa.");
+            if ($propRow) {
+                if (!can_access_employee((int)$propRow['employee_id'])) {
+                    set_flash('danger', 'Đề xuất này thuộc nhân sự ngoài phạm vi thẩm quyền của bạn.');
                     redirect('modules/proposals/index.php');
+                }
+                $startDate = $propRow['start_date'];
+                if ($startDate) {
+                    require_once __DIR__ . '/../../core/PayrollService.php';
+                    $p_m = (int)date('m', strtotime($startDate));
+                    $p_y = (int)date('Y', strtotime($startDate));
+                    if (PayrollService::isMonthLocked($pdo, $p_m, $p_y)) {
+                        set_flash('danger', "Không thể xóa đề xuất do bảng tính lương Tháng {$p_m}/{$p_y} đã bị khóa.");
+                        redirect('modules/proposals/index.php');
+                    }
                 }
             }
 

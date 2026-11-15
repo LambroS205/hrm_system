@@ -107,7 +107,7 @@ $flash = get_flash();
                 <!-- Bộ Chuyển Nhanh Persona Trình Diễn (1-Click Switcher) -->
                 <div class="relative" id="personaSwitcherContainer">
                     <button type="button" id="personaSwitcherBtn" 
-                            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm bg-gradient-to-r from-amber-500/15 to-indigo-500/15 hover:from-amber-500/25 hover:to-indigo-500/25 text-slate-800 dark:text-slate-100 text-xs font-bold border border-amber-300 dark:border-amber-700/80 transition shadow-2xs cursor-pointer"
+                            class="h-9 flex items-center gap-1.5 px-3 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900/70 text-amber-900 dark:text-amber-200 text-xs font-bold border border-amber-300 dark:border-amber-700/80 transition shadow-2xs cursor-pointer"
                             title="Chuyển nhanh vai trò trình diễn (Demo Persona)">
                         <i class="fa-solid fa-masks-theater text-amber-600 dark:text-amber-400 text-sm"></i>
                         <span class="hidden md:inline font-extrabold text-[11px] uppercase tracking-wide text-amber-800 dark:text-amber-300">Persona</span>
@@ -224,7 +224,7 @@ $flash = get_flash();
     </header>
 
     <!-- Khu vực nội dung cuộn (Main Body Container) -->
-    <main class="flex-1 overflow-y-auto p-6 bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
+    <main class="flex-1 overflow-y-auto px-4 sm:px-6 py-5 bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
         <!-- Hiển thị Flash Message nếu có -->
         <?php if ($flash): ?>
             <div class="flash-alert-auto mb-6 p-4 rounded-2xl flex items-center justify-between border shadow-sm animate-fade-in <?= $flash['type'] === 'success' ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300' : ($flash['type'] === 'danger' ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300' : 'bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-sky-800 dark:text-sky-300') ?>">

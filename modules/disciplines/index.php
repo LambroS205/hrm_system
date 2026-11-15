@@ -15,10 +15,13 @@ $current_view = trim($_GET['view'] ?? 'kanban');
 // 2. Thống kê tổng quan theo Data Scope
 $disc_scope_where = "1=1";
 $disc_scope_params = [];
-if (data_scope() === 'branch' && current_user_branch_id()) {
+if (is_branch_scope() && current_user_branch_id()) {
     $disc_scope_where = "e.branch_id = ?";
     $disc_scope_params[] = current_user_branch_id();
-} elseif (data_scope() === 'self' && current_employee()) {
+} elseif (is_dept_scope() && current_user_dept_id()) {
+    $disc_scope_where = "e.department_id = ?";
+    $disc_scope_params[] = current_user_dept_id();
+} elseif (is_self_scope() && current_employee()) {
     $disc_scope_where = "e.id = ?";
     $disc_scope_params[] = current_employee()['id'];
 }
@@ -39,10 +42,13 @@ $stats = $disc_stat_stmt->fetch();
 $where_clauses = ['1=1'];
 $params = [];
 
-if (data_scope() === 'branch' && current_user_branch_id()) {
+if (is_branch_scope() && current_user_branch_id()) {
     $where_clauses[] = "e.branch_id = :scope_branch";
     $params[':scope_branch'] = current_user_branch_id();
-} elseif (data_scope() === 'self' && current_employee()) {
+} elseif (is_dept_scope() && current_user_dept_id()) {
+    $where_clauses[] = "e.department_id = :scope_dept";
+    $params[':scope_dept'] = current_user_dept_id();
+} elseif (is_self_scope() && current_employee()) {
     $where_clauses[] = "e.id = :scope_emp";
     $params[':scope_emp'] = current_employee()['id'];
 }

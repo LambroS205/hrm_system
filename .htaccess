@@ -4,11 +4,16 @@ Options -Indexes
 # UTF-8 encoding
 AddDefaultCharset UTF-8
 
-# Protect sensitive files
+# Protect sensitive files and internal directories
 <FilesMatch "^\.env|\.git|\.sql$">
     Order allow,deny
     Deny from all
 </FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(database|scratch|tests|core|config)/ - [F,L]
+</IfModule>
 
 # Security Headers
 <IfModule mod_headers.c>

@@ -1,5 +1,6 @@
 <?php
 // tests/KpiCalculatorTest.php - Bộ kiểm thử tự động thuật toán tính KPI, Link Power & Guardrails
+if (PHP_SAPI !== 'cli') { http_response_code(403); exit('CLI only.'); }
 require_once __DIR__ . '/../config/kpi_rules.php';
 require_once __DIR__ . '/../core/KpiCalculator.php';
 

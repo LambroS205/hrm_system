@@ -92,13 +92,13 @@ require_once __DIR__ . '/../../includes/header.php';
 <div class="space-y-6">
 
     <!-- Header Tiêu Đề & Thanh Điều Khiển Sơ Đồ -->
-    <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 mb-2">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 mb-2">
                 <i class="fa-solid fa-sitemap"></i> Cấu Trúc Đơn Vị & Mạng Lưới Tổ Chức
             </div>
-            <h2 class="text-xl font-bold text-slate-800">Cơ Cấu Tổ Chức Toàn Cơ Quan</h2>
-            <p class="text-sm text-slate-500 mt-0.5">Trực quan hóa mô hình quản trị đa chi nhánh, phân cấp lãnh đạo, các khối phòng ban và cán bộ chuyên trách.</p>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white">Cơ Cấu Tổ Chức Toàn Cơ Quan</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Trực quan hóa mô hình quản trị đa chi nhánh, phân cấp lãnh đạo, các khối phòng ban và cán bộ chuyên trách.</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2.5">
@@ -106,7 +106,7 @@ require_once __DIR__ . '/../../includes/header.php';
             <form method="GET" action="index.php" class="flex items-center gap-2">
                 <input type="hidden" name="view" value="<?= e($view_mode) ?>">
                 <select name="branch_id" onchange="this.form.submit()"
-                        class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        class="px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <option value="0">🌐 Toàn Bộ Cơ Quan (Tất cả chi nhánh)</option>
                     <?php foreach ($all_branches_filter as $bf): ?>
                         <option value="<?= $bf['id'] ?>" <?= $selected_branch_id == $bf['id'] ? 'selected' : '' ?>>
@@ -117,13 +117,13 @@ require_once __DIR__ . '/../../includes/header.php';
             </form>
 
             <!-- Chuyển đổi chế độ xem Cây / Thẻ -->
-            <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <div class="flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
                 <a href="?branch_id=<?= $selected_branch_id ?>&view=tree" 
-                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition <?= $view_mode === 'tree' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-500 hover:text-slate-800' ?>">
+                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition <?= $view_mode === 'tree' ? 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white' ?>">
                     <i class="fa-solid fa-diagram-project mr-1"></i> Cây Phân Cấp
                 </a>
                 <a href="?branch_id=<?= $selected_branch_id ?>&view=grid" 
-                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition <?= $view_mode === 'grid' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-500 hover:text-slate-800' ?>">
+                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition <?= $view_mode === 'grid' ? 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white' ?>">
                     <i class="fa-solid fa-table-cells-large mr-1"></i> Mạng Lưới Thẻ
                 </a>
             </div>
@@ -136,7 +136,7 @@ require_once __DIR__ . '/../../includes/header.php';
             </a>
 
             <button onclick="window.print()" 
-                    class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition"
+                    class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-200 flex items-center justify-center transition"
                     title="In Sơ Đồ Tổ Chức">
                 <i class="fa-solid fa-print text-sm"></i>
             </button>
@@ -145,43 +145,43 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <!-- Thanh Thống Kê Nhanh -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-        <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">
+        <div class="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">
                 <i class="fa-solid fa-building-columns"></i>
             </div>
             <div>
                 <span class="text-slate-400 block text-[10px] uppercase font-semibold">Chi Nhánh</span>
-                <strong class="text-slate-800 font-bold text-sm"><?= $total_branches_count ?> Chi Nhánh</strong>
+                <strong class="text-slate-800 dark:text-white font-bold text-sm tabular-nums"><?= $total_branches_count ?> Chi Nhánh</strong>
             </div>
         </div>
 
-        <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold text-sm">
+        <div class="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-sm">
                 <i class="fa-solid fa-sitemap"></i>
             </div>
             <div>
                 <span class="text-slate-400 block text-[10px] uppercase font-semibold">Khối Phòng Ban</span>
-                <strong class="text-slate-800 font-bold text-sm"><?= $total_depts_count ?> Phòng / Ban</strong>
+                <strong class="text-slate-800 dark:text-white font-bold text-sm tabular-nums"><?= $total_depts_count ?> Phòng / Ban</strong>
             </div>
         </div>
 
-        <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
+        <div class="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">
                 <i class="fa-solid fa-users"></i>
             </div>
             <div>
                 <span class="text-slate-400 block text-[10px] uppercase font-semibold">Tổng Cán Bộ</span>
-                <strong class="text-slate-800 font-bold text-sm"><?= $total_employees_count ?> Nhân Sự</strong>
+                <strong class="text-slate-800 dark:text-white font-bold text-sm tabular-nums"><?= $total_employees_count ?> Nhân Sự</strong>
             </div>
         </div>
 
-        <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm">
+        <div class="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm">
                 <i class="fa-solid fa-shuffle"></i>
             </div>
             <div>
                 <span class="text-slate-400 block text-[10px] uppercase font-semibold">Điều Động Liên Tục</span>
-                <a href="<?= base_url('modules/transfers/index.php') ?>" class="text-indigo-600 font-bold text-sm hover:underline">
+                <a href="<?= base_url('modules/transfers/index.php') ?>" class="text-indigo-600 dark:text-indigo-400 font-bold text-sm hover:underline">
                     Xem Lịch Sử &rarr;
                 </a>
             </div>
@@ -191,7 +191,7 @@ require_once __DIR__ . '/../../includes/header.php';
     <?php if ($view_mode === 'tree'): ?>
         <!-- ================= CHẾ ĐỘ 1: CÂY SƠ ĐỒ TỔ CHỨC HIỆN ĐẠI ================= -->
         <?php $tree_min_w = (count($branches) > 2) ? (count($branches) * 350) . 'px' : '100% '; ?>
-        <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 overflow-x-auto min-h-[600px] select-none">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6 overflow-x-auto min-h-[600px] select-none">
             
             <div class="flex flex-col items-center py-4 space-y-8" style="min-width: <?= $tree_min_w ?>;">
 
@@ -234,38 +234,38 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <div class="w-0.5 h-6 bg-indigo-300"></div>
 
                                 <!-- Thẻ Chi Nhánh (Branch Node) -->
-                                <div class="w-full bg-white rounded-2xl border-2 <?= $b['is_headquarter'] ? 'border-indigo-600 shadow-lg shadow-indigo-100' : 'border-slate-300 shadow-sm' ?> p-4 hover:border-indigo-400 hover:shadow-md transition cursor-pointer"
+                                <div class="w-full bg-white dark:bg-slate-900 rounded-2xl border-2 <?= $b['is_headquarter'] ? 'border-indigo-600 shadow-md' : 'border-slate-200 dark:border-slate-700 shadow-xs' ?> p-4 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md transition cursor-pointer"
                                      onclick="openBranchDrawer(<?= htmlspecialchars(json_encode($b), ENT_QUOTES, 'UTF-8') ?>)">
                                     
-                                    <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
-                                        <div class="flex items-center gap-2 truncate">
-                                            <span class="w-7 h-7 rounded-lg <?= $b['is_headquarter'] ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700' ?> flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                    <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                                        <div class="flex items-center gap-2 truncate min-w-0">
+                                            <span class="w-7 h-7 rounded-lg <?= $b['is_headquarter'] ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300' ?> flex items-center justify-center text-xs font-bold flex-shrink-0">
                                                 <?= $b['is_headquarter'] ? '<i class="fa-solid fa-crown text-[10px] text-amber-300"></i>' : '<i class="fa-solid fa-building text-[10px]"></i>' ?>
                                             </span>
-                                            <span class="font-bold text-slate-800 text-xs truncate"><?= e($b['name']) ?></span>
+                                            <span class="font-bold text-slate-800 dark:text-white text-xs truncate"><?= e($b['name']) ?></span>
                                         </div>
-                                        <span class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold"><?= e($b['code']) ?></span>
+                                        <span class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold"><?= e($b['code']) ?></span>
                                     </div>
 
-                                    <div class="pt-2.5 space-y-1.5 text-[11px] text-slate-600">
+                                    <div class="pt-2.5 space-y-1.5 text-[11px] text-slate-600 dark:text-slate-300">
                                         <div class="flex justify-between">
                                             <span class="text-slate-400">Trưởng Đơn Vị:</span>
-                                            <strong class="text-slate-800 truncate"><?= e($b['manager_name'] ?? 'Chưa bổ nhiệm') ?></strong>
+                                            <strong class="text-slate-800 dark:text-slate-100 truncate"><?= e($b['manager_name'] ?? 'Chưa bổ nhiệm') ?></strong>
                                         </div>
                                         <div class="flex justify-between items-center">
                                             <span class="text-slate-400">Biên Chế:</span>
-                                            <div class="font-mono">
-                                                <strong class="text-slate-900"><?= $b['total_employees'] ?></strong> / <?= $b['target_headcount'] ?>
-                                                <span class="font-bold ml-1 <?= $fill_percent >= 80 ? 'text-emerald-600' : 'text-amber-600' ?>">(<?= $fill_percent ?>%)</span>
+                                            <div class="font-mono tabular-nums">
+                                                <strong class="text-slate-900 dark:text-white"><?= $b['total_employees'] ?></strong> / <?= $b['target_headcount'] ?>
+                                                <span class="font-bold ml-1 <?= $fill_percent >= 80 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' ?>">(<?= $fill_percent ?>%)</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     <!-- Nút Thao Tác Trên Thẻ Chi Nhánh -->
-                                    <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                                        <span class="text-indigo-600 font-semibold"><?= count($b_depts) ?> Phòng Ban</span>
+                                    <div class="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                                        <span class="text-indigo-600 dark:text-indigo-400 font-semibold"><?= count($b_depts) ?> Phòng Ban</span>
                                         <button onclick="event.stopPropagation(); quickTransferTo(<?= $b['id'] ?>)" 
-                                                class="px-2 py-1 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold transition text-[10px] flex items-center gap-1">
+                                                class="px-2 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-semibold transition text-[10px] flex items-center gap-1">
                                             <i class="fa-solid fa-shuffle"></i> Thuyên chuyển đến
                                         </button>
                                     </div>
@@ -274,26 +274,26 @@ require_once __DIR__ . '/../../includes/header.php';
 
                                 <!-- Đường kẻ xuống các phòng ban -->
                                 <?php if (!empty($b_depts)): ?>
-                                    <div class="w-0.5 h-6 bg-slate-300"></div>
+                                    <div class="w-0.5 h-6 bg-slate-300 dark:bg-slate-600"></div>
 
                                     <!-- Danh Sách Các Phòng Ban Trực Thuộc Chi Nhánh -->
                                     <div class="w-full space-y-3">
                                         <?php foreach ($b_depts as $dept): ?>
                                             <?php $d_emps = $employees_by_branch_dept[$b['id'] . '_' . $dept['id']] ?? $employees_by_dept[$dept['id']] ?? []; ?>
                                             
-                                            <div class="w-full bg-slate-50 hover:bg-white rounded-xl border border-slate-200 p-3 hover:border-indigo-300 hover:shadow-sm transition cursor-pointer"
+                                            <div class="w-full bg-slate-50 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-3 hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-sm transition cursor-pointer"
                                                  onclick="openDeptDrawer(<?= htmlspecialchars(json_encode($dept), ENT_QUOTES, 'UTF-8') ?>, <?= htmlspecialchars(json_encode($d_emps), ENT_QUOTES, 'UTF-8') ?>)">
                                                 
                                                 <div class="flex items-center justify-between gap-1">
-                                                    <span class="font-semibold text-slate-800 text-xs truncate"><?= e($dept['name']) ?></span>
-                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 flex-shrink-0">
+                                                    <span class="font-semibold text-slate-800 dark:text-white text-xs truncate"><?= e($dept['name']) ?></span>
+                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950/80 text-indigo-800 dark:text-indigo-300 flex-shrink-0 tabular-nums">
                                                         <?= count($d_emps) ?> NV
                                                     </span>
                                                 </div>
 
                                                 <div class="text-[10px] text-slate-400 mt-1 flex items-center justify-between">
-                                                    <span>Mã: <strong class="font-mono text-slate-600"><?= e($dept['code']) ?></strong></span>
-                                                    <span class="text-indigo-600 hover:underline">Chi tiết & cán bộ &rarr;</span>
+                                                    <span>Mã: <strong class="font-mono text-slate-600 dark:text-slate-300"><?= e($dept['code']) ?></strong></span>
+                                                    <span class="text-indigo-600 dark:text-indigo-400 hover:underline">Chi tiết & cán bộ &rarr;</span>
                                                 </div>
 
                                             </div>
@@ -315,27 +315,27 @@ require_once __DIR__ . '/../../includes/header.php';
         <div class="space-y-6">
             <?php foreach ($branches as $b): ?>
                 <?php $b_depts = $departments_by_branch[$b['id']] ?? []; ?>
-                <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 space-y-4">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6 space-y-4">
                     
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-700">
                         <div class="flex items-center gap-3">
-                            <div class="w-11 h-11 rounded-2xl <?= $b['is_headquarter'] ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700' ?> flex items-center justify-center font-bold text-base">
+                            <div class="w-11 h-11 rounded-2xl <?= $b['is_headquarter'] ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200' ?> flex items-center justify-center font-bold text-base">
                                 <i class="fa-solid fa-building-flag"></i>
                             </div>
                             <div>
-                                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                                <h3 class="font-bold text-slate-800 dark:text-white text-base flex items-center gap-2">
                                     <span><?= e($b['name']) ?></span>
                                     <?php if ($b['is_headquarter']): ?>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 uppercase">Trụ Sở Chính</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 uppercase">Trụ Sở Chính</span>
                                     <?php endif; ?>
                                 </h3>
-                                <p class="text-xs text-slate-400">Trưởng đơn vị: <strong class="text-slate-700"><?= e($b['manager_name'] ?? 'Chưa bổ nhiệm') ?></strong> • Hiện diện: <strong class="text-indigo-600"><?= $b['total_employees'] ?></strong> cán bộ</p>
+                                <p class="text-xs text-slate-400">Trưởng đơn vị: <strong class="text-slate-700 dark:text-slate-200"><?= e($b['manager_name'] ?? 'Chưa bổ nhiệm') ?></strong> • Hiện diện: <strong class="text-indigo-600 dark:text-indigo-400 tabular-nums"><?= $b['total_employees'] ?></strong> cán bộ</p>
                             </div>
                         </div>
 
                         <div class="flex items-center gap-2">
                             <a href="<?= base_url('modules/transfers/create.php?to_branch_id=' . $b['id']) ?>" 
-                               class="px-3.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold transition flex items-center gap-1 border border-indigo-100">
+                               class="px-3.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 text-xs font-semibold transition flex items-center gap-1 border border-indigo-200 dark:border-indigo-800">
                                 <i class="fa-solid fa-people-arrows text-[10px]"></i>
                                 <span>Thuyên chuyển đến chi nhánh</span>
                             </a>
@@ -350,29 +350,29 @@ require_once __DIR__ . '/../../includes/header.php';
                         
                         <?php foreach ($b_depts as $dept): ?>
                             <?php $d_emps = $employees_by_branch_dept[$b['id'] . '_' . $dept['id']] ?? $employees_by_dept[$dept['id']] ?? []; ?>
-                            <div class="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-3 hover:border-indigo-300 transition">
+                            <div class="bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 space-y-3 hover:border-indigo-300 dark:hover:border-indigo-500 transition">
                                 <div class="flex items-start justify-between gap-2">
                                     <div>
-                                        <h4 class="font-bold text-slate-800 text-xs"><?= e($dept['name']) ?></h4>
+                                        <h4 class="font-bold text-slate-800 dark:text-white text-xs"><?= e($dept['name']) ?></h4>
                                         <span class="text-[10px] font-mono text-slate-400 font-semibold">Mã: <?= e($dept['code']) ?></span>
                                     </div>
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950/80 text-indigo-800 dark:text-indigo-300 tabular-nums">
                                         <?= count($d_emps) ?> NV
                                     </span>
                                 </div>
 
                                 <!-- Danh sách cán bộ tiêu biểu -->
-                                <div class="space-y-1.5 text-xs max-h-36 overflow-y-auto pr-1 divide-y divide-slate-100">
+                                <div class="space-y-1.5 text-xs max-h-36 overflow-y-auto pr-1 divide-y divide-slate-100 dark:divide-slate-800">
                                     <?php if (empty($d_emps)): ?>
                                         <div class="text-[11px] text-slate-400 py-1">Chưa có nhân sự phân bổ.</div>
                                     <?php endif; ?>
                                     <?php foreach ($d_emps as $emp): ?>
-                                        <div class="flex items-center justify-between py-1.5 text-[11px]">
-                                            <div class="flex items-center gap-2 truncate">
-                                                <div class="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-[9px] flex-shrink-0">
+                                        <div class="flex items-center justify-between py-1.5 text-[11px] gap-2">
+                                            <div class="flex items-center gap-2 truncate min-w-0">
+                                                <div class="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-[9px] flex-shrink-0">
                                                     <?= strtoupper(mb_substr($emp['fullname'], 0, 1, 'UTF-8')) ?>
                                                 </div>
-                                                <a href="<?= base_url('modules/employees/view.php?id=' . $emp['id']) ?>" class="font-semibold text-slate-700 hover:text-indigo-600 truncate">
+                                                <a href="<?= base_url('modules/employees/view.php?id=' . $emp['id']) ?>" class="font-semibold text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 truncate">
                                                     <?= e($emp['fullname']) ?>
                                                 </a>
                                             </div>
@@ -381,12 +381,12 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <?php endforeach; ?>
                                 </div>
 
-                                <div class="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px]">
-                                    <a href="<?= base_url('modules/employees/index.php?department_id=' . $dept['id']) ?>" class="text-slate-500 hover:text-slate-800">
+                                <div class="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-[11px]">
+                                    <a href="<?= base_url('modules/employees/index.php?department_id=' . $dept['id']) ?>" class="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white">
                                         Xem tất cả &rarr;
                                     </a>
                                     <a href="<?= base_url('modules/transfers/create.php?to_department_id=' . $dept['id'] . '&to_branch_id=' . $b['id']) ?>" 
-                                       class="text-indigo-600 font-semibold hover:underline">
+                                       class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
                                         + Điều động vào
                                     </a>
                                 </div>
@@ -403,22 +403,22 @@ require_once __DIR__ . '/../../includes/header.php';
 
 <!-- Drawer / Modal Trượt Bên Phải Chi Tiết Đơn Vị & Cán Bộ -->
 <div id="orgDrawer" class="fixed inset-0 z-50 overflow-hidden hidden">
-    <div class="absolute inset-0 bg-slate-900/30 backdrop-blur-xs transition-opacity" onclick="closeOrgDrawer()"></div>
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity" onclick="closeOrgDrawer()"></div>
     <div class="fixed inset-y-0 right-0 pl-10 max-w-full flex">
-        <div class="w-screen max-w-md bg-white shadow-2xl p-6 flex flex-col justify-between overflow-y-auto">
+        <div class="w-screen max-w-md bg-white dark:bg-slate-800 shadow-2xl border-l border-slate-200 dark:border-slate-700 p-6 flex flex-col justify-between overflow-y-auto">
             
             <div class="space-y-5">
-                <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
                     <div class="flex items-center gap-2.5">
-                        <div id="drawerIcon" class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm font-bold">
+                        <div id="drawerIcon" class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-sm font-bold">
                             <i class="fa-solid fa-sitemap"></i>
                         </div>
                         <div>
-                            <span id="drawerBadge" class="text-[10px] uppercase font-bold text-indigo-600 block">Thông Tin Đơn Vị</span>
-                            <h3 id="drawerTitle" class="font-bold text-slate-800 text-base leading-snug">Chi Tiết</h3>
+                            <span id="drawerBadge" class="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 block">Thông Tin Đơn Vị</span>
+                            <h3 id="drawerTitle" class="font-bold text-slate-800 dark:text-white text-base leading-snug">Chi Tiết</h3>
                         </div>
                     </div>
-                    <button onclick="closeOrgDrawer()" class="text-slate-400 hover:text-slate-600 text-xl">
+                    <button onclick="closeOrgDrawer()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
@@ -428,8 +428,8 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
             </div>
 
-            <div id="drawerFooter" class="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button type="button" onclick="closeOrgDrawer()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition">
+            <div id="drawerFooter" class="pt-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeOrgDrawer()" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-200 text-xs font-semibold rounded-xl transition">
                     Đóng
                 </button>
             </div>
@@ -448,12 +448,12 @@ function openBranchDrawer(branch) {
     document.getElementById('drawerTitle').innerText = branch.name;
     
     let html = `
-        <div class="p-3 bg-slate-50 rounded-xl space-y-1.5 border border-slate-100">
-            <div class="flex justify-between"><span class="text-slate-400">Mã Chi Nhánh:</span><strong class="font-mono text-slate-800">${branch.code}</strong></div>
-            <div class="flex justify-between"><span class="text-slate-400">Trưởng Đơn Vị:</span><strong class="text-slate-800">${branch.manager_name || 'Chưa bổ nhiệm'}</strong></div>
-            <div class="flex justify-between"><span class="text-slate-400">Địa Chỉ:</span><span class="text-slate-700 text-right">${branch.address || 'Chưa cập nhật'}</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Điện Thoại:</span><span class="text-slate-700">${branch.phone || '---'}</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Định Biên Nhân Lực:</span><strong class="text-indigo-600 font-mono">${branch.total_employees} / ${branch.target_headcount} cán bộ</strong></div>
+        <div class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl space-y-1.5 border border-slate-100 dark:border-slate-700">
+            <div class="flex justify-between"><span class="text-slate-400">Mã Chi Nhánh:</span><strong class="font-mono text-slate-800 dark:text-white">${branch.code}</strong></div>
+            <div class="flex justify-between"><span class="text-slate-400">Trưởng Đơn Vị:</span><strong class="text-slate-800 dark:text-white">${branch.manager_name || 'Chưa bổ nhiệm'}</strong></div>
+            <div class="flex justify-between"><span class="text-slate-400">Địa Chỉ:</span><span class="text-slate-700 dark:text-slate-300 text-right">${branch.address || 'Chưa cập nhật'}</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Điện Thoại:</span><span class="text-slate-700 dark:text-slate-300">${branch.phone || '---'}</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Định Biên Nhân Lực:</span><strong class="text-indigo-600 dark:text-indigo-400 font-mono">${branch.total_employees} / ${branch.target_headcount} cán bộ</strong></div>
         </div>
         
         <div class="pt-3">
@@ -476,18 +476,18 @@ function openDeptDrawer(dept, employees) {
     if (employees && employees.length > 0) {
         employees.forEach(e => {
             empListHtml += `
-                <div class="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white transition">
+                <div class="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-900 transition">
                     <div class="flex items-center gap-2.5 truncate">
-                        <div class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
+                        <div class="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-xs">
                             ${e.fullname.substring(0, 1).toUpperCase()}
                         </div>
                         <div>
-                            <div class="font-bold text-slate-800 leading-tight">${e.fullname}</div>
+                            <div class="font-bold text-slate-800 dark:text-white leading-tight">${e.fullname}</div>
                             <div class="text-[10px] text-slate-400 font-mono">${e.position_name || 'Cán bộ'} • ${e.employee_code}</div>
                         </div>
                     </div>
                     <a href="<?= base_url('modules/transfers/create.php?employee_id=') ?>${e.id}" 
-                       class="px-2 py-1 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-[10px] flex-shrink-0"
+                       class="px-2 py-1 rounded bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-semibold text-[10px] flex-shrink-0"
                        title="Thuyên chuyển nhân viên này">
                         Điều động &rarr;
                     </a>
@@ -499,17 +499,17 @@ function openDeptDrawer(dept, employees) {
     }
 
     let html = `
-        <div class="p-3 bg-slate-50 rounded-xl space-y-1.5 border border-slate-100">
-            <div class="flex justify-between"><span class="text-slate-400">Mã Phòng Ban:</span><strong class="font-mono text-slate-800">${dept.code}</strong></div>
-            <div class="flex justify-between"><span class="text-slate-400">Chi Nhánh Trực Thuộc:</span><strong class="text-slate-800">${dept.branch_name}</strong></div>
-            <div class="flex justify-between"><span class="text-slate-400">Số Lượng Nhân Sự:</span><strong class="text-indigo-600 font-mono">${employees.length} cán bộ</strong></div>
+        <div class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl space-y-1.5 border border-slate-100 dark:border-slate-700">
+            <div class="flex justify-between"><span class="text-slate-400">Mã Phòng Ban:</span><strong class="font-mono text-slate-800 dark:text-white">${dept.code}</strong></div>
+            <div class="flex justify-between"><span class="text-slate-400">Chi Nhánh Trực Thuộc:</span><strong class="text-slate-800 dark:text-white">${dept.branch_name}</strong></div>
+            <div class="flex justify-between"><span class="text-slate-400">Số Lượng Nhân Sự:</span><strong class="text-indigo-600 dark:text-indigo-400 font-mono">${employees.length} cán bộ</strong></div>
         </div>
 
         <div class="space-y-2 pt-2">
             <div class="flex justify-between items-center">
-                <span class="font-bold text-slate-700 text-xs">Danh Sách Cán Bộ Trực Thuộc (${employees.length})</span>
+                <span class="font-bold text-slate-700 dark:text-slate-200 text-xs">Danh Sách Cán Bộ Trực Thuộc (${employees.length})</span>
                 <a href="<?= base_url('modules/transfers/create.php?to_department_id=') ?>${dept.id}&to_branch_id=${dept.branch_id}" 
-                   class="text-indigo-600 font-semibold text-[11px] hover:underline">
+                   class="text-indigo-600 dark:text-indigo-400 font-semibold text-[11px] hover:underline">
                     + Thêm người vào phòng
                 </a>
             </div>
@@ -528,11 +528,11 @@ function openDetailDrawer(type, id, title, desc, stat) {
     document.getElementById('drawerTitle').innerText = title;
     
     let html = `
-        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
-            <p class="text-slate-600 leading-relaxed">${desc}</p>
-            <div class="p-2.5 bg-white rounded-xl border border-slate-200 flex justify-between items-center">
-                <span class="text-slate-500">Quy mô nhân sự:</span>
-                <strong class="text-indigo-600 font-mono text-sm">${stat}</strong>
+        <div class="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3">
+            <p class="text-slate-600 dark:text-slate-300 leading-relaxed">${desc}</p>
+            <div class="p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                <span class="text-slate-500 dark:text-slate-400">Quy mô nhân sự:</span>
+                <strong class="text-indigo-600 dark:text-indigo-400 font-mono text-sm">${stat}</strong>
             </div>
         </div>
         <div class="pt-3">

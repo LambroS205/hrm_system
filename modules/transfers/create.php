@@ -32,7 +32,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $notes = trim($_POST['notes'] ?? '');
     $execute_immediately = isset($_POST['execute_immediately']) && has_permission('transfers', 'approve');
 
-    if ($employee_id > 0 && $to_branch_id > 0 && $to_department_id > 0 && $to_position_id > 0 && !empty($reason)) {
+    if ($employee_id > 0 && !can_access_employee($employee_id)) {
+        set_flash('danger', 'Bạn không có quyền lập đề xuất thuyên chuyển cho nhân sự ngoài phạm vi quản lý.');
+    } elseif ($employee_id > 0 && $to_branch_id > 0 && $to_department_id > 0 && $to_position_id > 0 && !empty($reason)) {
         try {
             $pdo->beginTransaction();
 
@@ -91,8 +93,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// 1. Lấy danh sách toàn bộ cán bộ nhân viên kèm thông tin chi nhánh & phòng ban hiện tại
-$employees = $pdo->query("
+// 1. Lấy danh sách cán bộ nhân viên trong phạm vi quyền (Data Scope) kèm chi nhánh & phòng ban hiện tại
+$empScopeParams = [];
+$empScopeSql = scope_where('e', $empScopeParams);
+$empStmt = $pdo->prepare("
     SELECT e.id, e.employee_code, e.fullname, e.branch_id, e.department_id, e.position_id,
            b.name AS branch_name, b.code AS branch_code,
            d.name AS department_name,
@@ -101,9 +105,11 @@ $employees = $pdo->query("
     LEFT JOIN branches b ON e.branch_id = b.id
     LEFT JOIN departments d ON e.department_id = d.id
     LEFT JOIN positions p ON e.position_id = p.id
-    WHERE e.employment_status != 'resigned'
+    WHERE e.employment_status != 'resigned' AND ({$empScopeSql})
     ORDER BY e.fullname ASC
-")->fetchAll();
+");
+$empStmt->execute($empScopeParams);
+$employees = $empStmt->fetchAll();
 
 // 2. Lấy danh sách toàn bộ chi nhánh
 $branches = $pdo->query("SELECT id, name, code, is_headquarter FROM branches WHERE status = 'active' ORDER BY is_headquarter DESC, name ASC")->fetchAll();

@@ -13,11 +13,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type']) && $_POST['action_type'] === 'create_role') {
     $role_name = trim($_POST['role_name'] ?? '');
     $description = trim($_POST['description'] ?? '');
+    $new_scope = in_array($_POST['data_scope'] ?? 'self', ['all', 'branch', 'department', 'self'], true) ? $_POST['data_scope'] : 'self';
 
     if (!empty($role_name)) {
         try {
-            $stmt = $pdo->prepare("INSERT INTO roles (name, description) VALUES (?, ?)");
-            $stmt->execute([$role_name, $description]);
+            $stmt = $pdo->prepare("INSERT INTO roles (name, description, data_scope) VALUES (?, ?, ?)");
+            $stmt->execute([$role_name, $description, $new_scope]);
             set_flash('success', "Đã tạo thành công vai trò mới: '{$role_name}'. Hãy tích chọn quyền trong ma trận bên dưới.");
             $new_role_id = $pdo->lastInsertId();
             redirect('modules/matrix/index.php?role_id=' . $new_role_id);
@@ -101,16 +102,26 @@ $all_permissions = $pdo->query("SELECT * FROM permissions ORDER BY module ASC, i
 $matrix_modules = [
     'employees'   => ['name' => 'Hồ Sơ Nhân Viên', 'icon' => 'fa-address-card', 'color' => 'indigo'],
     'recruitment' => ['name' => 'Quy Trình Tuyển Dụng', 'icon' => 'fa-people-roof', 'color' => 'purple'],
+    'evaluations' => ['name' => 'Đánh Giá & KPI', 'icon' => 'fa-bullseye', 'color' => 'rose'],
+    'proposals'   => ['name' => 'Đề Xuất & Đơn Từ', 'icon' => 'fa-paper-plane', 'color' => 'sky'],
     'rewards'     => ['name' => 'Khen Thưởng', 'icon' => 'fa-award', 'color' => 'emerald'],
     'disciplines' => ['name' => 'Kỷ Luật & Vi Phạm', 'icon' => 'fa-scale-unbalanced', 'color' => 'rose'],
     'departments' => ['name' => 'Phòng Ban & Chức Vụ', 'icon' => 'fa-building-user', 'color' => 'sky'],
     'branches'    => ['name' => 'Mạng Lưới Chi Nhánh', 'icon' => 'fa-building-flag', 'color' => 'blue'],
     'orgchart'    => ['name' => 'Sơ Đồ Cơ Cấu Tổ Chức', 'icon' => 'fa-sitemap', 'color' => 'teal'],
     'transfers'   => ['name' => 'Thuyên Chuyển Cán Bộ', 'icon' => 'fa-people-arrows', 'color' => 'violet'],
-    'planning'    => ['name' => 'Quy Hoạch & Tối Ưu', 'icon' => 'fa-wand-magic-sparkles', 'color' => 'amber'],
+    'planning'    => ['name' => 'Quy Hoạch & Định Biên', 'icon' => 'fa-wand-magic-sparkles', 'color' => 'amber'],
     'attendance'  => ['name' => 'Chấm Công Hàng Ngày', 'icon' => 'fa-calendar-check', 'color' => 'emerald'],
     'payroll'     => ['name' => 'Bảng Tính Lương', 'icon' => 'fa-money-bill-wave', 'color' => 'amber'],
     'matrix'      => ['name' => 'Cấu Hình Phân Quyền', 'icon' => 'fa-network-wired', 'color' => 'slate'],
+];
+
+$special_action_labels = [
+    'approve'        => 'Phê Duyệt',
+    'hire'           => 'Tiếp Nhận NV',
+    'request'        => 'Đề Xuất ĐB',
+    'self_review'    => 'Tự Chấm KPI',
+    'manager_review' => 'QL Đánh Giá KPI',
 ];
 
 // Lấy danh sách permission_id mà vai trò này đang sở hữu
@@ -121,13 +132,46 @@ if ($current_role_id > 0) {
     $assigned_perm_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 
-// Lấy danh sách tài khoản Admin con để quản lý phân vai
-$admin_users = $pdo->query("
-    SELECT u.*, r.name as role_name 
-    FROM users u 
-    LEFT JOIN roles r ON u.role_id = r.id 
-    ORDER BY u.is_superadmin DESC, u.id ASC
-")->fetchAll();
+// Bộ lọc Tab 2 (Users)
+$u_search = trim($_GET['u_search'] ?? '');
+$u_role   = isset($_GET['u_role']) ? (int)$_GET['u_role'] : 0;
+$u_branch = isset($_GET['u_branch']) ? (int)$_GET['u_branch'] : 0;
+
+$u_wheres = ['1=1'];
+$u_params = [];
+if ($u_search !== '') {
+    $u_wheres[] = "(u.fullname LIKE ? OR u.email LIKE ? OR u.username LIKE ? OR e.employee_code LIKE ?)";
+    $kw = "%{$u_search}%";
+    array_push($u_params, $kw, $kw, $kw, $kw);
+}
+if ($u_role > 0) {
+    $u_wheres[] = "u.role_id = ?";
+    $u_params[] = $u_role;
+}
+if ($u_branch > 0) {
+    $u_wheres[] = "e.branch_id = ?";
+    $u_params[] = $u_branch;
+}
+$u_where_sql = implode(' AND ', $u_wheres);
+
+// Lấy danh sách tài khoản kèm Hồ sơ Nhân sự, Vị trí, Phòng ban, Chi nhánh
+$uStmt = $pdo->prepare("
+    SELECT u.*, r.name AS role_name, r.data_scope AS role_scope,
+           e.employee_code, e.employment_status,
+           p.name AS position_name, d.name AS department_name, b.name AS branch_name
+    FROM users u
+    LEFT JOIN roles r ON u.role_id = r.id
+    LEFT JOIN employees e ON e.user_id = u.id
+    LEFT JOIN positions p ON e.position_id = p.id
+    LEFT JOIN departments d ON e.department_id = d.id
+    LEFT JOIN branches b ON e.branch_id = b.id
+    WHERE {$u_where_sql}
+    ORDER BY u.is_superadmin DESC, r.id ASC, u.id ASC
+");
+$uStmt->execute($u_params);
+$admin_users = $uStmt->fetchAll();
+
+$branches_list = $pdo->query("SELECT id, name FROM branches ORDER BY is_headquarter DESC, name ASC")->fetchAll();
 
 // Xác định Tab hiện tại (matrix hoặc users)
 $active_tab = $_GET['tab'] ?? 'matrix';
@@ -267,11 +311,12 @@ require_once __DIR__ . '/../../includes/header.php';
                             <thead>
                                 <tr class="border-b border-slate-200 bg-slate-100/70 text-slate-600 text-xs uppercase tracking-wider font-semibold">
                                     <th class="py-3.5 px-6">Phân Hệ / Chức Năng (Module)</th>
-                                    <th class="py-3.5 px-4 text-center w-28">Xem (View)</th>
-                                    <th class="py-3.5 px-4 text-center w-28">Thêm (Create)</th>
-                                    <th class="py-3.5 px-4 text-center w-28">Sửa (Edit)</th>
-                                    <th class="py-3.5 px-4 text-center w-28">Xóa (Delete)</th>
-                                    <th class="py-3.5 px-4 text-center w-28">Thao tác dòng</th>
+                                    <th class="py-3.5 px-3 text-center w-20">Xem</th>
+                                    <th class="py-3.5 px-3 text-center w-20">Thêm</th>
+                                    <th class="py-3.5 px-3 text-center w-20">Sửa</th>
+                                    <th class="py-3.5 px-3 text-center w-20">Xóa</th>
+                                    <th class="py-3.5 px-4 text-left min-w-[200px]">Quyền Đặc Thù (Approve / KPI / Tuyển / ĐB)</th>
+                                    <th class="py-3.5 px-3 text-center w-24">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
@@ -281,10 +326,14 @@ require_once __DIR__ . '/../../includes/header.php';
                                     $mod_perms = array_filter($all_permissions, function($p) use ($mod_key) {
                                         return $p['module'] === $mod_key;
                                     });
-                                    // Tạo map key action => permission_id
+                                    // Tạo map key action => permission_id và tách quyền đặc thù
                                     $action_map = [];
+                                    $special_perms = [];
                                     foreach ($mod_perms as $p) {
                                         $action_map[$p['action']] = $p['id'];
+                                        if (!in_array($p['action'], ['view', 'create', 'edit', 'manage', 'delete'], true)) {
+                                            $special_perms[] = $p;
+                                        }
                                     }
                                     ?>
                                     <tr class="hover:bg-slate-50/80 transition group" data-module-row="<?= $mod_key ?>">
@@ -346,7 +395,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                         </td>
 
                                         <!-- Cột XÓA (delete) -->
-                                        <td class="py-4 px-4 text-center">
+                                        <td class="py-4 px-3 text-center">
                                             <?php if (isset($action_map['delete'])): ?>
                                                 <?php $pid = $action_map['delete']; ?>
                                                 <label class="inline-flex items-center cursor-pointer">
@@ -359,8 +408,27 @@ require_once __DIR__ . '/../../includes/header.php';
                                             <?php endif; ?>
                                         </td>
 
+                                        <!-- Cột QUYỀN ĐẶC THÙ (approve, hire, request, self_review, manager_review) -->
+                                        <td class="py-4 px-4">
+                                            <?php if (!empty($special_perms)): ?>
+                                                <div class="flex flex-wrap gap-1.5">
+                                                    <?php foreach ($special_perms as $sp): ?>
+                                                        <?php $sp_label = $special_action_labels[$sp['action']] ?? ucfirst(str_replace('_', ' ', $sp['action'])); ?>
+                                                        <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50/80 hover:bg-indigo-50/70 hover:border-indigo-200 cursor-pointer text-[11px] font-semibold text-slate-700 transition">
+                                                            <input type="checkbox" name="perms[]" value="<?= $sp['id'] ?>"
+                                                                   class="matrix-checkbox matrix-<?= $mod_key ?> w-4 h-4 text-indigo-600 bg-white border-slate-300 rounded focus:ring-indigo-500"
+                                                                   <?= in_array($sp['id'], $assigned_perm_ids) ? 'checked' : '' ?>>
+                                                            <span><?= e($sp_label) ?></span>
+                                                        </label>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            <?php else: ?>
+                                                <span class="text-slate-300 text-xs">---</span>
+                                            <?php endif; ?>
+                                        </td>
+
                                         <!-- Cột Chọn cả dòng -->
-                                        <td class="py-4 px-4 text-center">
+                                        <td class="py-4 px-3 text-center">
                                             <button type="button" onclick="toggleRow('<?= $mod_key ?>')" 
                                                     class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold px-2 py-1 rounded hover:bg-indigo-50 transition">
                                                 Cả dòng
@@ -385,59 +453,102 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
 
     <?php else: ?>
-        <!-- ================= TAB 2: PHÂN CÔNG VAI TRÒ CHO ADMIN CON ================= -->
+        <!-- ================= TAB 2: PHÂN CÔNG VAI TRÒ CHO TÀI KHOẢN ================= -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div class="p-5 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
-                    <h3 class="font-bold text-slate-800 text-base">Danh Sách Tài Khoản Quản Trị Viên</h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Gán các vai trò đã thiết lập ở Tab 1 cho từng Admin con (Admin 1, Admin 2, Admin 3...)</p>
+                    <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                        <span>Danh Sách Tài Khoản & Phân Quyền Vị Trí</span>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"><?= count($admin_users) ?> tài khoản</span>
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Đối chiếu Mã NV, Chức vụ, Phòng ban & Chi nhánh để gán đúng Vai trò và Data Scope</p>
                 </div>
+
+                <form method="GET" action="index.php" class="flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="tab" value="users">
+                    <input type="text" name="u_search" value="<?= e($u_search) ?>" placeholder="Tìm tên, email, mã NV..."
+                           class="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 w-48">
+                    <select name="u_role" class="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="0">-- Tất cả Vai trò --</option>
+                        <?php foreach ($roles as $r): ?>
+                            <option value="<?= $r['id'] ?>" <?= $u_role == $r['id'] ? 'selected' : '' ?>><?= e($r['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select name="u_branch" class="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="0">-- Tất cả Chi nhánh --</option>
+                        <?php foreach ($branches_list as $br): ?>
+                            <option value="<?= $br['id'] ?>" <?= $u_branch == $br['id'] ? 'selected' : '' ?>><?= e($br['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <button type="submit" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition">
+                        <i class="fa-solid fa-magnifying-glass mr-1"></i>Lọc
+                    </button>
+                    <?php if ($u_search !== '' || $u_role > 0 || $u_branch > 0): ?>
+                        <a href="?tab=users" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition">Xóa lọc</a>
+                    <?php endif; ?>
+                </form>
             </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead>
                         <tr class="border-b border-slate-200 bg-slate-50 text-slate-600 text-xs uppercase tracking-wider font-semibold">
-                            <th class="py-3.5 px-6">Họ Tên & Username</th>
-                            <th class="py-3.5 px-6">Email</th>
-                            <th class="py-3.5 px-6">Cấp Bậc Hiện Tại</th>
-                            <th class="py-3.5 px-6">Vai Trò Phụ Trách (Theo Ma Trận)</th>
+                            <th class="py-3.5 px-6">Họ Tên & Tài Khoản</th>
+                            <th class="py-3.5 px-5">Chức Vụ / Phòng Ban / Chi Nhánh</th>
+                            <th class="py-3.5 px-5">Phạm Vi (Data Scope)</th>
+                            <th class="py-3.5 px-5">Vai Trò Phụ Trách (Theo Ma Trận)</th>
                             <th class="py-3.5 px-6 text-right">Cập Nhật</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
+                        <?php
+                        $scope_badges = [
+                            'all'        => ['Toàn Tập Đoàn', 'bg-red-50 text-red-700 border-red-200'],
+                            'branch'     => ['Theo Chi Nhánh', 'bg-amber-50 text-amber-700 border-amber-200'],
+                            'department' => ['Theo Phòng Ban', 'bg-sky-50 text-sky-700 border-sky-200'],
+                            'self'       => ['Cá Nhân (Self)', 'bg-slate-100 text-slate-700 border-slate-200'],
+                        ];
+                        ?>
                         <?php foreach ($admin_users as $u): ?>
+                            <?php $sb = $u['is_superadmin'] ? ['Toàn Quyền (Super Admin)', 'bg-amber-100 text-amber-800 border-amber-200'] : ($scope_badges[$u['role_scope'] ?? 'self'] ?? $scope_badges['self']); ?>
                             <tr class="hover:bg-slate-50/80 transition">
                                 <td class="py-4 px-6">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-9 h-9 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs border border-slate-200">
+                                        <div class="w-9 h-9 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-xs border border-indigo-200 flex-shrink-0">
                                             <?= strtoupper(mb_substr($u['fullname'], 0, 1, 'UTF-8')) ?>
                                         </div>
                                         <div>
-                                            <div class="font-semibold text-slate-800"><?= e($u['fullname']) ?></div>
-                                            <div class="text-xs text-slate-400">@<?= e($u['username']) ?></div>
+                                            <div class="font-semibold text-slate-800 flex items-center gap-2">
+                                                <span><?= e($u['fullname']) ?></span>
+                                                <?php if (!empty($u['employee_code'])): ?>
+                                                    <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-[10px] font-bold"><?= e($u['employee_code']) ?></span>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="text-xs text-slate-400">@<?= e($u['username']) ?> &bull; <?= e($u['email']) ?></div>
                                         </div>
                                     </div>
                                 </td>
 
-                                <td class="py-4 px-6 text-slate-600 text-xs">
-                                    <?= e($u['email']) ?>
-                                </td>
-
-                                <td class="py-4 px-6">
-                                    <?php if ($u['is_superadmin']): ?>
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
-                                            <i class="fa-solid fa-crown text-[10px] mr-1.5"></i> Super Admin (Toàn Quyền)
-                                        </span>
+                                <td class="py-4 px-5 text-xs">
+                                    <?php if (!empty($u['position_name'])): ?>
+                                        <div class="font-semibold text-slate-700"><?= e($u['position_name']) ?></div>
+                                        <div class="text-slate-400 mt-0.5"><?= e($u['department_name'] ?? '---') ?> &bull; <?= e($u['branch_name'] ?? '---') ?></div>
                                     <?php else: ?>
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
-                                            <i class="fa-solid fa-user-gear text-[10px] mr-1.5"></i> Admin Phân Hệ
-                                        </span>
+                                        <span class="text-slate-400 italic">Tài khoản hệ thống (không gắn hồ sơ NV)</span>
                                     <?php endif; ?>
                                 </td>
 
+                                <td class="py-4 px-5">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border <?= $sb[1] ?>">
+                                        <?php if ($u['is_superadmin']): ?>
+                                            <i class="fa-solid fa-crown text-[10px] mr-1.5"></i>
+                                        <?php endif; ?>
+                                        <?= e($sb[0]) ?>
+                                    </span>
+                                </td>
+
                                 <!-- Form gán Vai trò trực tiếp cho từng user -->
-                                <td class="py-4 px-6">
+                                <td class="py-4 px-5">
                                     <?php if ($u['is_superadmin']): ?>
                                         <span class="text-xs text-slate-400 italic">Không áp dụng (Super Admin tự có toàn quyền)</span>
                                     <?php else: ?>
@@ -446,11 +557,11 @@ require_once __DIR__ . '/../../includes/header.php';
                                             <input type="hidden" name="action_type" value="assign_user_role">
                                             <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
                                             <select name="assigned_role_id" 
-                                                    class="text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none w-56">
+                                                    class="text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none w-60">
                                                 <option value="">-- Chưa Gán Vai Trò --</option>
                                                 <?php foreach ($roles as $r): ?>
                                                     <option value="<?= $r['id'] ?>" <?= ($u['role_id'] == $r['id']) ? 'selected' : '' ?>>
-                                                        <?= e($r['name']) ?>
+                                                        <?= e($r['name']) ?> [<?= e($r['data_scope'] ?? 'self') ?>]
                                                     </option>
                                                 <?php endforeach; ?>
                                             </select>
@@ -493,6 +604,16 @@ require_once __DIR__ . '/../../includes/header.php';
                 <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Tên Vai Trò Mới *</label>
                 <input type="text" name="role_name" required placeholder="Ví dụ: Admin Tuyển Dụng, Admin Chấm Công..."
                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Phạm Vi Dữ Liệu (Data Scope)</label>
+                <select name="data_scope" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+                    <option value="self">Cá Nhân (Self)</option>
+                    <option value="department">Theo Khối / Phòng Ban (Department)</option>
+                    <option value="branch">Theo Chi Nhánh (Branch)</option>
+                    <option value="all">Toàn Tập Đoàn (All)</option>
+                </select>
             </div>
 
             <div>

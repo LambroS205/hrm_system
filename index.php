@@ -19,27 +19,58 @@ $current_month = (int)date('m');
 $current_year = (int)date('Y');
 
 $is_branch_mgr = is_branch_scope();
-$branch_id = current_user_branch_id();
-$branch_name = current_employee()['branch_name'] ?? 'Chi Nhánh';
+$is_dept_mgr   = is_dept_scope();
+$branch_id     = current_user_branch_id();
+$dept_id       = current_user_dept_id();
+$branch_name   = current_employee()['branch_name'] ?? 'Chi Nhánh';
+$dept_name     = current_employee()['department_name'] ?? 'Phòng Ban';
 $can_view_payroll = has_permission('payroll', 'view');
 
-// 1. Thống kê nhân sự tổng quan (có lọc theo Data Scope)
+// Helper scope SQL cục bộ cho Dashboard (all / branch / department)
+$dash_emp_filter = '';
 if ($is_branch_mgr && $branch_id) {
-    $total_employees = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status != 'resigned' AND branch_id = {$branch_id}")->fetchColumn() ?: 0);
-    $total_official = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status = 'official' AND branch_id = {$branch_id}")->fetchColumn() ?: 0);
-    $total_probation = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status = 'probation' AND branch_id = {$branch_id}")->fetchColumn() ?: 0);
-    $total_departments = (int)($pdo->query("SELECT COUNT(DISTINCT department_id) FROM employees WHERE branch_id = {$branch_id}")->fetchColumn() ?: 0);
-    $total_branches = 1;
+    $dash_emp_filter = ' AND e.branch_id = ' . (int)$branch_id;
+} elseif ($is_dept_mgr && $dept_id) {
+    $dash_emp_filter = ' AND e.department_id = ' . (int)$dept_id;
+}
+
+// 1. Thống kê nhân sự tổng quan (Gộp 1 truy vấn duy nhất + lọc theo Data Scope)
+if (($is_branch_mgr && $branch_id) || ($is_dept_mgr && $dept_id)) {
+    $emp_sum_stmt = $pdo->prepare("
+        SELECT
+            COUNT(CASE WHEN e.employment_status != 'resigned' THEN 1 END) AS total_employees,
+            COUNT(CASE WHEN e.employment_status = 'official' THEN 1 END) AS total_official,
+            COUNT(CASE WHEN e.employment_status = 'probation' THEN 1 END) AS total_probation,
+            COUNT(DISTINCT CASE WHEN e.employment_status != 'resigned' THEN e.department_id END) AS total_departments
+        FROM employees e
+        WHERE 1=1 {$dash_emp_filter}
+    ");
+    $emp_sum_stmt->execute();
+    $emp_sum = $emp_sum_stmt->fetch() ?: [];
+    $total_employees   = (int)($emp_sum['total_employees'] ?? 0);
+    $total_official    = (int)($emp_sum['total_official'] ?? 0);
+    $total_probation   = (int)($emp_sum['total_probation'] ?? 0);
+    $total_departments = (int)($emp_sum['total_departments'] ?? 0);
+    $total_branches    = 1;
 } else {
-    $total_employees = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status != 'resigned'")->fetchColumn() ?: 0);
-    $total_official = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status = 'official'")->fetchColumn() ?: 0);
-    $total_probation = (int)($pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status = 'probation'")->fetchColumn() ?: 0);
-    $total_departments = (int)($pdo->query("SELECT COUNT(*) FROM departments")->fetchColumn() ?: 0);
-    $total_branches = (int)($pdo->query("SELECT COUNT(*) FROM branches WHERE status = 'active'")->fetchColumn() ?: 0);
+    $emp_sum = $pdo->query("
+        SELECT
+            COUNT(CASE WHEN employment_status != 'resigned' THEN 1 END) AS total_employees,
+            COUNT(CASE WHEN employment_status = 'official' THEN 1 END) AS total_official,
+            COUNT(CASE WHEN employment_status = 'probation' THEN 1 END) AS total_probation,
+            (SELECT COUNT(*) FROM departments) AS total_departments,
+            (SELECT COUNT(*) FROM branches WHERE status = 'active') AS total_branches
+        FROM employees
+    ")->fetch() ?: [];
+    $total_employees   = (int)($emp_sum['total_employees'] ?? 0);
+    $total_official    = (int)($emp_sum['total_official'] ?? 0);
+    $total_probation   = (int)($emp_sum['total_probation'] ?? 0);
+    $total_departments = (int)($emp_sum['total_departments'] ?? 0);
+    $total_branches    = (int)($emp_sum['total_branches'] ?? 0);
 }
 
 // 2. Thống kê chấm công trong ngày hôm nay
-if ($is_branch_mgr && $branch_id) {
+if ($dash_emp_filter !== '') {
     $att_today_stmt = $pdo->prepare("
         SELECT 
             COUNT(CASE WHEN a.status = 'present' THEN 1 END) as present_count,
@@ -49,9 +80,9 @@ if ($is_branch_mgr && $branch_id) {
             COUNT(*) as total_logged
         FROM attendance a
         JOIN employees e ON a.employee_id = e.id
-        WHERE a.date = ? AND e.branch_id = ?
+        WHERE a.date = ? {$dash_emp_filter}
     ");
-    $att_today_stmt->execute([$today, $branch_id]);
+    $att_today_stmt->execute([$today]);
 } else {
     $att_today_stmt = $pdo->prepare("
         SELECT 
@@ -81,15 +112,15 @@ $paid_fund = 0;
 $is_projected_fund = false;
 
 if ($can_view_payroll) {
-    if ($is_branch_mgr && $branch_id) {
+    if ($dash_emp_filter !== '') {
         $payroll_fund_stmt = $pdo->prepare("
             SELECT SUM(COALESCE(pr.gross_salary, pr.final_salary)) as total_fund, 
                    SUM(CASE WHEN pr.payment_status = 'paid' THEN pr.final_salary ELSE 0 END) as paid_fund 
             FROM payrolls pr
             JOIN employees e ON pr.employee_id = e.id
-            WHERE pr.month = ? AND pr.year = ? AND e.branch_id = ?
+            WHERE pr.month = ? AND pr.year = ? {$dash_emp_filter}
         ");
-        $payroll_fund_stmt->execute([$current_month, $current_year, $branch_id]);
+        $payroll_fund_stmt->execute([$current_month, $current_year]);
     } else {
         $payroll_fund_stmt = $pdo->prepare("
             SELECT SUM(COALESCE(gross_salary, final_salary)) as total_fund, 
@@ -105,24 +136,23 @@ if ($can_view_payroll) {
 
     // Dự toán nếu chưa tính lương
     if ($current_fund <= 0) {
-        $proj_where = ($is_branch_mgr && $branch_id) ? "AND e.branch_id = {$branch_id}" : "";
         $current_fund = (float)($pdo->query("
             SELECT SUM(p.base_salary) 
             FROM employees e 
             JOIN positions p ON e.position_id = p.id 
-            WHERE e.employment_status != 'resigned' {$proj_where}
+            WHERE e.employment_status != 'resigned' {$dash_emp_filter}
         ")->fetchColumn() ?: 0);
         $is_projected_fund = true;
     }
 }
 
 // 4. Cơ cấu nhân sự theo phòng ban (Chart Donut)
-if ($is_branch_mgr && $branch_id) {
+if ($dash_emp_filter !== '') {
     $dept_stats = $pdo->query("
         SELECT d.name, COUNT(e.id) as emp_count
         FROM departments d
         JOIN employees e ON d.id = e.department_id AND e.employment_status != 'resigned'
-        WHERE e.branch_id = {$branch_id}
+        WHERE 1=1 {$dash_emp_filter}
         GROUP BY d.id
         ORDER BY emp_count DESC
     ")->fetchAll();
@@ -143,36 +173,58 @@ foreach ($dept_stats as $ds) {
     $dept_counts[] = (int)$ds['emp_count'];
 }
 
-// 5. Xu hướng chi trả lương trong 6 tháng gần nhất (nếu có quyền)
+// 5. Xu hướng chi trả lương trong 6 tháng gần nhất (Gộp 1 truy vấn GROUP BY, khử N+1)
 $trend_labels = [];
 $trend_values = [];
 
 if ($can_view_payroll) {
+    $months_meta = [];
+    $ym_pairs = [];
     for ($i = 5; $i >= 0; $i--) {
-        $t_time = strtotime("-{$i} month");
+        $t_time = strtotime(date('Y-m-01') . " -{$i} month");
         $t_m = (int)date('m', $t_time);
         $t_y = (int)date('Y', $t_time);
-        $trend_labels[] = "T{$t_m}/" . substr((string)$t_y, 2);
+        $key = sprintf('%04d-%02d', $t_y, $t_m);
+        $months_meta[$key] = "T{$t_m}/" . substr((string)$t_y, 2);
+        $ym_pairs[] = ($t_y * 100 + $t_m);
+    }
 
-        if ($is_branch_mgr && $branch_id) {
-            $t_stmt = $pdo->prepare("
-                SELECT SUM(COALESCE(pr.gross_salary, pr.final_salary)) 
-                FROM payrolls pr
-                JOIN employees e ON pr.employee_id = e.id
-                WHERE pr.month = ? AND pr.year = ? AND e.branch_id = ?
-            ");
-            $t_stmt->execute([$t_m, $t_y, $branch_id]);
-        } else {
-            $t_stmt = $pdo->prepare("SELECT SUM(COALESCE(gross_salary, final_salary)) FROM payrolls WHERE month = ? AND year = ?");
-            $t_stmt->execute([$t_m, $t_y]);
-        }
-        $trend_val = (float)($t_stmt->fetchColumn() ?: 0);
-        $trend_values[] = round($trend_val / 1000000, 1);
+    $min_ym = min($ym_pairs);
+    $max_ym = max($ym_pairs);
+    $trend_map = [];
+
+    if (($is_branch_mgr && $branch_id) || ($is_dept_mgr && $dept_id)) {
+        $t_stmt = $pdo->prepare("
+            SELECT pr.year, pr.month, SUM(COALESCE(pr.gross_salary, pr.final_salary)) AS total_val
+            FROM payrolls pr
+            JOIN employees e ON pr.employee_id = e.id
+            WHERE (pr.year * 100 + pr.month) BETWEEN ? AND ? {$dash_emp_filter}
+            GROUP BY pr.year, pr.month
+        ");
+        $t_stmt->execute([$min_ym, $max_ym]);
+    } else {
+        $t_stmt = $pdo->prepare("
+            SELECT year, month, SUM(COALESCE(gross_salary, final_salary)) AS total_val
+            FROM payrolls
+            WHERE (year * 100 + month) BETWEEN ? AND ?
+            GROUP BY year, month
+        ");
+        $t_stmt->execute([$min_ym, $max_ym]);
+    }
+
+    foreach ($t_stmt->fetchAll() as $row) {
+        $k = sprintf('%04d-%02d', (int)$row['year'], (int)$row['month']);
+        $trend_map[$k] = (float)$row['total_val'];
+    }
+
+    foreach ($months_meta as $key => $label) {
+        $trend_labels[] = $label;
+        $trend_values[] = round(($trend_map[$key] ?? 0) / 1000000, 1);
     }
 }
 
 // 6. Danh sách 5 nhân sự mới tuyển dụng gần đây
-$rec_where = ($is_branch_mgr && $branch_id) ? "WHERE e.branch_id = {$branch_id}" : "";
+$rec_where = ($is_branch_mgr && $branch_id) ? "WHERE e.branch_id = {$branch_id}" : (($is_dept_mgr && $dept_id) ? "WHERE e.department_id = {$dept_id}" : "");
 $recent_employees = $pdo->query("
     SELECT e.*, d.name AS department_name, p.name AS position_name 
     FROM employees e
@@ -187,7 +239,7 @@ $recent_employees = $pdo->query("
 $pending_proposals_count = 0;
 $pending_proposals = [];
 if (has_permission('proposals', 'view') || has_permission('proposals', 'create')) {
-    $prop_branch_where = ($is_branch_mgr && $branch_id) ? "AND e.branch_id = {$branch_id}" : "";
+    $prop_branch_where = $dash_emp_filter;
     $pending_proposals_count = (int)($pdo->query("SELECT COUNT(*) FROM proposals p JOIN employees e ON p.employee_id = e.id WHERE p.status = 'pending' {$prop_branch_where}")->fetchColumn() ?: 0);
     $pending_stmt = $pdo->query("
         SELECT p.*, e.fullname, e.employee_code, e.avatar, d.name AS department_name
@@ -215,28 +267,35 @@ $kpi_stats = [
     'poor_count' => 0
 ];
 try {
+    $kpi_branch_join = ($is_branch_mgr && $branch_id)
+        ? "JOIN employees emp ON ev.employee_id = emp.id WHERE emp.branch_id = " . (int)$branch_id
+        : (($is_dept_mgr && $dept_id) ? "JOIN employees emp ON ev.employee_id = emp.id WHERE emp.department_id = " . (int)$dept_id : "");
     $kpi_data = $pdo->query("
         SELECT 
             COUNT(*) as total,
-            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
-            COUNT(CASE WHEN status IN ('manager_review', 'self_review') THEN 1 END) as pending_review,
-            AVG(CASE WHEN status = 'completed' THEN final_score END) as avg_score,
-            COUNT(CASE WHEN rating = 'outstanding' THEN 1 END) as outstanding_count,
-            COUNT(CASE WHEN rating = 'excellent' THEN 1 END) as excellent_count,
-            COUNT(CASE WHEN rating = 'good' THEN 1 END) as good_count,
-            COUNT(CASE WHEN rating = 'average' THEN 1 END) as average_count,
-            COUNT(CASE WHEN rating = 'below_average' THEN 1 END) as below_average_count,
-            COUNT(CASE WHEN rating = 'poor' THEN 1 END) as poor_count
-        FROM evaluations
+            COUNT(CASE WHEN ev.status = 'completed' THEN 1 END) as completed,
+            COUNT(CASE WHEN ev.status IN ('manager_review', 'self_review') THEN 1 END) as pending_review,
+            AVG(CASE WHEN ev.status = 'completed' THEN ev.final_score END) as avg_score,
+            COUNT(CASE WHEN ev.rating = 'outstanding' THEN 1 END) as outstanding_count,
+            COUNT(CASE WHEN ev.rating = 'excellent' THEN 1 END) as excellent_count,
+            COUNT(CASE WHEN ev.rating = 'good' THEN 1 END) as good_count,
+            COUNT(CASE WHEN ev.rating = 'average' THEN 1 END) as average_count,
+            COUNT(CASE WHEN ev.rating = 'below_average' THEN 1 END) as below_average_count,
+            COUNT(CASE WHEN ev.rating = 'poor' THEN 1 END) as poor_count
+        FROM evaluations ev
+        {$kpi_branch_join}
     ")->fetch();
     if ($kpi_data) {
         $kpi_stats = array_merge($kpi_stats, $kpi_data);
     }
 } catch (Exception $e) {}
 
-// Top 5 Nhân sự xuất sắc nhất theo KPI
+// Top 5 Nhân sự xuất sắc nhất theo KPI (lọc theo chi nhánh nếu là GĐ Chi nhánh)
 $top_performers = [];
 try {
+    $top_branch_where = ($is_branch_mgr && $branch_id)
+        ? "AND emp.branch_id = " . (int)$branch_id
+        : (($is_dept_mgr && $dept_id) ? "AND emp.department_id = " . (int)$dept_id : "");
     $top_performers = $pdo->query("
         SELECT e.final_score, e.rating, emp.fullname, emp.employee_code, emp.avatar,
                d.name AS department_name, p.name AS position_name, e.id AS eval_id
@@ -244,7 +303,7 @@ try {
         JOIN employees emp ON e.employee_id = emp.id
         LEFT JOIN departments d ON emp.department_id = d.id
         LEFT JOIN positions p ON emp.position_id = p.id
-        WHERE e.status = 'completed'
+        WHERE e.status = 'completed' {$top_branch_where}
         ORDER BY e.final_score DESC
         LIMIT 5
     ")->fetchAll();
@@ -253,22 +312,28 @@ try {
 // 8. Thống kê Trung tâm Hành động cần xử lý ngay trong ngày (Enterprise Daily Ops)
 $pending_disciplines_count = 0;
 try {
-    $pending_disciplines_count = (int)$pdo->query("SELECT COUNT(*) FROM disciplines WHERE status = 'pending'")->fetchColumn();
+    $pending_disciplines_count = (int)$pdo->query("SELECT COUNT(*) FROM disciplines d JOIN employees e ON d.employee_id = e.id WHERE d.status = 'pending' {$dash_emp_filter}")->fetchColumn();
 } catch (Exception $e) {}
 
 $expiring_contracts_count = 0;
 try {
     $expiring_contracts_count = (int)$pdo->query("
-        SELECT COUNT(*) FROM employee_contracts 
-        WHERE status = 'active' 
-          AND end_date IS NOT NULL 
-          AND end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+        SELECT COUNT(*) FROM employee_contracts ec
+        JOIN employees e ON ec.employee_id = e.id
+        WHERE ec.status = 'active' 
+          AND ec.end_date IS NOT NULL 
+          AND ec.end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+          {$dash_emp_filter}
     ")->fetchColumn();
 } catch (Exception $e) {}
 
 $payroll_status_info = ['status' => 'not_created', 'label' => 'Chưa tính bảng lương', 'class' => 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'];
 try {
-    $pay_check = $pdo->prepare("SELECT COUNT(*) as total, COUNT(CASE WHEN locked_at IS NOT NULL THEN 1 END) as locked, COUNT(CASE WHEN payment_status = 'paid' THEN 1 END) as paid FROM payrolls WHERE month = ? AND year = ?");
+    $pay_check = $pdo->prepare("
+        SELECT COUNT(*) as total, COUNT(CASE WHEN pr.locked_at IS NOT NULL THEN 1 END) as locked, COUNT(CASE WHEN pr.payment_status = 'paid' THEN 1 END) as paid 
+        FROM payrolls pr JOIN employees e ON pr.employee_id = e.id
+        WHERE pr.month = ? AND pr.year = ? {$dash_emp_filter}
+    ");
     $pay_check->execute([$current_month, $current_year]);
     $pay_row = $pay_check->fetch();
     if ($pay_row && (int)$pay_row['total'] > 0) {
@@ -290,25 +355,25 @@ require_once __DIR__ . '/includes/header.php';
 
 <div class="space-y-6">
 
-    <!-- Banner Chào Mừng Phong Cách Flat Metro UI -->
-    <div class="bg-indigo-700 dark:bg-slate-800 rounded-sm p-6 sm:p-8 text-white border border-indigo-800 dark:border-slate-700 flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative">
-        <div>
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-sm text-xs font-semibold bg-indigo-900 text-indigo-100 mb-3 border border-indigo-600/40">
-                <i class="fa-solid fa-sparkles text-amber-300"></i> Trung Tâm Điều Hành Nhân Sự &bull; <?= $is_branch_mgr ? e($branch_name) : (e(brand('company_short')) . ' (' . e(brand('retail_brands')) . ')') ?>
+    <!-- Banner Điều Hành Tổng Quan (Clean Enterprise UI) -->
+    <div class="bg-gradient-to-br from-indigo-700 via-indigo-800 to-slate-900 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900 rounded-2xl p-6 sm:p-7 text-white border border-indigo-700/60 dark:border-slate-700 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-5 relative">
+        <div class="min-w-0">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/15 text-indigo-50 mb-3 border border-white/20">
+                <i class="fa-solid fa-sparkles text-amber-300"></i> Trung Tâm Điều Hành Nhân Sự &bull; <?= $is_branch_mgr ? e($branch_name) : ($is_dept_mgr ? e($dept_name) : (e(brand('company_short')) . ' (' . e(brand('retail_brands')) . ')')) ?>
             </div>
             <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Xin chào, <?= e($user['fullname']) ?>!</h2>
-            <p class="text-indigo-100 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
-                Hôm nay là <strong class="text-white"><?= date('l, d/m/Y') ?></strong>. <?= $is_branch_mgr ? "Khu vực <strong class='text-amber-200'>" . e($branch_name) . "</strong> đang quản lý" : ("Hệ thống " . e(brand('product_name')) . " đang quản lý") ?> 
-                <strong class="text-amber-200"><?= $total_employees ?></strong> nhân sự trực thuộc 
-                <strong class="text-amber-200"><?= $total_branches ?></strong> chi nhánh và 
-                <strong class="text-amber-200"><?= $total_departments ?></strong> khối phòng ban chức năng.
+            <p class="text-indigo-100/90 text-xs sm:text-sm mt-1.5 max-w-2xl leading-relaxed">
+                Hôm nay là <strong class="text-white"><?= date('l, d/m/Y') ?></strong>. <?= $is_branch_mgr ? "Khu vực <strong class='text-amber-200'>" . e($branch_name) . "</strong> đang quản lý" : ($is_dept_mgr ? "Phòng ban <strong class='text-amber-200'>" . e($dept_name) . "</strong> đang quản lý" : ("Hệ thống " . e(brand('product_name')) . " đang quản lý")) ?> 
+                <strong class="text-amber-200 tabular-nums"><?= $total_employees ?></strong> nhân sự trực thuộc 
+                <strong class="text-amber-200 tabular-nums"><?= $total_branches ?></strong> chi nhánh và 
+                <strong class="text-amber-200 tabular-nums"><?= $total_departments ?></strong> khối phòng ban chức năng.
             </p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
             <?php if (has_permission('orgchart', 'view')): ?>
                 <a href="<?= base_url('modules/orgchart/index.php') ?>" 
-                   class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-sm bg-indigo-800 hover:bg-indigo-900 text-white font-semibold text-xs border border-indigo-600/60 transition">
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/15 transition">
                     <i class="fa-solid fa-sitemap text-amber-300"></i>
                     <span>Sơ Đồ Cơ Cấu</span>
                 </a>
@@ -316,7 +381,7 @@ require_once __DIR__ . '/includes/header.php';
 
             <?php if (has_permission('transfers', 'view')): ?>
                 <a href="<?= base_url('modules/transfers/index.php') ?>" 
-                   class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-sm bg-indigo-800 hover:bg-indigo-900 text-white font-semibold text-xs border border-indigo-600/60 transition">
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/15 transition">
                     <i class="fa-solid fa-people-arrows text-sky-300"></i>
                     <span>Thuyên Chuyển</span>
                 </a>
@@ -324,7 +389,7 @@ require_once __DIR__ . '/includes/header.php';
 
             <?php if (is_superadmin()): ?>
                 <a href="<?= base_url('modules/matrix/index.php') ?>" 
-                   class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-sm bg-indigo-800 hover:bg-indigo-900 text-white font-semibold text-xs border border-indigo-600/60 transition">
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/15 transition">
                     <i class="fa-solid fa-network-wired"></i>
                     <span>Ma Trận Quyền</span>
                 </a>
@@ -332,29 +397,29 @@ require_once __DIR__ . '/includes/header.php';
             
             <?php if (has_permission('proposals', 'view') || has_permission('proposals', 'create')): ?>
                 <a href="<?= base_url('modules/proposals/index.php') ?>" 
-                   class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-sm bg-indigo-800 hover:bg-indigo-900 text-white font-semibold text-xs border border-indigo-600/60 transition">
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/15 transition">
                     <i class="fa-solid fa-paper-plane text-amber-300"></i>
                     <span>Đề Xuất</span>
                     <?php if ($pending_proposals_count > 0): ?>
-                        <span class="ml-1 px-1.5 py-0.5 rounded-sm bg-amber-400 text-slate-900 text-[10px] font-black"><?= $pending_proposals_count ?></span>
+                        <span class="ml-0.5 px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-900 text-[10px] font-black tabular-nums"><?= $pending_proposals_count ?></span>
                     <?php endif; ?>
                 </a>
             <?php endif; ?>
             
             <?php if (has_permission('evaluations', 'view')): ?>
                 <a href="<?= base_url('modules/evaluations/index.php') ?>" 
-                   class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-sm bg-indigo-800 hover:bg-indigo-900 text-white font-semibold text-xs border border-indigo-600/60 transition">
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/15 transition">
                     <i class="fa-solid fa-bullseye text-violet-300"></i>
                     <span>Đánh Giá & KPI</span>
                     <?php if ($kpi_stats['pending_review'] > 0): ?>
-                        <span class="ml-1 px-1.5 py-0.5 rounded-sm bg-violet-400 text-slate-900 text-[10px] font-black"><?= $kpi_stats['pending_review'] ?></span>
+                        <span class="ml-0.5 px-1.5 py-0.5 rounded-full bg-violet-400 text-slate-900 text-[10px] font-black tabular-nums"><?= $kpi_stats['pending_review'] ?></span>
                     <?php endif; ?>
                 </a>
             <?php endif; ?>
 
             <?php if (has_permission('attendance', 'create')): ?>
                 <a href="<?= base_url('modules/attendance/index.php') ?>" 
-                   class="inline-flex items-center gap-2 px-4 py-2.5 rounded-sm bg-white text-indigo-700 hover:bg-indigo-50 font-bold text-xs transition border border-white">
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-indigo-700 hover:bg-indigo-50 font-bold text-xs transition shadow-xs">
                     <i class="fa-solid fa-clipboard-user"></i>
                     <span>Chấm Công Hôm Nay</span>
                 </a>
@@ -362,76 +427,78 @@ require_once __DIR__ . '/includes/header.php';
         </div>
     </div>
 
-    <!-- Khối Trung Tâm Hành Động Cần Xử Lý Ngay (Enterprise Action Required Center) -->
-    <div class="bg-white dark:bg-slate-800 p-5 rounded-sm border border-slate-300 dark:border-slate-700 space-y-3">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-                <span class="w-7 h-7 rounded-sm bg-amber-500 text-white flex items-center justify-center text-xs">
+    <!-- Khối Trung Tâm Hành Động Cần Xử Lý Ngay (Daily Action Center) -->
+    <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-3.5">
+        <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <span class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center text-xs flex-shrink-0 shadow-xs">
                     <i class="fa-solid fa-bell-concierge"></i>
                 </span>
-                <div>
-                    <h3 class="text-sm font-extrabold text-slate-900 dark:text-white leading-tight">Trung Tâm Xử Lý Công Việc Trong Ngày</h3>
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400">Các hạng mục quan trọng cần bộ phận Nhân sự & Quản lý duyệt hoặc kiểm tra hôm nay</p>
+                <div class="min-w-0">
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white leading-tight">Trung Tâm Xử Lý Công Việc Trong Ngày</h3>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">Ưu tiên xử lý các mục có số lượng tồn đọng cần duyệt hôm nay</p>
                 </div>
             </div>
-            <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 hidden sm:inline">Cập nhật thời gian thực</span>
+            <span class="text-[11px] font-semibold text-slate-400 dark:text-slate-500 hidden sm:inline-flex items-center gap-1.5 flex-shrink-0">
+                <span class="w-2 h-2 rounded-circle bg-emerald-500"></span> Thời gian thực
+            </span>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 pt-1">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
             <!-- Mục 1: Đề xuất chờ duyệt -->
             <a href="<?= base_url('modules/proposals/index.php') ?>" 
-               class="p-3.5 rounded-sm bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/80 flex items-center justify-between hover:bg-amber-100/60 dark:hover:bg-amber-950/50 transition group">
-                <div>
-                    <div class="text-[11px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider">Đề Xuất Nghỉ & OT</div>
-                    <div class="text-lg font-black text-amber-950 dark:text-amber-100 mt-0.5">
-                        <?= $pending_proposals_count ?> <span class="text-xs font-semibold text-amber-700 dark:text-amber-400">chờ duyệt</span>
+               class="p-3.5 rounded-xl border transition group flex items-center justify-between min-w-0 <?= $pending_proposals_count > 0 ? 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/80 hover:border-amber-400' : 'bg-slate-50/70 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700 hover:border-slate-300' ?>">
+                <div class="min-w-0">
+                    <div class="text-[11px] font-bold uppercase tracking-wider <?= $pending_proposals_count > 0 ? 'text-amber-800 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400' ?>">Đề Xuất Nghỉ & OT</div>
+                    <div class="text-lg font-extrabold mt-0.5 tabular-nums <?= $pending_proposals_count > 0 ? 'text-amber-950 dark:text-amber-100' : 'text-slate-600 dark:text-slate-300' ?>">
+                        <?= $pending_proposals_count ?> <span class="text-xs font-medium <?= $pending_proposals_count > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-400' ?>"><?= $pending_proposals_count > 0 ? 'chờ duyệt' : 'đã xử lý hết' ?></span>
                     </div>
                 </div>
-                <div class="w-8 h-8 rounded-sm bg-amber-500 text-white flex items-center justify-center text-xs group-hover:scale-110 transition-transform">
-                    <i class="fa-solid fa-arrow-right"></i>
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs flex-shrink-0 transition <?= $pending_proposals_count > 0 ? 'bg-amber-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300' ?>">
+                    <i class="fa-solid <?= $pending_proposals_count > 0 ? 'fa-arrow-right' : 'fa-check' ?>"></i>
                 </div>
             </a>
 
             <!-- Mục 2: Kỷ luật chờ phê duyệt -->
             <a href="<?= base_url('modules/disciplines/index.php') ?>" 
-               class="p-3.5 rounded-sm bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-800/80 flex items-center justify-between hover:bg-rose-100/60 dark:hover:bg-rose-950/50 transition group">
-                <div>
-                    <div class="text-[11px] font-bold text-rose-800 dark:text-rose-300 uppercase tracking-wider">Vi Phạm & Kỷ Luật</div>
-                    <div class="text-lg font-black text-rose-950 dark:text-rose-100 mt-0.5">
-                        <?= $pending_disciplines_count ?> <span class="text-xs font-semibold text-rose-700 dark:text-rose-400">chờ xử lý</span>
+               class="p-3.5 rounded-xl border transition group flex items-center justify-between min-w-0 <?= $pending_disciplines_count > 0 ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800/80 hover:border-rose-400' : 'bg-slate-50/70 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700 hover:border-slate-300' ?>">
+                <div class="min-w-0">
+                    <div class="text-[11px] font-bold uppercase tracking-wider <?= $pending_disciplines_count > 0 ? 'text-rose-800 dark:text-rose-300' : 'text-slate-500 dark:text-slate-400' ?>">Vi Phạm & Kỷ Luật</div>
+                    <div class="text-lg font-extrabold mt-0.5 tabular-nums <?= $pending_disciplines_count > 0 ? 'text-rose-950 dark:text-rose-100' : 'text-slate-600 dark:text-slate-300' ?>">
+                        <?= $pending_disciplines_count ?> <span class="text-xs font-medium <?= $pending_disciplines_count > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-slate-400' ?>"><?= $pending_disciplines_count > 0 ? 'chờ xử lý' : 'không có tồn' ?></span>
                     </div>
                 </div>
-                <div class="w-8 h-8 rounded-sm bg-rose-500 text-white flex items-center justify-center text-xs group-hover:scale-110 transition-transform">
-                    <i class="fa-solid fa-arrow-right"></i>
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs flex-shrink-0 transition <?= $pending_disciplines_count > 0 ? 'bg-rose-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300' ?>">
+                    <i class="fa-solid <?= $pending_disciplines_count > 0 ? 'fa-arrow-right' : 'fa-check' ?>"></i>
                 </div>
             </a>
 
             <!-- Mục 3: Hợp đồng sắp hết hạn -->
             <a href="<?= base_url('modules/employees/index.php') ?>" 
-               class="p-3.5 rounded-sm bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200/80 dark:border-sky-800/80 flex items-center justify-between hover:bg-sky-100/60 dark:hover:bg-sky-950/50 transition group">
-                <div>
-                    <div class="text-[11px] font-bold text-sky-800 dark:text-sky-300 uppercase tracking-wider">HĐLĐ Sắp Hết Hạn</div>
-                    <div class="text-lg font-black text-sky-950 dark:text-sky-100 mt-0.5">
-                        <?= $expiring_contracts_count ?> <span class="text-xs font-semibold text-sky-700 dark:text-sky-400">(trong 30 ngày)</span>
+               class="p-3.5 rounded-xl border transition group flex items-center justify-between min-w-0 <?= $expiring_contracts_count > 0 ? 'bg-sky-50/80 dark:bg-sky-950/30 border-sky-200 dark:border-sky-800/80 hover:border-sky-400' : 'bg-slate-50/70 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700 hover:border-slate-300' ?>">
+                <div class="min-w-0">
+                    <div class="text-[11px] font-bold uppercase tracking-wider <?= $expiring_contracts_count > 0 ? 'text-sky-800 dark:text-sky-300' : 'text-slate-500 dark:text-slate-400' ?>">HĐLĐ Sắp Hết Hạn</div>
+                    <div class="text-lg font-extrabold mt-0.5 tabular-nums <?= $expiring_contracts_count > 0 ? 'text-sky-950 dark:text-sky-100' : 'text-slate-600 dark:text-slate-300' ?>">
+                        <?= $expiring_contracts_count ?> <span class="text-xs font-medium <?= $expiring_contracts_count > 0 ? 'text-sky-700 dark:text-sky-400' : 'text-slate-400' ?>">(trong 30 ngày)</span>
                     </div>
                 </div>
-                <div class="w-8 h-8 rounded-sm bg-sky-500 text-white flex items-center justify-center text-xs group-hover:scale-110 transition-transform">
-                    <i class="fa-solid fa-arrow-right"></i>
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs flex-shrink-0 transition <?= $expiring_contracts_count > 0 ? 'bg-sky-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300' ?>">
+                    <i class="fa-solid <?= $expiring_contracts_count > 0 ? 'fa-arrow-right' : 'fa-check' ?>"></i>
                 </div>
             </a>
 
             <!-- Mục 4: Trạng thái kỳ lương hiện tại -->
             <a href="<?= base_url('modules/payroll/index.php') ?>" 
-               class="p-3.5 rounded-sm bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-between hover:bg-indigo-100/60 dark:hover:bg-indigo-950/50 transition group">
-                <div>
+               class="p-3.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-between hover:border-indigo-400 transition group min-w-0">
+                <div class="min-w-0">
                     <div class="text-[11px] font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-wider">Kỳ Lương Tháng <?= $current_month ?>/<?= $current_year ?></div>
                     <div class="text-xs font-bold text-indigo-900 dark:text-indigo-100 mt-1">
-                        <span class="inline-block px-2 py-0.5 rounded-sm <?= $payroll_status_info['class'] ?> text-[11px] font-extrabold">
+                        <span class="inline-block px-2 py-0.5 rounded-full <?= $payroll_status_info['class'] ?> text-[11px] font-bold">
                             <?= $payroll_status_info['label'] ?>
                         </span>
                     </div>
                 </div>
-                <div class="w-8 h-8 rounded-sm bg-indigo-600 text-white flex items-center justify-center text-xs group-hover:scale-110 transition-transform">
+                <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs flex-shrink-0">
                     <i class="fa-solid fa-arrow-right"></i>
                 </div>
             </a>
@@ -439,99 +506,99 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 
     <!-- 5 Khối Chỉ Số KPI Trọng Điểm -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <!-- KPI 1: Tổng số nhân sự -->
-        <div class="kpi-stripe-indigo bg-white dark:bg-slate-800 p-5 rounded-sm border border-slate-300 dark:border-slate-700 flex items-center justify-between card-hover">
-            <div>
+        <div class="kpi-stripe-indigo bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between gap-3 min-w-0">
+            <div class="min-w-0">
                 <span class="kpi-label">Nhân Sự Đang Làm Việc</span>
-                <div class="kpi-value mt-1"><?= $total_employees ?></div>
-                <div class="text-xs text-emerald-700 dark:text-emerald-300 font-bold mt-1.5 flex items-center gap-1.5">
+                <div class="kpi-value mt-1 tabular-nums"><?= $total_employees ?></div>
+                <div class="text-xs text-emerald-700 dark:text-emerald-300 font-semibold mt-1.5 flex items-center gap-1.5">
                     <i class="fa-solid fa-circle-check text-emerald-600 dark:text-emerald-400"></i>
-                    <span><?= $total_official ?> chính thức</span>
+                    <span class="tabular-nums"><?= $total_official ?> chính thức</span>
                 </div>
             </div>
-            <div class="w-12 h-12 rounded-sm bg-indigo-600 text-white flex items-center justify-center text-lg p-3">
+            <div class="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-lg flex-shrink-0">
                 <i class="fa-solid fa-users"></i>
             </div>
         </div>
 
         <!-- KPI 2: Tỷ lệ đi làm hôm nay -->
-        <div class="kpi-stripe-emerald bg-white dark:bg-slate-800 p-5 rounded-sm border border-slate-300 dark:border-slate-700 flex items-center justify-between card-hover">
-            <div>
+        <div class="kpi-stripe-emerald bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between gap-3 min-w-0">
+            <div class="min-w-0">
                 <span class="kpi-label">Tỷ Lệ Có Mặt Hôm Nay</span>
-                <div class="kpi-value text-emerald-600 dark:text-emerald-400 mt-1 font-mono"><?= $attendance_rate ?>%</div>
-                <div class="text-xs text-slate-700 dark:text-slate-300 font-bold mt-1.5 flex items-center gap-1.5">
-                    <i class="fa-regular fa-clock text-slate-500 dark:text-slate-400"></i>
-                    <span><?= $att_today['present_count'] ?>/<?= $total_employees ?> có mặt</span>
+                <div class="kpi-value text-emerald-600 dark:text-emerald-400 mt-1 font-mono tabular-nums"><?= $attendance_rate ?>%</div>
+                <div class="text-xs text-slate-600 dark:text-slate-300 font-semibold mt-1.5 flex items-center gap-1.5">
+                    <i class="fa-regular fa-clock text-slate-400"></i>
+                    <span class="tabular-nums"><?= $att_today['present_count'] ?>/<?= $total_employees ?> có mặt</span>
                 </div>
             </div>
-            <div class="w-12 h-12 rounded-sm bg-emerald-600 text-white flex items-center justify-center text-lg p-3">
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900 flex items-center justify-center text-lg flex-shrink-0">
                 <i class="fa-solid fa-calendar-check"></i>
             </div>
         </div>
 
         <!-- KPI 3: Quỹ lương tháng này HOẶC Đề xuất chờ duyệt -->
         <?php if ($can_view_payroll): ?>
-            <div class="kpi-stripe-amber bg-white dark:bg-slate-800 p-5 rounded-sm border border-slate-300 dark:border-slate-700 flex items-center justify-between card-hover">
-                <div>
+            <div class="kpi-stripe-amber bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between gap-3 min-w-0">
+                <div class="min-w-0">
                     <span class="kpi-label">
                         <?= $is_projected_fund ? 'Dự Toán Quỹ Lương' : ('Tổng Quỹ Lương ' . ($is_branch_mgr ? "({$branch_name})" : "T{$current_month}")) ?>
                     </span>
-                    <div class="kpi-value text-lg mt-1 font-mono"><?= format_money($current_fund) ?></div>
-                    <div class="text-xs <?= $is_projected_fund ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300' ?> mt-1.5 font-bold flex items-center gap-1.5">
-                        <i class="fa-solid fa-coins text-amber-500"></i>
-                        <span><?= $is_projected_fund ? 'Định mức ngạch bậc' : ('Đã chi: ' . format_money($paid_fund)) ?></span>
+                    <div class="kpi-value text-lg mt-1 font-mono tabular-nums truncate" title="<?= format_money($current_fund) ?>"><?= format_money($current_fund) ?></div>
+                    <div class="text-xs <?= $is_projected_fund ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300' ?> mt-1.5 font-semibold flex items-center gap-1.5 truncate">
+                        <i class="fa-solid fa-coins text-amber-500 flex-shrink-0"></i>
+                        <span class="truncate"><?= $is_projected_fund ? 'Định mức ngạch bậc' : ('Đã chi: ' . format_money($paid_fund)) ?></span>
                     </div>
                 </div>
-                <div class="w-12 h-12 rounded-sm bg-amber-500 text-white flex items-center justify-center text-lg p-3">
+                <div class="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900 flex items-center justify-center text-lg flex-shrink-0">
                     <i class="fa-solid fa-sack-dollar"></i>
                 </div>
             </div>
         <?php else: ?>
-            <div class="kpi-stripe-amber bg-white dark:bg-slate-800 p-5 rounded-sm border border-slate-300 dark:border-slate-700 flex items-center justify-between card-hover">
-                <div>
+            <div class="kpi-stripe-amber bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between gap-3 min-w-0">
+                <div class="min-w-0">
                     <span class="kpi-label">Đề Xuất Chờ Xử Lý</span>
-                    <div class="kpi-value text-amber-600 dark:text-amber-400 mt-1 font-mono"><?= $pending_proposals_count ?></div>
-                    <div class="text-xs text-amber-700 dark:text-amber-300 mt-1.5 font-bold flex items-center gap-1.5">
+                    <div class="kpi-value text-amber-600 dark:text-amber-400 mt-1 font-mono tabular-nums"><?= $pending_proposals_count ?></div>
+                    <div class="text-xs text-amber-700 dark:text-amber-300 mt-1.5 font-semibold flex items-center gap-1.5">
                         <i class="fa-solid fa-paper-plane text-amber-500"></i>
                         <span>Cần xử lý trong kỳ</span>
                     </div>
                 </div>
-                <div class="w-12 h-12 rounded-sm bg-amber-500 text-white flex items-center justify-center text-lg p-3">
+                <div class="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900 flex items-center justify-center text-lg flex-shrink-0">
                     <i class="fa-solid fa-clock-rotate-left"></i>
                 </div>
             </div>
         <?php endif; ?>
 
         <!-- KPI 4: Quy mô tổ chức -->
-        <div class="kpi-stripe-sky bg-white dark:bg-slate-800 p-5 rounded-sm border border-slate-300 dark:border-slate-700 flex items-center justify-between card-hover">
-            <div>
+        <div class="kpi-stripe-sky bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between gap-3 min-w-0">
+            <div class="min-w-0">
                 <span class="kpi-label">Khối Phòng Ban</span>
-                <div class="kpi-value mt-1"><?= $total_departments ?></div>
-                <div class="text-xs text-sky-700 dark:text-sky-300 mt-1.5 font-bold flex items-center gap-1.5">
+                <div class="kpi-value mt-1 tabular-nums"><?= $total_departments ?></div>
+                <div class="text-xs text-sky-700 dark:text-sky-300 mt-1.5 font-semibold flex items-center gap-1.5">
                     <i class="fa-solid fa-sitemap text-sky-600 dark:text-sky-400"></i>
-                    <span><?= count($dept_stats) ?> đơn vị</span>
+                    <span class="tabular-nums"><?= count($dept_stats) ?> đơn vị</span>
                 </div>
             </div>
-            <div class="w-12 h-12 rounded-sm bg-sky-600 text-white flex items-center justify-center text-lg p-3">
+            <div class="w-11 h-11 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 border border-sky-100 dark:border-sky-900 flex items-center justify-center text-lg flex-shrink-0">
                 <i class="fa-solid fa-building"></i>
             </div>
         </div>
 
         <!-- KPI 5: Điểm Hiệu Suất & Đánh Giá KPI -->
-        <div class="kpi-stripe-violet bg-white dark:bg-slate-800 p-5 rounded-sm border border-slate-300 dark:border-slate-700 flex items-center justify-between card-hover">
-            <div>
+        <div class="kpi-stripe-violet bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between gap-3 min-w-0">
+            <div class="min-w-0">
                 <span class="kpi-label">Điểm KPI Trung Bình</span>
-                <div class="kpi-value text-violet-600 dark:text-violet-400 mt-1 font-mono">
+                <div class="kpi-value text-violet-600 dark:text-violet-400 mt-1 font-mono tabular-nums">
                     <?= $kpi_stats['avg_score'] ? round($kpi_stats['avg_score'], 1) : '---' ?>
                     <span class="text-xs font-normal text-slate-400">/100</span>
                 </div>
-                <div class="text-xs text-violet-700 dark:text-violet-300 mt-1.5 font-bold flex items-center gap-1.5">
+                <div class="text-xs text-violet-700 dark:text-violet-300 mt-1.5 font-semibold flex items-center gap-1.5">
                     <i class="fa-solid fa-bullseye text-violet-500"></i>
-                    <span><?= $kpi_stats['completed'] ?> xong • <?= $kpi_stats['pending_review'] ?> đang chấm</span>
+                    <span class="tabular-nums"><?= $kpi_stats['completed'] ?> xong &bull; <?= $kpi_stats['pending_review'] ?> đang chấm</span>
                 </div>
             </div>
-            <div class="w-12 h-12 rounded-sm bg-violet-600 text-white flex items-center justify-center text-lg p-3">
+            <div class="w-11 h-11 rounded-xl bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 border border-violet-100 dark:border-violet-900 flex items-center justify-center text-lg flex-shrink-0">
                 <i class="fa-solid fa-award"></i>
             </div>
         </div>
@@ -541,13 +608,13 @@ require_once __DIR__ . '/includes/header.php';
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
         <!-- Biểu đồ 1: Cơ Cấu Nhân Sự Theo Phòng Ban (Donut Chart) -->
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 min-w-0">
-            <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-4 min-w-0">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
                 <div>
-                    <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Cơ Cấu Nhân Sự Theo Khối</h3>
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Tỷ trọng phân bổ nhân viên các phòng</p>
+                    <h3 class="font-bold text-slate-900 dark:text-white text-base">Cơ Cấu Nhân Sự Theo Khối</h3>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Tỷ trọng phân bổ nhân viên các phòng</p>
                 </div>
-                <div class="w-9 h-9 rounded-sm bg-indigo-600 text-white flex items-center justify-center text-sm">
+                <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-sm">
                     <i class="fa-solid fa-chart-pie"></i>
                 </div>
             </div>
@@ -558,12 +625,12 @@ require_once __DIR__ . '/includes/header.php';
 
             <div class="space-y-1.5 pt-2 max-h-36 overflow-y-auto pr-1 text-xs">
                 <?php foreach ($dept_stats as $idx => $d): ?>
-                    <div class="flex items-center justify-between py-1.5 border-b border-slate-200 dark:border-slate-700/60">
-                        <div class="flex items-center gap-2 truncate">
-                            <span class="w-3 h-3 rounded-sm flex-shrink-0" style="background-color: <?= ['#4f46e5', '#0284c7', '#059669', '#d97706', '#db2777', '#7c3aed'][$idx % 6] ?>;"></span>
-                            <span class="text-slate-800 dark:text-slate-200 font-semibold truncate"><?= e($d['name']) ?></span>
+                    <div class="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-700/60">
+                        <div class="flex items-center gap-2 truncate min-w-0">
+                            <span class="w-2.5 h-2.5 rounded-circle flex-shrink-0" style="background-color: <?= ['#4f46e5', '#0284c7', '#059669', '#d97706', '#db2777', '#7c3aed'][$idx % 6] ?>;"></span>
+                            <span class="text-slate-700 dark:text-slate-200 font-medium truncate"><?= e($d['name']) ?></span>
                         </div>
-                        <span class="font-extrabold text-slate-900 dark:text-white font-mono ml-2"><?= $d['emp_count'] ?> NV</span>
+                        <span class="font-bold text-slate-900 dark:text-white font-mono tabular-nums ml-2 flex-shrink-0"><?= $d['emp_count'] ?> NV</span>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -571,13 +638,13 @@ require_once __DIR__ . '/includes/header.php';
 
         <!-- Biểu đồ 2: Biến Động Quỹ Lương 6 Tháng Gần Nhất (Bar Chart) HOẶC Điểm Danh Hôm Nay -->
         <?php if ($can_view_payroll): ?>
-            <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 xl:col-span-2 min-w-0">
-                <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-4 xl:col-span-2 min-w-0">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
                     <div>
-                        <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Biến Động Quỹ Lương <?= $is_branch_mgr ? "({$branch_name})" : "(6 Tháng Gần Nhất)" ?></h3>
-                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Đơn vị: Triệu VNĐ &bull; Dựa trên dữ liệu quyết toán thực tế</p>
+                        <h3 class="font-bold text-slate-900 dark:text-white text-base">Biến Động Quỹ Lương <?= $is_branch_mgr ? "({$branch_name})" : "(6 Tháng Gần Nhất)" ?></h3>
+                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Đơn vị: Triệu VNĐ &bull; Dựa trên dữ liệu quyết toán thực tế</p>
                     </div>
-                    <div class="w-9 h-9 rounded-sm bg-emerald-600 text-white flex items-center justify-center text-sm">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900 flex items-center justify-center text-sm">
                         <i class="fa-solid fa-chart-column"></i>
                     </div>
                 </div>
@@ -587,33 +654,33 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </div>
         <?php else: ?>
-            <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 xl:col-span-2 min-w-0">
-                <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-4 xl:col-span-2 min-w-0">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
                     <div>
-                        <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Tỷ Lệ Chấm Công Trong Ngày</h3>
-                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Tổng quan quân số có mặt và vắng mặt</p>
+                        <h3 class="font-bold text-slate-900 dark:text-white text-base">Tỷ Lệ Chấm Công Trong Ngày</h3>
+                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Tổng quan quân số có mặt và vắng mặt</p>
                     </div>
-                    <div class="w-9 h-9 rounded-sm bg-emerald-600 text-white flex items-center justify-center text-sm">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900 flex items-center justify-center text-sm">
                         <i class="fa-solid fa-calendar-check"></i>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6">
-                    <div class="p-4 rounded-sm bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-center">
-                        <span class="text-xs uppercase font-extrabold text-emerald-800 dark:text-emerald-300">Có Mặt</span>
-                        <div class="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono mt-1"><?= $att_today['present_count'] ?></div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4">
+                    <div class="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-center">
+                        <span class="text-xs uppercase font-bold text-emerald-800 dark:text-emerald-300">Có Mặt</span>
+                        <div class="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono tabular-nums mt-1"><?= $att_today['present_count'] ?></div>
                     </div>
-                    <div class="p-4 rounded-sm bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-center">
-                        <span class="text-xs uppercase font-extrabold text-amber-800 dark:text-amber-300">Đi Trễ / Sớm</span>
-                        <div class="text-3xl font-black text-amber-600 dark:text-amber-400 font-mono mt-1"><?= $att_today['late_count'] ?></div>
+                    <div class="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-center">
+                        <span class="text-xs uppercase font-bold text-amber-800 dark:text-amber-300">Đi Trễ / Sớm</span>
+                        <div class="text-3xl font-black text-amber-600 dark:text-amber-400 font-mono tabular-nums mt-1"><?= $att_today['late_count'] ?></div>
                     </div>
-                    <div class="p-4 rounded-sm bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-center">
-                        <span class="text-xs uppercase font-extrabold text-sky-800 dark:text-sky-300">Nghỉ Có Phép</span>
-                        <div class="text-3xl font-black text-sky-600 dark:text-sky-400 font-mono mt-1"><?= $att_today['leave_count'] ?></div>
+                    <div class="p-4 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-center">
+                        <span class="text-xs uppercase font-bold text-sky-800 dark:text-sky-300">Nghỉ Có Phép</span>
+                        <div class="text-3xl font-black text-sky-600 dark:text-sky-400 font-mono tabular-nums mt-1"><?= $att_today['leave_count'] ?></div>
                     </div>
-                    <div class="p-4 rounded-sm bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-center">
-                        <span class="text-xs uppercase font-extrabold text-rose-800 dark:text-rose-300">Vắng Mặt</span>
-                        <div class="text-3xl font-black text-rose-600 dark:text-rose-400 font-mono mt-1"><?= $att_today['absent_count'] ?></div>
+                    <div class="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-center">
+                        <span class="text-xs uppercase font-bold text-rose-800 dark:text-rose-300">Vắng Mặt</span>
+                        <div class="text-3xl font-black text-rose-600 dark:text-rose-400 font-mono tabular-nums mt-1"><?= $att_today['absent_count'] ?></div>
                     </div>
                 </div>
             </div>
@@ -625,13 +692,13 @@ require_once __DIR__ . '/includes/header.php';
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
         <!-- Khối Chi Tiết Điểm Danh Hôm Nay -->
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 min-w-0">
-            <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-4 min-w-0">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
                 <div>
-                    <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Tình Hình Có Mặt Hôm Nay</h3>
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Ngày <?= date('d/m/Y') ?></p>
+                    <h3 class="font-bold text-slate-900 dark:text-white text-base">Tình Hình Có Mặt Hôm Nay</h3>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Ngày <?= date('d/m/Y') ?></p>
                 </div>
-                <span class="px-2.5 py-1 rounded-sm text-[11px] font-extrabold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-900 dark:text-indigo-200 border border-indigo-300 dark:border-indigo-700">
+                <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-50 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-700 tabular-nums">
                     <?= $att_today['total_logged'] ?> / <?= $total_employees ?> ghi nhận
                 </span>
             </div>
@@ -697,11 +764,11 @@ require_once __DIR__ . '/includes/header.php';
         </div>
 
         <!-- Khối 5 Nhân Sự Mới Tuyển Dụng -->
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 xl:col-span-2 min-w-0">
-            <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-4 xl:col-span-2 min-w-0">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
                 <div>
-                    <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Cán Bộ Mới Gia Nhập</h3>
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Danh sách nhân sự mới nhất được tiếp nhận vào các phòng ban</p>
+                    <h3 class="font-bold text-slate-900 dark:text-white text-base">Cán Bộ Mới Gia Nhập</h3>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Danh sách nhân sự mới nhất được tiếp nhận vào các phòng ban</p>
                 </div>
                 <?php if (has_permission('employees', 'view')): ?>
                     <a href="<?= base_url('modules/employees/index.php') ?>" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1 transition">
@@ -771,14 +838,14 @@ require_once __DIR__ . '/includes/header.php';
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
         
         <!-- Cột 1: Biểu đồ phân bổ xếp loại KPI (Bar Chart) -->
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 flex flex-col justify-between min-w-0">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-4 flex flex-col justify-between min-w-0">
             <div>
-                <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
                     <div>
-                        <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Phân Bổ Xếp Loại KPI</h3>
-                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Tỷ trọng các bậc xếp loại hiệu suất</p>
+                        <h3 class="font-bold text-slate-900 dark:text-white text-base">Phân Bổ Xếp Loại KPI</h3>
+                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Tỷ trọng các bậc xếp loại hiệu suất</p>
                     </div>
-                    <div class="w-9 h-9 rounded-sm bg-violet-600 text-white flex items-center justify-center text-sm">
+                    <div class="w-9 h-9 rounded-xl bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 border border-violet-100 dark:border-violet-900 flex items-center justify-center text-sm">
                         <i class="fa-solid fa-chart-column"></i>
                     </div>
                 </div>
@@ -883,10 +950,10 @@ require_once __DIR__ . '/includes/header.php';
 
     <?php if (has_permission('proposals', 'view') || has_permission('proposals', 'create')): ?>
         <!-- Khối Đề Xuất Chờ Phê Duyệt -->
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 min-w-0">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b-2 border-slate-200 dark:border-slate-700">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-4 min-w-0">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-sm bg-amber-500 text-white flex items-center justify-center text-lg">
+                    <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-base">
                         <i class="fa-solid fa-paper-plane"></i>
                     </div>
                     <div>
@@ -1042,7 +1109,7 @@ if (trendElem) {
             backgroundColor: isDarkMode ? 'rgba(99, 102, 241, 0.75)' : 'rgba(79, 70, 229, 0.85)',
             borderColor: '#4338ca',
             borderWidth: 1,
-            borderRadius: 0,
+            borderRadius: 6,
             barThickness: 34
         }]
     },
@@ -1105,7 +1172,7 @@ if (ctxKpi) {
                     '#f97316', // Yếu (Orange)
                     '#ef4444'  // Kém (Rose)
                 ],
-                borderRadius: 0,
+                borderRadius: 6,
                 barThickness: 24
             }]
         },

@@ -176,18 +176,28 @@ final class KpiService {
     /**
      * Lấy ma trận tiến độ toàn diện của các phòng ban trong một kỳ đánh giá
      */
-    public static function getDepartmentProgressMatrix(PDO $pdo, int $periodId): array {
+    public static function getDepartmentProgressMatrix(PDO $pdo, int $periodId, ?int $branchId = null, ?int $deptId = null): array {
         if ($periodId <= 0) return [];
 
-        // 1. Lấy tất cả phòng ban kèm thông tin Trưởng phòng & số lượng nhân viên thực tế
-        $deptStmt = $pdo->query("
+        // 1. Lấy tất cả phòng ban (lọc theo chi nhánh/phòng ban nếu có Data Scope) kèm Trưởng phòng & số lượng nhân viên
+        $deptSql = "
             SELECT d.id, d.name, d.code, d.description, d.manager_id,
                    mgr.fullname AS manager_name, mgr.avatar AS manager_avatar, mgr.employee_code AS manager_code,
                    (SELECT COUNT(*) FROM employees WHERE department_id = d.id AND employment_status != 'resigned') AS total_employees
             FROM departments d
             LEFT JOIN employees mgr ON d.manager_id = mgr.id
-            ORDER BY d.id ASC
-        ");
+        ";
+        $deptParams = [];
+        if ($branchId !== null && $branchId > 0) {
+            $deptSql .= " WHERE d.branch_id = ? ";
+            $deptParams[] = $branchId;
+        } elseif ($deptId !== null && $deptId > 0) {
+            $deptSql .= " WHERE d.id = ? ";
+            $deptParams[] = $deptId;
+        }
+        $deptSql .= " ORDER BY d.id ASC";
+        $deptStmt = $pdo->prepare($deptSql);
+        $deptStmt->execute($deptParams);
         $departments = $deptStmt->fetchAll(PDO::FETCH_ASSOC);
 
         // 2. Lấy dữ liệu mục tiêu phòng ban đã giao
@@ -262,7 +272,6 @@ final class KpiService {
     /**
      * Lưu hoặc cập nhật mục tiêu phòng ban theo đợt & Tự động phân bổ phiếu đánh giá
      */
-    public static function saveDepartmentTarget(PDO $pdo, int $periodId, int $departmentId, array $data, int $userId, bool $autoCascade = false): array {
     public static function saveDepartmentTarget(PDO $pdo, int $periodId, int $departmentId, array $data, ?int $userId = null, bool $autoCascade = false): array {
         $title = trim($data['target_title'] ?? '');
         $description = trim($data['target_description'] ?? '');
@@ -285,7 +294,6 @@ final class KpiService {
                 status = VALUES(status),
                 updated_at = NOW()
         ");
-        $stmt->execute([$periodId, $departmentId, $title, $description, $itemsJson, $userId]);
         $stmt->execute([$periodId, $departmentId, $title, $description, $itemsJson, $userId ?: null]);
 
         $createdCount = 0;
@@ -336,13 +344,19 @@ final class KpiService {
         $templates = $pdo->query("SELECT id, department_id, position_id FROM kpi_templates WHERE status = 'active'")->fetchAll();
 
         $prefix = "DG-{$period['year']}" . ($period['quarter'] ? "-Q{$period['quarter']}" : "");
-        $lastCode = $pdo->query("SELECT evaluation_code FROM evaluations WHERE evaluation_code LIKE '{$prefix}-%' ORDER BY id DESC LIMIT 1")->fetchColumn();
+        $lastStmt = $pdo->prepare("SELECT evaluation_code FROM evaluations WHERE evaluation_code LIKE ? ORDER BY id DESC LIMIT 1");
+        $lastStmt->execute(["{$prefix}-%"]);
+        $lastCode = $lastStmt->fetchColumn();
         $seq = 0;
         if ($lastCode && preg_match('/-(\d+)$/', $lastCode, $m)) {
             $seq = (int)$m[1];
         }
 
-        $checkExist = $pdo->prepare("SELECT id FROM evaluations WHERE period_id = ? AND employee_id = ?");
+        // Tải trước danh sách employee_id đã có phiếu trong kỳ này (khử N+1 SELECT)
+        $existStmt = $pdo->prepare("SELECT employee_id FROM evaluations WHERE period_id = ?");
+        $existStmt->execute([$periodId]);
+        $existingEmpIds = array_flip($existStmt->fetchAll(PDO::FETCH_COLUMN));
+
         $insertStmt = $pdo->prepare("
             INSERT INTO evaluations (evaluation_code, period_id, employee_id, template_id, reviewer_id, status, created_at)
             VALUES (?, ?, ?, ?, ?, 'pending', NOW())
@@ -351,51 +365,64 @@ final class KpiService {
         $created = 0;
         $skipped = 0;
 
-        foreach ($employees as $emp) {
-            $checkExist->execute([$periodId, $emp['id']]);
-            if ($checkExist->fetch()) {
-                $skipped++;
-                continue;
-            }
-
-            // Tìm template: Ưu tiên theo position_id -> theo department_id -> template đầu tiên
-            $tplId = null;
-            foreach ($templates as $t) {
-                if (!empty($t['position_id']) && $t['position_id'] == $emp['position_id']) {
-                    $tplId = $t['id'];
-                    break;
+        $ownTx = !$pdo->inTransaction();
+        if ($ownTx) {
+            $pdo->beginTransaction();
+        }
+        try {
+            foreach ($employees as $emp) {
+                if (isset($existingEmpIds[$emp['id']])) {
+                    $skipped++;
+                    continue;
                 }
-            }
-            if (!$tplId) {
+
+                // Tìm template: Ưu tiên theo position_id -> theo department_id -> template đầu tiên
+                $tplId = null;
                 foreach ($templates as $t) {
-                    if (!empty($t['department_id']) && $t['department_id'] == $departmentId) {
+                    if (!empty($t['position_id']) && $t['position_id'] == $emp['position_id']) {
                         $tplId = $t['id'];
                         break;
                     }
                 }
-            }
-            if (!$tplId && !empty($templates)) {
-                $tplId = $templates[0]['id'];
-            }
-            if (!$tplId) continue;
+                if (!$tplId) {
+                    foreach ($templates as $t) {
+                        if (!empty($t['department_id']) && $t['department_id'] == $departmentId) {
+                            $tplId = $t['id'];
+                            break;
+                        }
+                    }
+                }
+                if (!$tplId && !empty($templates)) {
+                    $tplId = $templates[0]['id'];
+                }
+                if (!$tplId) continue;
 
-            // Reviewer: Trưởng phòng ban. Nếu chính nhân viên này là trưởng phòng -> Giao cho Tổng Giám đốc (ID 1)
-            $revId = ($managerId > 0 && $managerId != $emp['id']) ? $managerId : 1;
-            if ($revId == $emp['id']) {
-                $revId = 2; // fallback tránh trùng
+                // Reviewer: Trưởng phòng ban. Nếu chính nhân viên này là trưởng phòng -> Giao cho Tổng Giám đốc (ID 1)
+                $revId = ($managerId > 0 && $managerId != $emp['id']) ? $managerId : 1;
+                if ($revId == $emp['id']) {
+                    $revId = 2; // fallback tránh trùng
+                }
+
+                $seq++;
+                $evalCode = sprintf('%s-%03d', $prefix, $seq);
+
+                $insertStmt->execute([
+                    $evalCode,
+                    $periodId,
+                    $emp['id'],
+                    $tplId,
+                    $revId
+                ]);
+                $created++;
             }
-
-            $seq++;
-            $evalCode = sprintf('%s-%03d', $prefix, $seq);
-
-            $insertStmt->execute([
-                $evalCode,
-                $periodId,
-                $emp['id'],
-                $tplId,
-                $revId
-            ]);
-            $created++;
+            if ($ownTx) {
+                $pdo->commit();
+            }
+        } catch (Throwable $e) {
+            if ($ownTx && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
         }
 
         return ['created' => $created, 'skipped' => $skipped];

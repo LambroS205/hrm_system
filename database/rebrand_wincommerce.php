@@ -1,6 +1,7 @@
 <?php
 // database/rebrand_wincommerce.php - Script chuyển đổi dữ liệu toàn diện sang WinCommerce (WinMart / Masan Group)
 // Có thể chạy an toàn nhiều lần (Idempotent)
+if (PHP_SAPI !== 'cli') { http_response_code(403); exit('CLI only.'); }
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/brand.php';

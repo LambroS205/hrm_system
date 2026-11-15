@@ -12,6 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type']) && $_P
     $emp_id = (int)($_POST['employee_id'] ?? 0);
 
     if ($emp_id > 0) {
+        require_employee_access($emp_id);
         // Lấy thông tin avatar để xóa file ảnh vật lý nếu có
         $stmt = $pdo->prepare("SELECT avatar, fullname FROM employees WHERE id = ?");
         $stmt->execute([$emp_id]);
@@ -170,7 +171,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <!-- 4 Thẻ Đếm Thống Kê Nhanh -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <a href="index.php" class="kpi-stripe-indigo bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-300 dark:border-slate-700 shadow-sm hover:border-indigo-400 dark:hover:border-indigo-500 transition flex items-center justify-between card-hover">
+        <a href="index.php" class="kpi-stripe-indigo bg-white dark:bg-slate-800 p-4 rounded-2xl border <?= $status_filter === '' ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-slate-200 dark:border-slate-700' ?> shadow-xs hover:border-indigo-400 dark:hover:border-indigo-500 transition flex items-center justify-between card-hover">
             <div>
                 <span class="kpi-label">Tất Cả Nhân Sự</span>
                 <div class="kpi-value text-2xl mt-0.5"><?= $total_all ?></div>
@@ -179,7 +180,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 <i class="fa-solid fa-users text-lg"></i>
             </div>
         </a>
-        <a href="index.php?status=official" class="kpi-stripe-emerald bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-300 dark:border-slate-700 shadow-sm hover:border-emerald-400 dark:hover:border-emerald-500 transition flex items-center justify-between card-hover">
+        <a href="index.php?status=official" class="kpi-stripe-emerald bg-white dark:bg-slate-800 p-4 rounded-2xl border <?= $status_filter === 'official' ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200 dark:border-slate-700' ?> shadow-xs hover:border-emerald-400 dark:hover:border-emerald-500 transition flex items-center justify-between card-hover">
             <div>
                 <span class="kpi-label text-emerald-700 dark:text-emerald-400">Chính Thức</span>
                 <div class="kpi-value text-2xl text-emerald-600 dark:text-emerald-400 mt-0.5"><?= $total_official ?></div>
@@ -188,7 +189,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 <i class="fa-solid fa-circle-check text-lg"></i>
             </div>
         </a>
-        <a href="index.php?status=probation" class="kpi-stripe-amber bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-300 dark:border-slate-700 shadow-sm hover:border-amber-400 dark:hover:border-amber-500 transition flex items-center justify-between card-hover">
+        <a href="index.php?status=probation" class="kpi-stripe-amber bg-white dark:bg-slate-800 p-4 rounded-2xl border <?= $status_filter === 'probation' ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-slate-200 dark:border-slate-700' ?> shadow-xs hover:border-amber-400 dark:hover:border-amber-500 transition flex items-center justify-between card-hover">
             <div>
                 <span class="kpi-label text-amber-700 dark:text-amber-400">Đang Thử Việc</span>
                 <div class="kpi-value text-2xl text-amber-600 dark:text-amber-400 mt-0.5"><?= $total_probation ?></div>
@@ -197,7 +198,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 <i class="fa-solid fa-clock-rotate-left text-lg"></i>
             </div>
         </a>
-        <a href="index.php?status=resigned" class="kpi-stripe-rose bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-300 dark:border-slate-700 shadow-sm hover:border-rose-400 dark:hover:border-rose-500 transition flex items-center justify-between card-hover">
+        <a href="index.php?status=resigned" class="kpi-stripe-rose bg-white dark:bg-slate-800 p-4 rounded-2xl border <?= $status_filter === 'resigned' ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-slate-200 dark:border-slate-700' ?> shadow-xs hover:border-rose-400 dark:hover:border-rose-500 transition flex items-center justify-between card-hover">
             <div>
                 <span class="kpi-label text-rose-700 dark:text-rose-400">Đã Nghỉ Việc</span>
                 <div class="kpi-value text-2xl text-rose-600 dark:text-rose-400 mt-0.5"><?= $total_resigned ?></div>
@@ -263,8 +264,8 @@ require_once __DIR__ . '/../../includes/header.php';
     </div>
 
     <!-- Bảng Danh Sách Nhân Viên -->
-    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-300 dark:border-slate-700 shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs">
+        <div class="table-wrapper-scientific border-0 <?= $total_pages > 1 ? 'rounded-b-none' : '' ?>" tabindex="0" role="region" aria-label="Bảng Danh Sách Hồ Sơ Nhân Viên">
             <table class="w-full text-left text-sm">
                 <thead>
                     <tr class="border-b-2 border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs uppercase tracking-wider font-extrabold">
@@ -294,7 +295,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                              class="w-10 h-10 rounded-xl object-cover border border-slate-300 dark:border-slate-600 shadow-xs" 
                                              alt="<?= e($emp['fullname']) ?>">
                                     <?php else: ?>
-                                        <div class="w-10 h-10 rounded-sm bg-indigo-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
+                                        <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
                                             <?= strtoupper(mb_substr($emp['fullname'], 0, 1, 'UTF-8')) ?>
                                         </div>
                                     <?php endif; ?>
@@ -397,7 +398,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
                 <div class="flex items-center gap-1">
                     <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                        <a href="?page=<?= $i ?>&search=<?= urlencode($keyword) ?>&department_id=<?= $dept_filter ?>&status=<?= urlencode($status_filter) ?>" 
+                        <a href="?page=<?= $i ?>&search=<?= urlencode($keyword) ?>&branch_id=<?= $branch_filter ?>&department_id=<?= $dept_filter ?>&status=<?= urlencode($status_filter) ?>" 
                            class="w-8 h-8 flex items-center justify-center rounded-lg font-bold transition <?= ($i == $page) ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600' ?>">
                             <?= $i ?>
                         </a>

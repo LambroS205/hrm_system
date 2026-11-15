@@ -160,7 +160,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <?php else: ?>
             <div class="divide-y divide-slate-100 dark:divide-slate-700/60">
                 <?php foreach ($payslips as $item): ?>
-                    <div class="p-6 hover:bg-slate-50/80 dark:hover:bg-slate-750 transition flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div class="p-6 hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div class="flex items-start gap-4">
                             <div class="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex flex-col items-center justify-center font-bold flex-shrink-0 border border-indigo-200/80 dark:border-indigo-800">
                                 <span class="text-[10px] uppercase tracking-wider font-extrabold text-indigo-400">Tháng</span>

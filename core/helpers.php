@@ -53,13 +53,26 @@ function e($string) {
 }
 
 /**
- * Chuyển hướng an toàn
+ * Chuyển hướng an toàn (chống Open Redirect & Header Injection)
  */
 function redirect($path) {
-    if (strpos($path, 'http://') === 0 || strpos($path, 'https://') === 0) {
+    $path = str_replace(["\r", "\n"], '', trim((string)$path));
+    if ($path === '') {
+        $path = 'index.php';
+    }
+
+    // Chặn protocol-relative URL (//evil.com) và URL trỏ ra tên miền bên ngoài
+    if (strpos($path, '//') === 0 || preg_match('/^[a-zA-Z][a-zA-Z0-9+.-]*:/', $path)) {
+        $parsedHost = parse_url($path, PHP_URL_HOST);
+        $currentHost = explode(':', $_SERVER['HTTP_HOST'] ?? 'localhost')[0];
+        if (!$parsedHost || strcasecmp($parsedHost, $currentHost) !== 0) {
+            header("Location: " . base_url('index.php'));
+            exit;
+        }
         header("Location: " . $path);
         exit;
     }
+
     $basePath = parse_url(base_url(), PHP_URL_PATH) ?? '';
     if (!empty($basePath) && $basePath !== '/' && strpos($path, $basePath) === 0) {
         header("Location: " . $path);
@@ -67,6 +80,58 @@ function redirect($path) {
     }
     header("Location: " . base_url($path));
     exit;
+}
+
+/**
+ * Kiểm tra tính hợp lệ thực tế (Extension + Dung lượng + MIME Type) của tệp tải lên
+ * @return array ['ok' => bool, 'ext' => string, 'error' => string]
+ */
+function validate_uploaded_file(array $file, array $allowedExts = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp'], int $maxBytes = 10485760, bool $imagesOnly = false): array {
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        return ['ok' => false, 'ext' => '', 'error' => 'Lỗi tải tệp lên máy chủ.'];
+    }
+    if (empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+        return ['ok' => false, 'ext' => '', 'error' => 'Tệp tải lên không hợp lệ.'];
+    }
+    if (($file['size'] ?? 0) > $maxBytes) {
+        $mb = round($maxBytes / 1048576, 1);
+        return ['ok' => false, 'ext' => '', 'error' => "Dung lượng tệp không được vượt quá {$mb}MB."];
+    }
+
+    $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
+    if (!in_array($ext, $allowedExts, true)) {
+        return ['ok' => false, 'ext' => $ext, 'error' => 'Định dạng tệp không được hỗ trợ.'];
+    }
+
+    $mimeMap = [
+        'jpg'  => ['image/jpeg', 'image/pjpeg'],
+        'jpeg' => ['image/jpeg', 'image/pjpeg'],
+        'png'  => ['image/png'],
+        'webp' => ['image/webp'],
+        'pdf'  => ['application/pdf', 'application/x-pdf'],
+        'doc'  => ['application/msword', 'application/CDFV2', 'application/vnd.ms-office', 'application/octet-stream'],
+        'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip', 'application/x-zip-compressed', 'application/octet-stream'],
+    ];
+
+    if (function_exists('finfo_open')) {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if ($finfo) {
+            $detectedMime = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+            $expectedMimes = $mimeMap[$ext] ?? [];
+            if (!empty($expectedMimes) && $detectedMime && !in_array($detectedMime, $expectedMimes, true)) {
+                return ['ok' => false, 'ext' => $ext, 'error' => 'Nội dung tệp không khớp với định dạng đuôi file.'];
+            }
+        }
+    }
+
+    if ($imagesOnly || in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+        if (@getimagesize($file['tmp_name']) === false) {
+            return ['ok' => false, 'ext' => $ext, 'error' => 'Tệp hình ảnh bị hỏng hoặc không phải ảnh hợp lệ.'];
+        }
+    }
+
+    return ['ok' => true, 'ext' => $ext, 'error' => ''];
 }
 
 /**

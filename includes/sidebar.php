@@ -5,9 +5,9 @@ $current_uri = $_SERVER['REQUEST_URI'];
 
 $getActiveClass = function($isActive) {
     if ($isActive) {
-        return 'bg-indigo-600 text-white font-bold group sidebar-active-item';
+        return 'bg-indigo-600 text-white font-semibold rounded-lg shadow-xs group sidebar-active-item';
     }
-    return 'text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-100 dark:hover:bg-slate-700/70 hover:text-slate-900 dark:hover:text-white group';
+    return 'text-slate-700 dark:text-slate-200 font-medium rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/70 hover:text-slate-900 dark:hover:text-white group';
 };
 
 $getIconClass = function($isActive) {
@@ -239,18 +239,32 @@ $getIconClass = function($isActive) {
         <?php if (has_permission('evaluations', 'view')): ?>
             <?php 
             $is_active = (strpos($current_uri, '/evaluations/') !== false); 
-            $can_manage_all_kpi = is_superadmin() || has_permission('evaluations', 'approve') || has_permission('evaluations', 'create');
+            $can_manage_all_kpi = is_superadmin() || has_permission('evaluations', 'approve') || has_permission('evaluations', 'create') || (is_dept_scope() && has_permission('evaluations', 'manager_review'));
             $kpi_label = $can_manage_all_kpi ? 'Đánh Giá & KPI' : 'KPI Của Tôi';
             $kpi_tip   = $can_manage_all_kpi ? 'Quản Trị Hiệu Suất & KPI' : 'Hồ Sơ Đánh Giá KPI Cá Nhân';
 
             $pending_evals_count = 0;
             try {
                 if ($can_manage_all_kpi) {
-                    $pending_evals_count = (int)($pdo->query("SELECT COUNT(*) FROM evaluations WHERE status IN ('manager_review', 'self_review')")->fetchColumn() ?: 0);
+                    if (is_branch_scope() && current_user_branch_id()) {
+                        $evCntStmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN evaluation_periods ep ON e.period_id = ep.id JOIN employees emp ON e.employee_id = emp.id WHERE ep.status = 'active' AND e.status IN ('manager_review', 'self_review') AND emp.branch_id = ?");
+                        $evCntStmt->execute([current_user_branch_id()]);
+                        $pending_evals_count = (int)($evCntStmt->fetchColumn() ?: 0);
+                    } elseif (is_dept_scope() && current_user_dept_id()) {
+                        $evCntStmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN evaluation_periods ep ON e.period_id = ep.id JOIN employees emp ON e.employee_id = emp.id WHERE ep.status = 'active' AND e.status IN ('manager_review', 'self_review') AND emp.department_id = ?");
+                        $evCntStmt->execute([current_user_dept_id()]);
+                        $pending_evals_count = (int)($evCntStmt->fetchColumn() ?: 0);
+                    } else {
+                        $pending_evals_count = (int)($pdo->query("SELECT COUNT(*) FROM evaluations e JOIN evaluation_periods ep ON e.period_id = ep.id WHERE ep.status = 'active' AND e.status IN ('manager_review', 'self_review')")->fetchColumn() ?: 0);
+                    }
                 } else {
-                    $curr_uid = (int)($_SESSION['user']['id'] ?? 0);
-                    $m_eid = (int)($pdo->query("SELECT id FROM employees WHERE user_id = {$curr_uid}")->fetchColumn() ?: 0);
-                    $pending_evals_count = (int)($pdo->query("SELECT COUNT(*) FROM evaluations WHERE employee_id = {$m_eid} AND status = 'self_review'")->fetchColumn() ?: 0);
+                    $curr_emp = current_employee();
+                    $m_eid = $curr_emp ? (int)$curr_emp['id'] : 0;
+                    if ($m_eid > 0) {
+                        $evCntStmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN evaluation_periods ep ON e.period_id = ep.id WHERE ep.status = 'active' AND ((e.employee_id = ? AND e.status IN ('pending', 'self_review')) OR (e.reviewer_id = ? AND e.status = 'manager_review'))");
+                        $evCntStmt->execute([$m_eid, $m_eid]);
+                        $pending_evals_count = (int)($evCntStmt->fetchColumn() ?: 0);
+                    }
                 }
             } catch (Exception $e) { $pending_evals_count = 0; }
             ?>

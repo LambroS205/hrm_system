@@ -6,8 +6,10 @@
     --font-sans: 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     
-    /* Metro Flat Radius & Borders */
-    --flat-radius: 2px;
+    /* Clean Enterprise Radius & Tokens */
+    --flat-radius: 6px;
+    --card-radius: 12px;
+    --pill-radius: 9999px;
     --border-color: #cbd5e1;       /* Slate 300 - Crisp, clear 1px boundaries */
     --border-subtle: #e2e8f0;      /* Slate 200 */
     --flat-border: 1px solid var(--border-color);
@@ -99,66 +101,17 @@ body {
 }
 
 /* ==================================================== */
-/* GLOBAL FLAT / METRO ENFORCEMENT                      */
+/* CLEAN ENTERPRISE POLISH & ACCESSIBILITY              */
 /* ==================================================== */
 
-/* 1. TẤT CẢ BÓNG ĐỔ ĐỀU BỊ VÔ HIỆU HÓA (NO SHADOWS) */
-*,
-::before,
-::after,
-.shadow-2xs,
-.shadow-xs,
-.shadow-sm,
-.shadow,
-.shadow-md,
-.shadow-lg,
-.shadow-xl,
-.shadow-2xl,
-.shadow-inner,
-[class*="shadow-"] {
-    box-shadow: none !important;
-}
-
-/* 2. BO GÓC PHẲNG METRO (0 - 2PX) TRÊN TOÀN BỘ PHẦN TỬ */
-.rounded-xl,
-.rounded-2xl,
-.rounded-3xl,
-.rounded-lg,
-.rounded-md,
-.rounded,
-.rounded-sm,
-[class*="rounded-"]:not(.animate-spin):not(.status-indicator-dot):not(.rounded-circle) {
-    border-radius: var(--flat-radius) !important;
-}
-
-/* Avatar và badges có class rounded-full chuyển thành hình khối vuông Metro */
-span.rounded-full,
-img.rounded-full,
-div.rounded-full:not(.status-indicator-dot):not(.animate-spin):not(.rounded-circle),
-button.rounded-full {
-    border-radius: var(--flat-radius) !important;
-}
-
-/* Các thành phần bắt buộc giữ hình tròn */
+/* Giữ các thành phần spinner / live indicator hình tròn tuyệt đối */
 .animate-spin,
 .status-indicator-dot,
 .rounded-circle {
     border-radius: 9999px !important;
 }
 
-/* 3. TRIỆT TIÊU HIỆU ỨNG KÍNH MỜ (NO GLASSMORPHISM) */
-[class*="backdrop-blur"] {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-}
-
-/* 4. TRIỆT TIÊU TOÀN BỘ DẢI MÀU GRADIENT (PURE SOLID COLORS) */
-[class*="bg-gradient-to"] {
-    background-image: none !important;
-    background-color: var(--primary) !important;
-}
-
-/* 5. KHÔNG NHẤC / CO GIÃN THẺ KHI HOVER (FLAT HOVER STATE) */
+/* Chuyển động tinh tế, không giật layout khi hover */
 [class*="hover:-translate"]:hover,
 [class*="hover:scale"]:hover,
 .group:hover [class*="group-hover:scale"],
@@ -225,36 +178,111 @@ button.rounded-full {
 /* METRO FLAT STATUS BADGES                             */
 /* ==================================================== */
 
-.bg-emerald-50, .badge-success, .badge-official {
-    background-color: var(--status-success-bg) !important;
-    color: var(--status-success-text) !important;
-    border: 1px solid var(--status-success-border) !important;
-    border-radius: var(--flat-radius) !important;
-    font-weight: 700 !important;
+.badge-success, .badge-official {
+    background-color: var(--status-success-bg);
+    color: var(--status-success-text);
+    border: 1px solid var(--status-success-border);
+    border-radius: var(--pill-radius);
+    font-weight: 600;
 }
 
-.bg-amber-50, .badge-warning, .badge-probation {
-    background-color: var(--status-warning-bg) !important;
-    color: var(--status-warning-text) !important;
-    border: 1px solid var(--status-warning-border) !important;
-    border-radius: var(--flat-radius) !important;
-    font-weight: 700 !important;
+/* Numeric & Scientific Table Standards (applied across HRM tables) */
+.font-mono, td.tabular-nums, .kpi-value {
+    font-variant-numeric: tabular-nums;
 }
 
-.bg-rose-50, .badge-danger, .badge-resigned {
-    background-color: var(--status-danger-bg) !important;
-    color: var(--status-danger-text) !important;
-    border: 1px solid var(--status-danger-border) !important;
-    border-radius: var(--flat-radius) !important;
-    font-weight: 700 !important;
+.table-wrapper-scientific {
+    position: relative;
+    overflow: auto;
+    max-block-size: min(68vh, 640px);
+    scrollbar-gutter: stable;
+    border-radius: var(--card-radius);
+    border: 1px solid var(--border-color, #e2e8f0);
+    background-color: var(--bg-surface, #ffffff);
 }
 
-.bg-indigo-50:not(#openSearchModalBtn):not(.sidebar-link), .bg-sky-50, .badge-info {
-    background-color: var(--status-info-bg) !important;
-    color: var(--status-info-text) !important;
-    border: 1px solid var(--status-info-border) !important;
-    border-radius: var(--flat-radius) !important;
-    font-weight: 700 !important;
+.dark .table-wrapper-scientific {
+    border-color: #334155;
+    background-color: #1e293b;
+}
+
+.table-wrapper-scientific thead th {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 15;
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 1px 0 0 #e2e8f0;
+}
+
+.dark .table-wrapper-scientific thead th {
+    background-color: #0f172a;
+    border-bottom-color: #334155;
+    box-shadow: 0 1px 0 0 #334155;
+}
+
+.table-wrapper-scientific thead th.sticky-col,
+.table-wrapper-scientific thead th.sticky-col-2 {
+    z-index: 25;
+}
+
+.table-wrapper-scientific tbody td.sticky-col,
+.table-wrapper-scientific tbody td.sticky-col-2 {
+    background-color: var(--bg-surface, #ffffff);
+}
+
+.dark .table-wrapper-scientific tbody td.sticky-col,
+.dark .table-wrapper-scientific tbody td.sticky-col-2 {
+    background-color: #1e293b;
+}
+
+.table-wrapper-scientific tbody tr:hover td.sticky-col,
+.table-wrapper-scientific tbody tr:hover td.sticky-col-2 {
+    background-color: #f8fafc;
+}
+
+.dark .table-wrapper-scientific tbody tr:hover td.sticky-col,
+.dark .table-wrapper-scientific tbody tr:hover td.sticky-col-2 {
+    background-color: #334155;
+}
+
+/* Horizontal scrollable non-wrapping tab bar */
+.enterprise-tablist {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.enterprise-tablist::-webkit-scrollbar {
+    display: none;
+}
+.enterprise-tablist [role="tab"] {
+    flex: none;
+    position: relative;
+}
+
+.badge-warning, .badge-probation {
+    background-color: var(--status-warning-bg);
+    color: var(--status-warning-text);
+    border: 1px solid var(--status-warning-border);
+    border-radius: var(--pill-radius);
+    font-weight: 600;
+}
+
+.badge-danger, .badge-resigned {
+    background-color: var(--status-danger-bg);
+    color: var(--status-danger-text);
+    border: 1px solid var(--status-danger-border);
+    border-radius: var(--pill-radius);
+    font-weight: 600;
+}
+
+.badge-info {
+    background-color: var(--status-info-bg);
+    color: var(--status-info-text);
+    border: 1px solid var(--status-info-border);
+    border-radius: var(--pill-radius);
+    font-weight: 600;
 }
 
 /* Live Status Dot Indicator (giữ tròn 9999px, bỏ bóng glow) */
@@ -669,7 +697,8 @@ thead th.sticky-col-name {
 }
 
 /* WinCommerce Brand Custom Patterns & Gradients */
-.brand-gradient {
+.brand-gradient,
+.metro-gradient {
     background: linear-gradient(135deg, #da251c 0%, #b81d15 50%, #7e1c17 100%);
 }
 .brand-gradient-wine {

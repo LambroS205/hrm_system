@@ -3,16 +3,20 @@
 $page_title = 'Lập Đề Xuất Nhu Cầu Nhân Lực';
 
 require_once __DIR__ . '/../../core/auth.php';
-require_permission('planning', 'view');
+if (!has_permission('planning', 'request') && !has_permission('planning', 'create')) {
+    require_permission('planning', 'request');
+}
 
 $user = current_user();
+$user_branch_id = current_user_branch_id();
+$user_dept_id   = current_user_dept_id();
 $id = (int)($_GET['id'] ?? 0);
 $is_edit = $id > 0;
 
 $request_data = [
     'request_code' => '',
-    'branch_id' => $user['branch_id'] ?? 1,
-    'department_id' => '',
+    'branch_id' => $user_branch_id ?? 1,
+    'department_id' => $user_dept_id ?? '',
     'position_id' => '',
     'request_type' => 'request_headcount',
     'title' => '',
@@ -29,6 +33,13 @@ if ($is_edit) {
     $stmt->execute([$id]);
     $existing = $stmt->fetch();
     if ($existing) {
+        if (is_branch_scope() && $user_branch_id && (int)$existing['branch_id'] !== (int)$user_branch_id) {
+            set_flash('danger', 'Bạn không có quyền chỉnh sửa đề xuất của chi nhánh khác.');
+            redirect('modules/planning/index.php?tab=requests');
+        } elseif (is_dept_scope() && $user_dept_id && (int)$existing['department_id'] !== (int)$user_dept_id) {
+            set_flash('danger', 'Bạn không có quyền chỉnh sửa đề xuất của phòng ban khác.');
+            redirect('modules/planning/index.php?tab=requests');
+        }
         $request_data = $existing;
     } else {
         set_flash('danger', 'Không tìm thấy đề xuất này.');
@@ -36,9 +47,9 @@ if ($is_edit) {
     }
 } else {
     $branch_code = 'HQ';
-    if (!empty($user['branch_id'])) {
+    if (!empty($user_branch_id)) {
         $bstmt = $pdo->prepare("SELECT code FROM branches WHERE id = ?");
-        $bstmt->execute([$user['branch_id']]);
+        $bstmt->execute([$user_branch_id]);
         $branch_code = $bstmt->fetchColumn() ?: 'HQ';
     }
     $last_id = (int)($pdo->query("SELECT MAX(id) FROM branch_workforce_requests")->fetchColumn() ?: 0);
@@ -51,6 +62,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $request_code = strtoupper(trim($_POST['request_code'] ?? ''));
     $branch_id = (int)($_POST['branch_id'] ?? 1);
     $department_id = !empty($_POST['department_id']) ? (int)$_POST['department_id'] : null;
+    if (is_branch_scope() && $user_branch_id) {
+        $branch_id = (int)$user_branch_id;
+    } elseif (is_dept_scope() && $user_dept_id) {
+        if ($user_branch_id) {
+            $branch_id = (int)$user_branch_id;
+        }
+        $department_id = (int)$user_dept_id;
+    }
     $position_id = !empty($_POST['position_id']) ? (int)$_POST['position_id'] : null;
     $request_type = $_POST['request_type'] ?? 'request_headcount';
     $title = trim($_POST['title'] ?? '');
@@ -98,11 +117,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Danh mục dữ liệu
-$branches = $pdo->query("SELECT id, name, code, is_headquarter FROM branches WHERE status = 'active' ORDER BY is_headquarter DESC, name ASC")->fetchAll();
-$departments = $pdo->query("SELECT id, name, code, branch_id FROM departments ORDER BY name ASC")->fetchAll();
+// Danh mục dữ liệu (theo Data Scope)
+if ((is_branch_scope() || is_dept_scope()) && $user_branch_id) {
+    $brStmt = $pdo->prepare("SELECT id, name, code, is_headquarter FROM branches WHERE status = 'active' AND id = ?");
+    $brStmt->execute([$user_branch_id]);
+    $branches = $brStmt->fetchAll();
+} else {
+    $branches = $pdo->query("SELECT id, name, code, is_headquarter FROM branches WHERE status = 'active' ORDER BY is_headquarter DESC, name ASC")->fetchAll();
+}
+
+if (is_dept_scope() && $user_dept_id) {
+    $dStmt = $pdo->prepare("SELECT id, name, code, branch_id FROM departments WHERE id = ?");
+    $dStmt->execute([$user_dept_id]);
+    $departments = $dStmt->fetchAll();
+} elseif (is_branch_scope() && $user_branch_id) {
+    $dStmt = $pdo->prepare("SELECT id, name, code, branch_id FROM departments WHERE branch_id = ? ORDER BY name ASC");
+    $dStmt->execute([$user_branch_id]);
+    $departments = $dStmt->fetchAll();
+} else {
+    $departments = $pdo->query("SELECT id, name, code, branch_id FROM departments ORDER BY name ASC")->fetchAll();
+}
+
 $positions = $pdo->query("SELECT id, name, base_salary FROM positions ORDER BY base_salary DESC")->fetchAll();
-$employees = $pdo->query("SELECT id, fullname, employee_code, branch_id FROM employees WHERE employment_status != 'resigned' ORDER BY fullname ASC")->fetchAll();
+$empScopeParams = [];
+$empScopeSql = scope_where('e', $empScopeParams);
+$empStmt = $pdo->prepare("SELECT e.id, e.fullname, e.employee_code, e.branch_id FROM employees e WHERE e.employment_status != 'resigned' AND ({$empScopeSql}) ORDER BY e.fullname ASC");
+$empStmt->execute($empScopeParams);
+$employees = $empStmt->fetchAll();
 
 require_once __DIR__ . '/../../includes/header.php';
 ?>

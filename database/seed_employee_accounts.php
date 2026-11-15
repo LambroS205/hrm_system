@@ -1,6 +1,7 @@
 <?php
 // database/seed_employee_accounts.php
 // Script tự động khởi tạo tài khoản đăng nhập cho toàn bộ nhân viên chưa có tài khoản
+if (PHP_SAPI !== 'cli') { http_response_code(403); exit('CLI only.'); }
 
 require_once __DIR__ . '/../config/database.php';
 

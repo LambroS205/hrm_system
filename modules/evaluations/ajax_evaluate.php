@@ -110,10 +110,20 @@ if (!$eval) {
 $user = current_user();
 
 // 5. Kiểm tra tính khóa của hồ sơ hoặc đợt đánh giá
+$currAjaxUid = (int)(current_user()['id'] ?? 0);
+if ((is_branch_scope() || is_dept_scope())
+    && $currAjaxUid !== (int)($eval['employee_user_id'] ?? 0)
+    && $currAjaxUid !== (int)($eval['reviewer_user_id'] ?? 0)
+    && !can_access_employee((int)($eval['employee_id'] ?? 0))) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Truy cập bị từ chối: Nhân sự không thuộc chi nhánh bạn quản lý.']);
+    exit;
+}
+
 $lockInfo = KpiService::getLockStatus($eval);
 if ($lockInfo['is_locked']) {
-    // Nếu phiếu đã hoàn tất, chỉ Super Admin hoặc cấp phê duyệt mới có thể điều chỉnh
-    if ($eval['status'] === 'completed' && (is_superadmin() || has_permission('evaluations', 'approve'))) {
+    // Nếu kỳ đã đóng (closed), tuyệt đối không cho chỉnh sửa. Chỉ cho điều chỉnh phiếu completed khi kỳ vẫn đang active
+    if (($eval['period_status'] ?? '') !== 'closed' && $eval['status'] === 'completed' && (is_superadmin() || has_permission('evaluations', 'approve'))) {
         // Cho phép Approver điều chỉnh điểm
     } else {
         http_response_code(403);

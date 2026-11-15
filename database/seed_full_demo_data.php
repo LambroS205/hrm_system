@@ -1,5 +1,6 @@
 <?php
 // database/seed_full_demo_data.php - Seeder dữ liệu mẫu toàn diện cho hệ thống AURA HRM
+if (PHP_SAPI !== 'cli') { http_response_code(403); exit('CLI only.'); }
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../core/PayrollService.php';

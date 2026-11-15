@@ -19,6 +19,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         $transfer = $stmt->fetch();
 
         if ($transfer) {
+            if (!is_all_scope() && !can_access_employee((int)$transfer['employee_id'])) {
+                set_flash('danger', 'Bạn không có quyền thao tác với hồ sơ thuyên chuyển của nhân sự ngoài phạm vi quản lý.');
+                redirect('modules/transfers/index.php');
+            }
+
             // 1. Phê Duyệt & Thực Thi Điều Động Ngay Lập Tức
             if ($action_type === 'execute_transfer') {
                 require_permission('transfers', 'approve');
@@ -116,11 +121,15 @@ $where = ['1=1'];
 $params = [];
 
 // Áp dụng Data Scope cho điều động luân chuyển
-if (data_scope() === 'branch' && current_user_branch_id()) {
+if (is_branch_scope() && current_user_branch_id()) {
     $where[] = "(t.from_branch_id = ? OR t.to_branch_id = ?)";
     $params[] = current_user_branch_id();
     $params[] = current_user_branch_id();
-} elseif (data_scope() === 'self' && current_employee()) {
+} elseif (is_dept_scope() && current_user_dept_id()) {
+    $where[] = "(t.from_department_id = ? OR t.to_department_id = ?)";
+    $params[] = current_user_dept_id();
+    $params[] = current_user_dept_id();
+} elseif (is_self_scope() && current_employee()) {
     $where[] = "t.employee_id = ?";
     $params[] = current_employee()['id'];
 }
@@ -187,11 +196,15 @@ $transfers = $transfers_stmt->fetchAll();
 // Thống kê nhanh theo trạng thái & Data Scope
 $t_scope_where = "1=1";
 $t_scope_params = [];
-if (data_scope() === 'branch' && current_user_branch_id()) {
+if (is_branch_scope() && current_user_branch_id()) {
     $t_scope_where = "(from_branch_id = ? OR to_branch_id = ?)";
     $t_scope_params[] = current_user_branch_id();
     $t_scope_params[] = current_user_branch_id();
-} elseif (data_scope() === 'self' && current_employee()) {
+} elseif (is_dept_scope() && current_user_dept_id()) {
+    $t_scope_where = "(from_department_id = ? OR to_department_id = ?)";
+    $t_scope_params[] = current_user_dept_id();
+    $t_scope_params[] = current_user_dept_id();
+} elseif (is_self_scope() && current_employee()) {
     $t_scope_where = "employee_id = ?";
     $t_scope_params[] = current_employee()['id'];
 }

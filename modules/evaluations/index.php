@@ -58,7 +58,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
                 'target_title'       => $target_title,
                 'target_description' => $target_description,
                 'kpi_items'          => $kpi_items
-            ], $current_user['id'], $auto_cascade);
             ], (int)($current_user['id'] ?? 0), $auto_cascade);
 
             $msg = "Đã lưu mục tiêu đợt cho phòng ban thành công!";
@@ -127,8 +126,11 @@ $current_emp_stmt->execute([$user['id']]);
 $current_emp = $current_emp_stmt->fetch();
 $current_emp_id = $current_emp ? (int)$current_emp['id'] : 0;
 
-// Người có quyền quản trị/xem toàn bộ KPI (Super Admin hoặc Approver/HR Director/Branch Manager có quyền approve/create)
-$can_manage_all_kpi = is_superadmin() || has_permission('evaluations', 'approve') || has_permission('evaluations', 'create');
+// Người có quyền quản trị/xem KPI phạm vi quản lý (Super Admin, HR Exec có create, Branch/Dept Manager có approve/manager_review)
+$can_manage_all_kpi = is_superadmin()
+    || has_permission('evaluations', 'approve')
+    || has_permission('evaluations', 'create')
+    || (is_dept_scope() && has_permission('evaluations', 'manager_review'));
 $is_personal_only = !$can_manage_all_kpi;
 
 // Tham số bộ lọc & chế độ xem
@@ -169,10 +171,22 @@ foreach ($periods as $p) {
     }
 }
 
-$departments = $pdo->query("SELECT id, name FROM departments ORDER BY name ASC")->fetchAll();
+$scope_branch_id = (is_branch_scope() && current_user_branch_id()) ? current_user_branch_id() : null;
+$scope_dept_id   = (!$scope_branch_id && is_dept_scope() && current_user_dept_id()) ? current_user_dept_id() : null;
+if ($scope_branch_id) {
+    $deptListStmt = $pdo->prepare("SELECT id, name FROM departments WHERE branch_id = ? ORDER BY name ASC");
+    $deptListStmt->execute([$scope_branch_id]);
+    $departments = $deptListStmt->fetchAll();
+} elseif ($scope_dept_id) {
+    $deptListStmt = $pdo->prepare("SELECT id, name FROM departments WHERE id = ? ORDER BY name ASC");
+    $deptListStmt->execute([$scope_dept_id]);
+    $departments = $deptListStmt->fetchAll();
+} else {
+    $departments = $pdo->query("SELECT id, name FROM departments ORDER BY name ASC")->fetchAll();
+}
 
-// Lấy ma trận tiến độ theo phòng ban (Chỉ dành cho quản lý)
-$dept_matrix = $can_manage_all_kpi ? KpiService::getDepartmentProgressMatrix($pdo, $filter_period) : [];
+// Lấy ma trận tiến độ theo phòng ban (lọc theo chi nhánh hoặc phòng ban tùy scope)
+$dept_matrix = $can_manage_all_kpi ? KpiService::getDepartmentProgressMatrix($pdo, $filter_period, $scope_branch_id, $scope_dept_id) : [];
 
 // Truy vấn danh sách đánh giá (cho View Bảng & View Kanban)
 $sql = "
@@ -197,6 +211,14 @@ $params = [];
 if ($is_personal_only) {
     $sql .= " AND (e.employee_id = ? OR e.reviewer_id = ?)";
     $params[] = $current_emp_id;
+    $params[] = $current_emp_id;
+} elseif ($scope_branch_id) {
+    $sql .= " AND (emp.branch_id = ? OR e.reviewer_id = ?)";
+    $params[] = $scope_branch_id;
+    $params[] = $current_emp_id;
+} elseif ($scope_dept_id) {
+    $sql .= " AND (emp.department_id = ? OR e.reviewer_id = ?)";
+    $params[] = $scope_dept_id;
     $params[] = $current_emp_id;
 }
 
@@ -238,26 +260,35 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $evaluations = $stmt->fetchAll();
 
-// Thống kê tổng hợp (Theo cá nhân nếu is_personal_only, hoặc toàn đợt nếu quản lý)
+// Thống kê tổng hợp (Theo cá nhân nếu is_personal_only, theo chi nhánh nếu branch scope, hoặc toàn đợt nếu quản lý cấp cao)
 $stat_sql = "
     SELECT 
         COUNT(*) AS total_count,
-        COUNT(CASE WHEN status = 'completed' THEN 1 END) AS completed_count,
-        COUNT(CASE WHEN status = 'manager_review' THEN 1 END) AS mgr_review_count,
-        COUNT(CASE WHEN status = 'self_review' THEN 1 END) AS self_review_count,
-        COUNT(CASE WHEN status = 'pending' THEN 1 END) AS pending_count,
-        AVG(CASE WHEN status = 'completed' THEN final_score END) AS avg_final_score
-    FROM evaluations
+        COUNT(CASE WHEN e.status = 'completed' THEN 1 END) AS completed_count,
+        COUNT(CASE WHEN e.status = 'manager_review' THEN 1 END) AS mgr_review_count,
+        COUNT(CASE WHEN e.status = 'self_review' THEN 1 END) AS self_review_count,
+        COUNT(CASE WHEN e.status = 'pending' THEN 1 END) AS pending_count,
+        AVG(CASE WHEN e.status = 'completed' THEN e.final_score END) AS avg_final_score
+    FROM evaluations e
+    JOIN employees emp ON e.employee_id = emp.id
     WHERE 1=1
 ";
 $stat_params = [];
 if ($is_personal_only) {
-    $stat_sql .= " AND (employee_id = ? OR reviewer_id = ?)";
+    $stat_sql .= " AND (e.employee_id = ? OR e.reviewer_id = ?)";
     $stat_params[] = $current_emp_id;
+    $stat_params[] = $current_emp_id;
+} elseif ($scope_branch_id) {
+    $stat_sql .= " AND (emp.branch_id = ? OR e.reviewer_id = ?)";
+    $stat_params[] = $scope_branch_id;
+    $stat_params[] = $current_emp_id;
+} elseif ($scope_dept_id) {
+    $stat_sql .= " AND (emp.department_id = ? OR e.reviewer_id = ?)";
+    $stat_params[] = $scope_dept_id;
     $stat_params[] = $current_emp_id;
 }
 if ($filter_period > 0) {
-    $stat_sql .= " AND period_id = ?";
+    $stat_sql .= " AND e.period_id = ?";
     $stat_params[] = $filter_period;
 }
 $stat_stmt = $pdo->prepare($stat_sql);
@@ -369,209 +400,141 @@ require_once __DIR__ . '/../../includes/header.php';
                     </button>
                 <?php endif; ?>
 
+                <?php if (has_permission('evaluations', 'edit') || has_permission('evaluations', 'create')): ?>
                 <a href="<?= base_url('modules/evaluations/kpi_templates.php') ?>" 
                    class="px-3.5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-semibold rounded-xl text-xs transition flex items-center gap-2 shadow-xs">
                     <i class="fa-solid fa-sitemap text-slate-500"></i>
                     <span>Bộ Tiêu Chí Vị Trí</span>
                 </a>
+                <?php endif; ?>
 
+                <?php if (has_permission('evaluations', 'create')): ?>
                 <a href="<?= base_url('modules/evaluations/form.php') ?>" 
                    class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-semibold rounded-xl text-xs transition flex items-center gap-2">
                     <i class="fa-solid fa-plus"></i>
                     <span>Tạo Phiếu Đơn</span>
                 </a>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>
 
-    <!-- Banner Đợt Đánh Giá & Timeline Quy Trình 4 Giai Đoạn (Campaign Banner) -->
+    <!-- Campaign Command Header (Gộp Banner Chiến Dịch + 4 Chỉ Số Điều Hành Gọn Gàng) -->
     <?php if ($current_period): ?>
-        <div class="bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 rounded-3xl p-5 sm:p-6 text-white shadow-lg space-y-5 relative overflow-hidden">
-            <div class="absolute -right-8 -bottom-8 opacity-10 text-9xl pointer-events-none">
-                <i class="fa-solid fa-chart-pie"></i>
-            </div>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs overflow-hidden">
+            <div class="bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 p-5 sm:p-6 text-white relative">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+                    <div class="space-y-1.5 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-white/20 border border-white/30 text-white font-mono">
+                                <?= e($current_period['code']) ?>
+                            </span>
+                            <?php if ($current_period['status'] === 'active'): ?>
+                                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-400 text-emerald-950 inline-flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-circle bg-emerald-950 animate-pulse"></span>
+                                    Đang Diễn Ra
+                                </span>
+                            <?php else: ?>
+                                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-900/35 text-white border border-white/20">
+                                    Đã Chốt Sổ Liệu
+                                </span>
+                            <?php endif; ?>
+                            <span class="text-xs text-white/90 font-medium">
+                                <i class="fa-regular fa-calendar mr-1"></i><?= format_date($current_period['start_date']) ?> &rarr; <?= format_date($current_period['end_date']) ?>
+                            </span>
+                        </div>
 
-            <!-- Header Banner: Thông tin đợt & Chuyển đổi đợt -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-                <div class="space-y-1">
-                    <div class="flex items-center gap-2.5 flex-wrap">
-                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/20 backdrop-blur-sm border border-white/30 text-white">
-                            <?= e($current_period['code']) ?>
-                        </span>
-                        <?php if ($current_period['status'] === 'active'): ?>
-                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-400 text-emerald-950 flex items-center gap-1 shadow-xs">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-950 animate-pulse"></span>
-                                Đang Diễn Ra
-                            </span>
-                        <?php else: ?>
-                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/30 text-white">
-                                Đã Chốt Sổ Liệu
-                            </span>
-                        <?php endif; ?>
-                        <span class="text-xs text-white/80">
-                            <?= format_date($current_period['start_date']) ?> &rarr; <?= format_date($current_period['end_date']) ?>
-                        </span>
+                        <h2 class="text-xl sm:text-2xl font-extrabold text-white leading-tight truncate">
+                            <?= e($current_period['name']) ?>
+                        </h2>
+                        <p class="text-xs text-white/90 max-w-2xl line-clamp-1">
+                            <?= e($current_period['description'] ?: 'Chiến dịch đánh giá hiệu suất định kỳ toàn bộ các khối phòng ban và chuỗi bán lẻ WinCommerce.') ?>
+                        </p>
                     </div>
 
-                    <h2 class="text-xl sm:text-2xl font-black text-white leading-tight">
-                        <?= e($current_period['name']) ?>
-                    </h2>
-                    <p class="text-xs text-white/90 max-w-2xl line-clamp-2">
-                        <?= e($current_period['description'] ?: 'Chiến dịch đánh giá hiệu suất định kỳ toàn bộ các khối phòng ban và chuỗi bán lẻ WinCommerce.') ?>
-                    </p>
-                </div>
-
-                <!-- Dropdown chuyển đợt nhanh -->
-                <div class="flex items-center gap-2 self-start md:self-center">
-                    <form method="GET" class="flex items-center gap-2">
-                        <input type="hidden" name="view" value="<?= e($view_mode) ?>">
-                        <span class="text-xs text-white/80 font-medium hidden sm:inline">Chọn Đợt:</span>
-                        <select name="period_id" onchange="this.form.submit()"
-                                class="px-3 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/30 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-white">
-                            <?php foreach ($periods as $p): ?>
-                                <option value="<?= $p['id'] ?>" class="text-slate-800" <?= $p['id'] == $filter_period ? 'selected' : '' ?>>
-                                    <?= e($p['name']) ?> (<?= $p['status'] === 'active' ? 'Đang mở' : 'Đã đóng' ?>)
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </form>
+                    <!-- Dropdown chuyển đợt nhanh -->
+                    <div class="flex items-center gap-2 self-start md:self-center flex-shrink-0">
+                        <form method="GET" class="flex items-center gap-2">
+                            <input type="hidden" name="view" value="<?= e($view_mode) ?>">
+                            <span class="text-xs text-white/90 font-medium hidden sm:inline">Đợt Đánh Giá:</span>
+                            <select name="period_id" onchange="this.form.submit()"
+                                    class="px-3 py-2 bg-white dark:bg-slate-900 border border-white/40 rounded-xl text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-white shadow-xs">
+                                <?php foreach ($periods as $p): ?>
+                                    <option value="<?= $p['id'] ?>" <?= $p['id'] == $filter_period ? 'selected' : '' ?>>
+                                        <?= e($p['name']) ?> (<?= $p['status'] === 'active' ? 'Đang mở' : 'Đã đóng' ?>)
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </form>
+                    </div>
                 </div>
             </div>
 
-            <!-- Stepper Timeline 4 Giai Đoạn -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-3 border-t border-white/20 relative z-10 text-xs">
-                <!-- Bước 1 -->
-                <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 border border-white/15 space-y-1">
-                    <div class="flex items-center justify-between text-[11px] font-bold text-white/80">
-                        <span>1. Giao Mục Tiêu Đợt</span>
-                        <i class="fa-solid fa-bullseye text-amber-300"></i>
+            <!-- 4 Khối Pipeline & Chỉ Số Tổng Quan -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
+                <!-- Bước 1: Giao Mục Tiêu Khối -->
+                <div class="p-4 flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">1. Mục Tiêu Khối</span>
+                        <div class="text-xl font-extrabold font-mono tabular-nums text-slate-900 dark:text-white mt-0.5">
+                            <?= $depts_with_target ?> <span class="text-xs font-medium text-slate-400">/ <?= count($dept_matrix) ?> khối</span>
+                        </div>
+                        <span class="text-[11px] text-red-600 dark:text-red-400 font-medium">Đã giao chỉ tiêu chiến dịch</span>
                     </div>
-                    <div class="font-extrabold text-sm text-white">
-                        <?= $depts_with_target ?> / <?= count($dept_matrix) ?> Khối
-                    </div>
-                    <div class="text-[10px] text-white/70">
-                        Đã giao mục tiêu chiến lược
-                    </div>
-                </div>
-
-                <!-- Bước 2 -->
-                <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 border border-white/15 space-y-1">
-                    <div class="flex items-center justify-between text-[11px] font-bold text-white/80">
-                        <span>2. NV Tự Đánh Giá</span>
-                        <i class="fa-solid fa-user-pen text-sky-300"></i>
-                    </div>
-                    <div class="font-extrabold text-sm text-white">
-                        Hạn: <?= $current_period['self_review_deadline'] ? format_date($current_period['self_review_deadline']) : 'Linh hoạt' ?>
-                    </div>
-                    <div class="text-[10px] text-white/70">
-                        <?= $stats['self_review_count'] ?> nhân sự đang tự chấm
+                    <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 dark:bg-red-950/60 dark:text-red-400 flex items-center justify-center text-base flex-shrink-0">
+                        <i class="fa-solid fa-bullseye"></i>
                     </div>
                 </div>
 
-                <!-- Bước 3 -->
-                <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 border border-white/15 space-y-1">
-                    <div class="flex items-center justify-between text-[11px] font-bold text-white/80">
-                        <span>3. Quản Lý Duyệt</span>
-                        <i class="fa-solid fa-user-tie text-emerald-300"></i>
+                <!-- Bước 2: NV Tự Chấm -->
+                <div class="p-4 flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">2. NV Tự Đánh Giá</span>
+                        <div class="text-xl font-extrabold font-mono tabular-nums text-sky-600 dark:text-sky-400 mt-0.5">
+                            <?= $stats['self_review_count'] ?> <span class="text-xs font-medium text-slate-400">phiếu</span>
+                        </div>
+                        <span class="text-[11px] text-slate-500 dark:text-slate-400">Hạn: <strong class="text-slate-700 dark:text-slate-300"><?= $current_period['self_review_deadline'] ? format_date($current_period['self_review_deadline']) : 'Linh hoạt' ?></strong></span>
                     </div>
-                    <div class="font-extrabold text-sm text-white">
-                        Hạn: <?= $current_period['manager_review_deadline'] ? format_date($current_period['manager_review_deadline']) : 'Linh hoạt' ?>
-                    </div>
-                    <div class="text-[10px] text-white/70">
-                        <?= $stats['mgr_review_count'] ?> phiếu chờ thẩm định
+                    <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 dark:bg-sky-950/60 dark:text-sky-400 flex items-center justify-center text-base flex-shrink-0">
+                        <i class="fa-solid fa-user-pen"></i>
                     </div>
                 </div>
 
-                <!-- Bước 4 -->
-                <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 border border-white/15 space-y-1">
-                    <div class="flex items-center justify-between text-[11px] font-bold text-white/80">
-                        <span>4. Chốt Thưởng Total Rewards</span>
-                        <i class="fa-solid fa-award text-yellow-300"></i>
+                <!-- Bước 3: Chờ QL Duyệt -->
+                <div class="p-4 flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">3. Chờ Quản Lý Duyệt</span>
+                        <div class="text-xl font-extrabold font-mono tabular-nums text-amber-600 dark:text-amber-400 mt-0.5">
+                            <?= $stats['mgr_review_count'] ?> <span class="text-xs font-medium text-slate-400">phiếu</span>
+                        </div>
+                        <span class="text-[11px] text-slate-500 dark:text-slate-400">Hạn: <strong class="text-slate-700 dark:text-slate-300"><?= $current_period['manager_review_deadline'] ? format_date($current_period['manager_review_deadline']) : 'Linh hoạt' ?></strong></span>
                     </div>
-                    <div class="font-extrabold text-sm text-white">
-                        <?= $stats['completed_count'] ?> / <?= $stats['total_count'] ?> Đã Xong
+                    <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400 flex items-center justify-center text-base flex-shrink-0">
+                        <i class="fa-solid fa-user-clock"></i>
                     </div>
-                    <div class="text-[10px] text-white/70">
-                        Tỷ lệ hoàn thành: <?= $completion_rate ?>%
+                </div>
+
+                <!-- Bước 4: Hoàn Tất & Điểm TB -->
+                <div class="p-4 flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">4. Hoàn Tất & Điểm TB</span>
+                        <div class="flex items-baseline gap-2 mt-0.5">
+                            <span class="text-xl font-extrabold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
+                                <?= $stats['completed_count'] ?>/<?= $stats['total_count'] ?>
+                            </span>
+                            <span class="text-xs font-mono font-bold text-violet-600 dark:text-violet-400">
+                                (TB: <?= $stats['avg_final_score'] ? round($stats['avg_final_score'], 1) : '--' ?>đ)
+                            </span>
+                        </div>
+                        <span class="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">Hoàn tất <?= $completion_rate ?>% chiến dịch</span>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 flex items-center justify-center text-base flex-shrink-0">
+                        <i class="fa-solid fa-award"></i>
                     </div>
                 </div>
             </div>
         </div>
     <?php endif; ?>
-
-    <!-- 4 Khối Chỉ Số Tổng Quan Toàn Hệ Thống -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        <!-- Khối 1: Tổng số phòng ban -->
-        <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
-            <div>
-                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">Khối Phòng Ban Tham Gia</span>
-                <div class="text-2xl font-black font-mono text-slate-900 dark:text-white mt-1">
-                    <?= count($dept_matrix) ?>
-                </div>
-                <div class="text-xs text-red-600 dark:text-red-400 font-semibold mt-1 flex items-center gap-1.5">
-                    <i class="fa-solid fa-bullseye"></i>
-                    <span><?= $depts_with_target ?> khối đã có mục tiêu đợt</span>
-                </div>
-            </div>
-            <div class="w-12 h-12 rounded-2xl bg-red-50 text-red-600 dark:bg-red-950/60 dark:text-red-400 flex items-center justify-center text-lg">
-                <i class="fa-solid fa-building"></i>
-            </div>
-        </div>
-
-        <!-- Khối 2: Tỷ lệ hoàn thành -->
-        <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
-            <div>
-                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">Đã Hoàn Tất & Xếp Loại</span>
-                <div class="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400 mt-1">
-                    <?= $stats['completed_count'] ?> <span class="text-xs font-normal text-slate-400">/ <?= $stats['total_count'] ?></span>
-                </div>
-                <div class="text-xs text-emerald-700 dark:text-emerald-300 font-semibold mt-1 flex items-center gap-1.5">
-                    <i class="fa-solid fa-circle-check"></i>
-                    <span>Tỷ lệ hoàn tất: <?= $completion_rate ?>%</span>
-                </div>
-            </div>
-            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 flex items-center justify-center text-lg">
-                <i class="fa-solid fa-circle-check"></i>
-            </div>
-        </div>
-
-        <!-- Khối 3: Đang thẩm định -->
-        <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
-            <div>
-                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">Chờ Quản Lý Thẩm Định</span>
-                <div class="text-2xl font-black font-mono text-amber-600 dark:text-amber-400 mt-1">
-                    <?= $stats['mgr_review_count'] ?>
-                </div>
-                <div class="text-xs text-amber-700 dark:text-amber-300 font-semibold mt-1 flex items-center gap-1.5">
-                    <i class="fa-solid fa-clock"></i>
-                    <span><?= $stats['self_review_count'] ?> nhân sự đang tự chấm</span>
-                </div>
-            </div>
-            <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400 flex items-center justify-center text-lg">
-                <i class="fa-solid fa-user-clock"></i>
-            </div>
-        </div>
-
-        <!-- Khối 4: Điểm TB toàn đợt -->
-        <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
-            <div>
-                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">Điểm KPI Trung Bình</span>
-                <div class="text-2xl font-black font-mono text-violet-600 dark:text-violet-400 mt-1">
-                    <?= $stats['avg_final_score'] ? round($stats['avg_final_score'], 1) : '---' ?>
-                    <span class="text-xs font-normal text-slate-400">/ 100</span>
-                </div>
-                <div class="text-xs text-violet-700 dark:text-violet-300 font-semibold mt-1 flex items-center gap-1.5">
-                    <i class="fa-solid fa-award"></i>
-                    <span>Xếp loại chuẩn toàn tập đoàn</span>
-                </div>
-            </div>
-            <div class="w-12 h-12 rounded-2xl bg-violet-50 text-violet-600 dark:bg-violet-950/60 dark:text-violet-400 flex items-center justify-center text-lg">
-                <i class="fa-solid fa-trophy"></i>
-            </div>
-        </div>
-
-    </div>
 
     <!-- Thanh Lọc & Bộ Công Cụ Tìm Kiếm + 3 Chế Độ Xem (Department / Table / Kanban) -->
     <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
@@ -654,6 +617,39 @@ require_once __DIR__ . '/../../includes/header.php';
                 </a>
             </div>
         </form>
+
+        <!-- Quick Status Filter Pills (Lọc nhanh theo trạng thái) -->
+        <?php
+            $status_pills = [
+                ''               => ['label' => 'Tất cả phiếu',  'count' => (int)$stats['total_count'],       'active' => 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-slate-900 dark:border-white'],
+                'pending'        => ['label' => 'Chờ xử lý',     'count' => (int)$stats['pending_count'],     'active' => 'bg-slate-700 text-white border-slate-700'],
+                'self_review'    => ['label' => 'NV tự chấm',    'count' => (int)$stats['self_review_count'], 'active' => 'bg-sky-600 text-white border-sky-600'],
+                'manager_review' => ['label' => 'Chờ QL duyệt',  'count' => (int)$stats['mgr_review_count'],  'active' => 'bg-amber-600 text-white border-amber-600'],
+                'completed'      => ['label' => 'Đã hoàn tất',   'count' => (int)$stats['completed_count'],   'active' => 'bg-emerald-600 text-white border-emerald-600'],
+            ];
+            $pill_target_view = ($view_mode === 'department') ? 'table' : $view_mode;
+        ?>
+        <div class="flex items-center gap-2 overflow-x-auto pt-2 border-t border-slate-100 dark:border-slate-700/70">
+            <span class="text-[11px] font-semibold text-slate-400 whitespace-nowrap mr-1">Trạng thái nhanh:</span>
+            <?php foreach ($status_pills as $s_key => $s_cfg): ?>
+                <?php
+                    $is_pill_active = ($filter_status === $s_key) && ($s_key !== '' || $view_mode !== 'department');
+                    $pill_params = array_merge($_GET, ['view' => $pill_target_view]);
+                    if ($s_key === '') {
+                        unset($pill_params['status']);
+                    } else {
+                        $pill_params['status'] = $s_key;
+                    }
+                ?>
+                <a href="<?= base_url('modules/evaluations/index.php?' . http_build_query($pill_params)) ?>"
+                   class="px-3 py-1 rounded-full text-xs font-semibold border transition inline-flex items-center gap-1.5 whitespace-nowrap <?= $is_pill_active ? $s_cfg['active'] : 'bg-slate-50 dark:bg-slate-900/70 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800' ?>">
+                    <span><?= $s_cfg['label'] ?></span>
+                    <span class="font-mono tabular-nums text-[10px] px-1.5 py-0.2 rounded-full <?= $is_pill_active ? 'bg-white/20 text-inherit' : 'bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300' ?>">
+                        <?= $s_cfg['count'] ?>
+                    </span>
+                </a>
+            <?php endforeach; ?>
+        </div>
     </div>
 
     <!-- ======================================================== -->
@@ -775,26 +771,33 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <?php endif; ?>
                             </div>
 
-                            <!-- Tiến Độ Đánh Giá Của Phòng Ban -->
+                            <!-- Tiến Độ Đánh Giá Của Phòng Ban (Segmented Bar) -->
+                            <?php
+                                $dm_total = max(1, (int)$dm['total_employees']);
+                                $pct_done = round(((int)$dm['completed_count'] / $dm_total) * 100, 1);
+                                $pct_mgr  = round(((int)$dm['mgr_review_count'] / $dm_total) * 100, 1);
+                                $pct_self = round(((int)$dm['self_review_count'] / $dm_total) * 100, 1);
+                            ?>
                             <div class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-800/80 space-y-2">
                                 <div class="flex items-center justify-between text-xs">
                                     <span class="font-bold text-slate-600 dark:text-slate-400">Tiến Độ Đánh Giá:</span>
-                                    <div class="flex items-center gap-1.5 font-mono">
+                                    <div class="flex items-center gap-1.5 font-mono tabular-nums">
                                         <strong class="text-slate-900 dark:text-white"><?= $dm['completed_count'] ?></strong>
-                                        <span class="text-slate-400">/ <?= $dm['total_employees'] ?> nhân sự</span>
-                                        <span class="font-bold text-red-600 dark:text-red-400 ml-1">(<?= $dm['completion_rate'] ?>%)</span>
+                                        <span class="text-slate-400">/ <?= $dm['total_employees'] ?> NV</span>
+                                        <span class="font-bold text-emerald-600 dark:text-emerald-400 ml-1">(<?= $dm['completion_rate'] ?>%)</span>
                                     </div>
                                 </div>
 
-                                <div class="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex">
-                                    <div style="width: <?= $dm['completion_rate'] ?>%" class="bg-gradient-to-r from-red-600 to-amber-500 h-full rounded-full transition-all"></div>
+                                <div class="w-full h-2.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex" title="Hoàn tất: <?= $dm['completed_count'] ?> | Chờ QL: <?= $dm['mgr_review_count'] ?> | NV tự chấm: <?= $dm['self_review_count'] ?>">
+                                    <?php if ($pct_done > 0): ?><div style="width: <?= $pct_done ?>%" class="bg-emerald-500 h-full transition-all"></div><?php endif; ?>
+                                    <?php if ($pct_mgr > 0): ?><div style="width: <?= $pct_mgr ?>%" class="bg-amber-400 h-full transition-all"></div><?php endif; ?>
+                                    <?php if ($pct_self > 0): ?><div style="width: <?= $pct_self ?>%" class="bg-sky-400 h-full transition-all"></div><?php endif; ?>
                                 </div>
 
-                                <div class="flex items-center justify-between text-[10px] text-slate-500 pt-0.5">
-                                    <div class="flex items-center gap-2">
-                                        <span>Chờ QL: <b><?= $dm['mgr_review_count'] ?></b></span>
-                                        <span>•</span>
-                                        <span>Tự chấm: <b><?= $dm['self_review_count'] ?></b></span>
+                                <div class="flex items-center justify-between text-[10px] text-slate-500 pt-0.5 tabular-nums">
+                                    <div class="flex items-center gap-2.5">
+                                        <span class="inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-circle bg-amber-400"></span>QL: <b><?= $dm['mgr_review_count'] ?></b></span>
+                                        <span class="inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-circle bg-sky-400"></span>NV: <b><?= $dm['self_review_count'] ?></b></span>
                                     </div>
                                     <div>
                                         Điểm TB: <b class="font-mono text-emerald-600 text-xs"><?= $dm['avg_score'] !== null ? $dm['avg_score'] . 'đ' : '---' ?></b>
@@ -847,33 +850,33 @@ require_once __DIR__ . '/../../includes/header.php';
     <!-- CHẾ ĐỘ 2: BẢNG DANH SÁCH NHÂN VIÊN (TABLE VIEW)          -->
     <!-- ======================================================== -->
     <?php elseif ($view_mode === 'table'): ?>
-        <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs">
             <div class="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <div>
                     <h3 class="text-sm font-bold text-slate-900 dark:text-white">Bảng Danh Sách Phiếu Đánh Giá Nhân Sự</h3>
-                    <p class="text-xs text-slate-500">Dữ liệu đánh giá chi tiết theo đợt và phân loại phòng ban</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Dữ liệu đánh giá chi tiết theo đợt và phân loại phòng ban</p>
                 </div>
-                <span class="text-xs font-mono font-bold text-slate-500">
-                    Tổng số: <?= count($evaluations) ?> phiếu
+                <span class="text-xs font-mono font-bold tabular-nums text-slate-500 dark:text-slate-400">
+                    Hiển thị: <?= count($evaluations) ?> phiếu
                 </span>
             </div>
 
-            <div class="overflow-x-auto">
+            <div class="table-wrapper-scientific border-0 rounded-t-none" tabindex="0" role="region" aria-label="Bảng Danh Sách Phiếu Đánh Giá Nhân Sự">
                 <table class="w-full text-left text-xs border-collapse">
                     <thead>
-                        <tr class="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
-                            <th class="py-3.5 px-4">Mã Phiếu</th>
-                            <th class="py-3.5 px-4">Nhân Sự Được Đánh Giá</th>
-                            <th class="py-3.5 px-4">Cấp Bậc Nhân Sự</th>
-                            <th class="py-3.5 px-4">Khối Phòng Ban</th>
-                            <th class="py-3.5 px-4">Quản Lý Thẩm Tra</th>
-                            <th class="py-3.5 px-4 text-center">Tự Chấm</th>
-                            <th class="py-3.5 px-4 text-center">QL Chấm</th>
-                            <th class="py-3.5 px-4 text-center">Điểm Tổng</th>
-                            <th class="py-3.5 px-4 text-center">Xếp Loại</th>
-                            <th class="py-3.5 px-4 text-center">Hệ Số Thưởng K</th>
-                            <th class="py-3.5 px-4 text-center">Trạng Thái</th>
-                            <th class="py-3.5 px-4 text-right">Thao Tác</th>
+                        <tr class="text-slate-500 dark:text-slate-300 font-bold uppercase tracking-wider">
+                            <th class="py-3 px-4 sticky-col min-w-[130px] whitespace-nowrap">Mã Phiếu</th>
+                            <th class="py-3 px-4 sticky-col-2 min-w-[230px] whitespace-nowrap">Nhân Sự Được Đánh Giá</th>
+                            <th class="py-3 px-4 whitespace-nowrap">Cấp Bậc</th>
+                            <th class="py-3 px-4 whitespace-nowrap">Khối Phòng Ban</th>
+                            <th class="py-3 px-4 whitespace-nowrap">Quản Lý Chấm</th>
+                            <th class="py-3 px-3 text-center whitespace-nowrap">Tự Chấm</th>
+                            <th class="py-3 px-3 text-center whitespace-nowrap">QL Chấm</th>
+                            <th class="py-3 px-3 text-center whitespace-nowrap">Điểm Tổng</th>
+                            <th class="py-3 px-3 text-center whitespace-nowrap">Xếp Loại</th>
+                            <th class="py-3 px-3 text-center whitespace-nowrap">Hệ Số K</th>
+                            <th class="py-3 px-3 text-center whitespace-nowrap">Trạng Thái</th>
+                            <th class="py-3 px-4 text-right whitespace-nowrap">Thao Tác</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -891,20 +894,20 @@ require_once __DIR__ . '/../../includes/header.php';
                                 $lvl_tbl = $hierarchy_levels[$item['template_level'] ?? 'specialist'] ?? $hierarchy_levels['specialist'];
                                 $k_mult = (float)($item['bonus_multiplier'] ?? 1.00);
                             ?>
-                            <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition">
+                            <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-900/40 transition">
                                 
-                                <td class="py-3 px-4 font-mono font-bold text-red-600 dark:text-red-400">
+                                <td class="py-3 px-4 sticky-col font-mono font-bold text-red-600 dark:text-red-400 whitespace-nowrap">
                                     <a href="<?= base_url('modules/evaluations/view.php?id=' . $item['id']) ?>" class="hover:underline">
                                         <?= e($item['evaluation_code']) ?>
                                     </a>
                                 </td>
 
-                                <td class="py-3 px-4">
-                                    <div class="flex items-center gap-3">
+                                <td class="py-3 px-4 sticky-col-2">
+                                    <div class="flex items-center gap-3 min-w-0">
                                         <?= render_avatar($item['employee_name'], $item['employee_avatar'], 8) ?>
-                                        <div>
-                                            <div class="font-bold text-slate-900 dark:text-white"><?= e($item['employee_name']) ?></div>
-                                            <div class="text-[11px] text-slate-400"><?= e($item['employee_code']) ?> &bull; <?= e($item['position_name'] ?: '---') ?></div>
+                                        <div class="min-w-0">
+                                            <div class="font-bold text-slate-900 dark:text-white truncate"><?= e($item['employee_name']) ?></div>
+                                            <div class="text-[11px] text-slate-400 truncate"><?= e($item['employee_code']) ?> &bull; <?= e($item['position_name'] ?: '---') ?></div>
                                         </div>
                                     </div>
                                 </td>
@@ -923,15 +926,15 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <?= e($item['reviewer_name']) ?>
                                 </td>
 
-                                <td class="py-3 px-4 text-center font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                                <td class="py-3 px-3 text-center font-mono tabular-nums font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
                                     <?= $item['self_score'] !== null ? round($item['self_score'], 1) : '--' ?>
                                 </td>
 
-                                <td class="py-3 px-4 text-center font-mono font-bold text-violet-600 dark:text-violet-400">
+                                <td class="py-3 px-3 text-center font-mono tabular-nums font-bold text-violet-600 dark:text-violet-400 whitespace-nowrap">
                                     <?= $item['manager_score'] !== null ? round($item['manager_score'], 1) : '--' ?>
                                 </td>
 
-                                <td class="py-3 px-4 text-center font-mono font-black text-emerald-600 dark:text-emerald-400">
+                                <td class="py-3 px-3 text-center font-mono tabular-nums font-black text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                                     <?= $item['final_score'] !== null ? round($item['final_score'], 1) : '--' ?>
                                 </td>
 

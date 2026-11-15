@@ -13,17 +13,23 @@ if ($is_edit) {
     $page_title = 'Lập Quyết Định / Biên Bản Kỷ Luật Mới';
 }
 
-// Lấy danh sách nhân viên đang làm việc kèm thông tin phòng ban & chi nhánh
-$employees = $pdo->query("
+// Lấy danh sách nhân viên trong phạm vi quyền (Data Scope)
+$empScopeParams = [];
+$empScopeSql = scope_where('e', $empScopeParams);
+$empStmt = $pdo->prepare("
     SELECT e.id, e.employee_code, e.fullname, e.avatar,
            b.name AS branch_name, d.name AS department_name, p.name AS position_name
     FROM employees e
     LEFT JOIN branches b ON e.branch_id = b.id
     LEFT JOIN departments d ON e.department_id = d.id
     LEFT JOIN positions p ON e.position_id = p.id
-    WHERE e.employment_status != 'resigned'
+    WHERE e.employment_status != 'resigned' AND ({$empScopeSql})
     ORDER BY e.fullname ASC
-")->fetchAll();
+");
+$empStmt->execute($empScopeParams);
+$employees = $empStmt->fetchAll();
+
+$can_approve_discipline = has_permission('disciplines', 'approve');
 
 $discipline = [
     'discipline_code' => '',
@@ -46,6 +52,7 @@ if ($is_edit) {
         set_flash('danger', 'Không tìm thấy biên bản kỷ luật này.');
         redirect('modules/disciplines/index.php');
     }
+    require_employee_access((int)$existing['employee_id']);
     $discipline = $existing;
 } else {
     // Tự sinh mã biên bản tiếp theo (VD: KL-2026-004)
@@ -71,6 +78,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $decision_number = trim($_POST['decision_number'] ?? '');
     $discipline_date = !empty($_POST['discipline_date']) ? $_POST['discipline_date'] : date('Y-m-d');
     $status          = $_POST['status'] ?? 'pending';
+    if (!$can_approve_discipline) {
+        $status = $is_edit ? ($existing['status'] ?? 'pending') : 'pending';
+    } elseif (!in_array($status, ['pending', 'approved', 'executed'], true)) {
+        $status = 'pending';
+    }
 
     $discipline = array_merge($discipline, [
         'employee_id'     => $employee_id,
@@ -85,6 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($employee_id <= 0) {
         $errors[] = 'Vui lòng chọn cán bộ / nhân viên bị xử lý kỷ luật.';
+    } elseif (!can_access_employee($employee_id)) {
+        $errors[] = 'Bạn không có quyền lập hoặc cập nhật biên bản kỷ luật cho nhân sự ngoài phạm vi quản lý.';
     }
 
     if (empty($title)) {
@@ -94,24 +108,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Xử lý kéo thả upload tệp đính kèm
     $attachment_name = $discipline['attachment'];
     if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
-        $file_tmp = $_FILES['attachment']['tmp_name'];
-        $file_name = $_FILES['attachment']['name'];
-        $file_size = $_FILES['attachment']['size'];
-        $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-
-        $allowed_exts = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp'];
-        if (!in_array($ext, $allowed_exts)) {
-            $errors[] = 'Định dạng tệp đính kèm không hợp lệ. Chỉ chấp nhận PDF, Word hoặc Hình ảnh.';
-        } elseif ($file_size > 10 * 1024 * 1024) {
-            $errors[] = 'Dung lượng tệp đính kèm không được vượt quá 10MB.';
+        $check = validate_uploaded_file($_FILES['attachment'], ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp'], 10 * 1024 * 1024);
+        if (!$check['ok']) {
+            $errors[] = 'Tệp đính kèm không hợp lệ: ' . $check['error'];
         } else {
             $upload_dir = __DIR__ . '/../../assets/uploads/attachments/';
             if (!is_dir($upload_dir)) {
                 mkdir($upload_dir, 0777, true);
             }
 
-            $new_file_name = 'discipline_' . time() . '_' . rand(1000, 9999) . '.' . $ext;
-            if (move_uploaded_file($file_tmp, $upload_dir . $new_file_name)) {
+            $new_file_name = 'discipline_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $check['ext'];
+            if (move_uploaded_file($_FILES['attachment']['tmp_name'], $upload_dir . $new_file_name)) {
                 if (!empty($attachment_name) && file_exists($upload_dir . $attachment_name)) {
                     @unlink($upload_dir . $attachment_name);
                 }
@@ -365,28 +372,31 @@ require_once __DIR__ . '/../../includes/header.php';
                             Trạng Thái Quy Trình
                         </label>
                         <div class="grid grid-cols-3 gap-3">
-                            <label class="cursor-pointer border border-slate-200 dark:border-slate-700 rounded-2xl p-3.5 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition">
-                                <input type="radio" name="status" value="pending" <?= $discipline['status'] === 'pending' ? 'checked' : '' ?> class="text-amber-600 focus:ring-amber-500">
+                            <label class="<?= $can_approve_discipline ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/40' : 'opacity-80 cursor-not-allowed' ?> border border-slate-200 dark:border-slate-700 rounded-2xl p-3.5 flex items-center gap-3 transition">
+                                <input type="radio" name="status" value="pending" <?= $discipline['status'] === 'pending' ? 'checked' : '' ?> <?= (!$can_approve_discipline && $discipline['status'] !== 'pending') ? 'disabled' : '' ?> class="text-amber-600 focus:ring-amber-500">
                                 <div>
                                     <div class="text-xs font-bold text-amber-700 dark:text-amber-400">Chờ Xử Lý</div>
                                     <div class="text-[10px] text-slate-400">Đang xem xét biên bản</div>
                                 </div>
                             </label>
-                            <label class="cursor-pointer border border-slate-200 dark:border-slate-700 rounded-2xl p-3.5 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition">
-                                <input type="radio" name="status" value="approved" <?= $discipline['status'] === 'approved' ? 'checked' : '' ?> class="text-sky-600 focus:ring-sky-500">
+                            <label class="<?= $can_approve_discipline ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/40' : 'opacity-60 cursor-not-allowed' ?> border border-slate-200 dark:border-slate-700 rounded-2xl p-3.5 flex items-center gap-3 transition">
+                                <input type="radio" name="status" value="approved" <?= $discipline['status'] === 'approved' ? 'checked' : '' ?> <?= !$can_approve_discipline ? 'disabled' : '' ?> class="text-sky-600 focus:ring-sky-500">
                                 <div>
                                     <div class="text-xs font-bold text-sky-700 dark:text-sky-400">Đã Phê Duyệt</div>
                                     <div class="text-[10px] text-slate-400">Quyết định đã ký duyệt</div>
                                 </div>
                             </label>
-                            <label class="cursor-pointer border border-slate-200 dark:border-slate-700 rounded-2xl p-3.5 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition">
-                                <input type="radio" name="status" value="executed" <?= $discipline['status'] === 'executed' ? 'checked' : '' ?> class="text-emerald-600 focus:ring-emerald-500">
+                            <label class="<?= $can_approve_discipline ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/40' : 'opacity-60 cursor-not-allowed' ?> border border-slate-200 dark:border-slate-700 rounded-2xl p-3.5 flex items-center gap-3 transition">
+                                <input type="radio" name="status" value="executed" <?= $discipline['status'] === 'executed' ? 'checked' : '' ?> <?= !$can_approve_discipline ? 'disabled' : '' ?> class="text-emerald-600 focus:ring-emerald-500">
                                 <div>
                                     <div class="text-xs font-bold text-emerald-700 dark:text-emerald-400">Đã Thi Hành</div>
                                     <div class="text-[10px] text-slate-400">Đã trừ lương / thi hành kỷ luật</div>
                                 </div>
                             </label>
                         </div>
+                        <?php if (!$can_approve_discipline): ?>
+                            <p class="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5 font-medium"><i class="fa-solid fa-lock mr-1"></i>Đề xuất mới mặc định ở trạng thái Chờ Xử Lý cho đến khi Ban Giám Đốc / HRD phê duyệt.</p>
+                        <?php endif; ?>
                     </div>
 
                     <!-- Mô tả chi tiết vi phạm -->

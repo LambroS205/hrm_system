@@ -68,6 +68,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email             = trim($_POST['email'] ?? '');
     $address           = trim($_POST['address'] ?? '');
     $branch_id         = !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : 1;
+    if (data_scope() === 'branch' && current_user_branch_id()) {
+        $branch_id = (int)current_user_branch_id();
+    }
     $department_id     = !empty($_POST['department_id']) ? (int)$_POST['department_id'] : null;
     $position_id       = !empty($_POST['position_id']) ? (int)$_POST['position_id'] : null;
     $hire_date         = !empty($_POST['hire_date']) ? $_POST['hire_date'] : date('Y-m-d');
@@ -113,16 +116,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $avatar_name = $employee['avatar'];
     if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
-        $file_tmp = $_FILES['avatar']['tmp_name'];
-        $file_name = $_FILES['avatar']['name'];
-        $file_size = $_FILES['avatar']['size'];
-        $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-
-        $allowed_exts = ['jpg', 'jpeg', 'png', 'webp'];
-        if (!in_array($ext, $allowed_exts)) {
-            $errors[] = 'Ảnh đại diện chỉ chấp nhận định dạng JPG, PNG hoặc WEBP.';
-        } elseif ($file_size > 2 * 1024 * 1024) {
-            $errors[] = 'Kích thước ảnh đại diện không được vượt quá 2MB.';
+        $check = validate_uploaded_file($_FILES['avatar'], ['jpg', 'jpeg', 'png', 'webp'], 2 * 1024 * 1024, true);
+        if (!$check['ok']) {
+            $errors[] = 'Ảnh đại diện không hợp lệ: ' . $check['error'];
         } else {
             $upload_dir = __DIR__ . '/../../assets/uploads/';
             if (!is_dir($upload_dir)) {
@@ -130,8 +126,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             // Đặt tên file ngẫu nhiên an toàn
-            $new_avatar_name = 'avatar_' . time() . '_' . rand(100, 999) . '.' . $ext;
-            if (move_uploaded_file($file_tmp, $upload_dir . $new_avatar_name)) {
+            $new_avatar_name = 'avatar_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $check['ext'];
+            if (move_uploaded_file($_FILES['avatar']['tmp_name'], $upload_dir . $new_avatar_name)) {
                 // Xóa avatar cũ nếu có
                 if (!empty($avatar_name) && file_exists($upload_dir . $avatar_name)) {
                     unlink($upload_dir . $avatar_name);

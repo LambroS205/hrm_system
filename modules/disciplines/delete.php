@@ -9,11 +9,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($id > 0) {
         try {
-            $stmt = $pdo->prepare("SELECT discipline_code, attachment FROM disciplines WHERE id = ?");
+            $stmt = $pdo->prepare("SELECT employee_id, discipline_code, attachment FROM disciplines WHERE id = ?");
             $stmt->execute([$id]);
             $discipline = $stmt->fetch();
 
             if ($discipline) {
+                require_employee_access((int)$discipline['employee_id']);
                 // Xóa tệp đính kèm trên đĩa nếu có
                 if (!empty($discipline['attachment'])) {
                     $filePath = __DIR__ . '/../../assets/uploads/attachments/' . $discipline['attachment'];

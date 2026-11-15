@@ -14,13 +14,13 @@ class LeaveService {
      * - Cứ 05 năm làm việc tại doanh nghiệp: được cộng thêm 01 ngày phép thâm niên
      * - Làm chưa đủ 12 tháng trong năm: số ngày phép tính theo tỷ lệ số tháng làm việc
      *
-     * @param array $employee Mảng thông tin nhân viên (chứa join_date hoặc start_date)
+     * @param array $employee Mảng thông tin nhân viên (chứa hire_date, join_date hoặc start_date)
      * @param int|null $year Năm tính toán (mặc định năm hiện tại)
      * @return float
      */
     public static function getAnnualLeaveEntitlement(array $employee, ?int $year = null): float {
         $year = $year ?: (int)date('Y');
-        $joinDateStr = $employee['join_date'] ?? $employee['start_date'] ?? null;
+        $joinDateStr = $employee['hire_date'] ?? $employee['join_date'] ?? $employee['start_date'] ?? null;
 
         if (!$joinDateStr) {
             return self::BASE_ANNUAL_LEAVE;
@@ -128,7 +128,7 @@ class LeaveService {
         $remaining = max(0.0, $entitled - $used);
 
         // Tính số năm thâm niên
-        $joinDateStr = $employee['join_date'] ?? $employee['start_date'] ?? null;
+        $joinDateStr = $employee['hire_date'] ?? $employee['join_date'] ?? $employee['start_date'] ?? null;
         $seniorityYears = 0;
         if ($joinDateStr) {
             $joinDate = new DateTime($joinDateStr);

@@ -1,6 +1,7 @@
 <?php
 // database/seed_full_workforce_and_history.php
 // Script cập nhật & bổ sung toàn diện dữ liệu nhân sự, chi nhánh, phòng ban và dữ liệu lịch sử các năm/tháng
+if (PHP_SAPI !== 'cli') { http_response_code(403); exit('CLI only.'); }
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../core/PayrollCalculator.php';

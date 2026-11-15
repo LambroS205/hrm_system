@@ -4,15 +4,21 @@ $page_title = 'Hồ Sơ & Bảo Mật Tài Khoản';
 
 require_once __DIR__ . '/core/auth.php';
 require_once __DIR__ . '/core/LeaveService.php';
+require_once __DIR__ . '/config/payroll_rules.php';
 require_login();
 
 $user = current_user();
 $user_id = (int)$user['id'];
 
-// Lấy thông tin hồ sơ nhân sự liên kết (nếu có)
-$emp_profile = current_employee();
+// Nạp thông số giảm trừ gia cảnh hiện hành (Nghị quyết 110/2025/UBTVQH15)
+$current_rules = payroll_rules_for((int)date('Y'), (int)date('m'));
+$personal_deduction = (float)($current_rules['personal_deduction'] ?? 15500000);
+$dependent_deduction = (float)($current_rules['dependent_deduction'] ?? 6200000);
+
+// Lấy thông tin hồ sơ nhân sự liên kết (làm mới để đồng bộ wage_region & hire_date)
+$emp_profile = current_employee(true);
 $contract = null;
-$insurance = null;
+$insurances_by_type = [];
 $dep_count = 0;
 $leave_data = null;
 
@@ -23,11 +29,15 @@ if ($emp_profile) {
         $cStmt->execute([$emp_id]);
         $contract = $cStmt->fetch();
 
-        $iStmt = $pdo->prepare("SELECT * FROM employee_insurance WHERE employee_id = ? LIMIT 1");
+        $iStmt = $pdo->prepare("SELECT * FROM employee_insurance WHERE employee_id = ? ORDER BY start_date DESC");
         $iStmt->execute([$emp_id]);
-        $insurance = $iStmt->fetch();
+        foreach ($iStmt->fetchAll() as $insRow) {
+            if (!isset($insurances_by_type[$insRow['insurance_type']])) {
+                $insurances_by_type[$insRow['insurance_type']] = $insRow;
+            }
+        }
 
-        $dStmt = $pdo->prepare("SELECT COUNT(*) FROM employee_dependents WHERE employee_id = ?");
+        $dStmt = $pdo->prepare("SELECT COUNT(*) FROM employee_dependents WHERE employee_id = ? AND tax_deductible = 1");
         $dStmt->execute([$emp_id]);
         $dep_count = (int)$dStmt->fetchColumn();
 
@@ -185,7 +195,7 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-700/60">
                     <span class="text-slate-400 block mb-1">Mã nhân viên:</span>
                     <span class="font-mono font-bold text-base text-indigo-600 dark:text-indigo-400 block"><?= e($emp_profile['employee_code']) ?></span>
-                    <span class="text-slate-500 text-[11px] mt-0.5 block">Vào làm: <?= format_date($emp_profile['join_date'] ?? 'now') ?></span>
+                    <span class="text-slate-500 text-[11px] mt-0.5 block">Vào làm: <?= format_date($emp_profile['hire_date'] ?? null) ?></span>
                 </div>
 
                 <div class="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-700/60">
@@ -219,19 +229,23 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="space-y-1.5 text-slate-600 dark:text-slate-300">
                         <div>Số HĐ: <b class="font-mono"><?= e($contract['contract_number'] ?? 'Chính thức') ?></b></div>
                         <div>Loại: <b><?= e($emp_profile['employment_status'] === 'official' ? 'Không xác định thời hạn' : 'Thử việc') ?></b></div>
-                        <div>Hiệu lực: <?= format_date($contract['start_date'] ?? $emp_profile['join_date'] ?? 'now') ?></div>
+                        <div>Hiệu lực: <?= format_date($contract['start_date'] ?? $emp_profile['hire_date'] ?? null) ?></div>
                     </div>
                 </div>
 
+                <?php
+                $bhxh_info = $insurances_by_type['social'] ?? null;
+                $bhyt_info = $insurances_by_type['health'] ?? $bhxh_info;
+                ?>
                 <div class="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-700/60">
                     <div class="font-bold text-slate-800 dark:text-white mb-2 flex items-center gap-1.5">
                         <i class="fa-solid fa-heart-pulse text-rose-500"></i>
                         Bảo Hiểm Xã Hội & Y Tế
                     </div>
                     <div class="space-y-1.5 text-slate-600 dark:text-slate-300">
-                        <div>Mã số BHXH: <b class="font-mono"><?= e($insurance['insurance_book_number'] ?? 'Đang quản lý tập trung') ?></b></div>
-                        <div>Mã thẻ BHYT: <b class="font-mono"><?= e($insurance['health_card_number'] ?? 'BHYT Masan Group') ?></b></div>
-                        <div class="truncate">Nơi KCB: <?= e($insurance['hospital_name'] ?? 'Bệnh viện Quận 1') ?></div>
+                        <div>Mã số BHXH: <b class="font-mono"><?= e($bhxh_info['insurance_number'] ?? 'Đang quản lý tập trung') ?></b></div>
+                        <div>Mã thẻ BHYT: <b class="font-mono"><?= e($bhyt_info['insurance_number'] ?? 'BHYT Masan Group') ?></b></div>
+                        <div class="truncate">Nơi KCB: <?= e($bhyt_info['hospital_name'] ?? $bhxh_info['hospital_name'] ?? 'Chưa cập nhật') ?></div>
                     </div>
                 </div>
 
@@ -242,8 +256,8 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                     <div class="space-y-1.5 text-slate-600 dark:text-slate-300">
                         <div>Người phụ thuộc: <b><?= $dep_count ?> người</b></div>
-                        <div>Giảm trừ TNCN: <b><?= number_format(11000000 + $dep_count * 4400000) ?> đ/tháng</b></div>
-                        <div>Tài khoản nhận lương: <b class="font-mono"><?= e($emp_profile['bank_account'] ?: 'Techcombank') ?></b></div>
+                        <div>Giảm trừ TNCN: <b><?= number_format($personal_deduction + $dep_count * $dependent_deduction) ?> đ/tháng</b></div>
+                        <div>Tài khoản nhận lương: <b class="font-mono"><?= e($emp_profile['bank_account'] ?: 'Chưa cập nhật') ?></b></div>
                     </div>
                 </div>
             </div>

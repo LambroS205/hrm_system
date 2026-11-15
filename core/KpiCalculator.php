@@ -36,6 +36,7 @@ final class KpiCalculator {
 
         $completionRate = 0.0;
         $actualNum = self::parseTarget($actualStr);
+        $isAutoComputed = false;
 
         // 1. Trường hợp tiêu chí Boolean (Đạt / Không đạt)
         if ($direction === 'boolean' || ($item['target_type'] ?? '') === 'boolean') {
@@ -193,12 +194,12 @@ final class KpiCalculator {
         // Điểm quy chuẩn thang 100 tính trên TỔNG TRỌNG SỐ THẬT CỦA BỘ TIÊU CHÍ
         $finalCalculatedScore = round(($totalWeightedPoints / $totalTemplateWeight) * 100.0, 2);
 
-        // % hoàn thành trung bình theo Nhóm A, B, C
+        // % hoàn thành trung bình theo Nhóm A, B, C (null nếu bộ tiêu chí không có nhóm đó)
         $priorityAvg = [];
         foreach (['A', 'B', 'C'] as $pg) {
             $priorityAvg[$pg] = $priorityWeights[$pg] > 0
                 ? round(($priorityScores[$pg] / $priorityWeights[$pg]) * 100.0, 1)
-                : 0.0;
+                : null;
         }
 
         // % hoàn thành trung bình theo 4 Trụ cột BSC

@@ -29,7 +29,7 @@ function current_employee(bool $refresh = false): ?array {
     try {
         $stmt = $pdo->prepare("
             SELECT e.*, 
-                   b.name AS branch_name, b.code AS branch_code,
+                   b.name AS branch_name, b.code AS branch_code, b.wage_region AS wage_region,
                    d.name AS department_name, d.code AS department_code,
                    p.name AS position_name
             FROM employees e
@@ -74,6 +74,10 @@ function is_self_scope(): bool {
 
 function is_branch_scope(): bool {
     return data_scope() === 'branch';
+}
+
+function is_dept_scope(): bool {
+    return data_scope() === 'department';
 }
 
 function is_all_scope(): bool {
@@ -121,7 +125,7 @@ function scope_where(string $alias, array &$params, string $branchCol = 'branch_
             $params[] = $branchId;
             return "{$prefix}{$branchCol} = ?";
         }
-        return '1=1';
+        return '1=0';
     }
 
     if ($scope === 'department') {
@@ -130,7 +134,7 @@ function scope_where(string $alias, array &$params, string $branchCol = 'branch_
             $params[] = $deptId;
             return "{$prefix}{$deptCol} = ?";
         }
-        return '1=1';
+        return '1=0';
     }
 
     if ($scope === 'self') {

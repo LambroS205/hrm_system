@@ -74,8 +74,16 @@ $curr_user_id = (int)($user['id'] ?? 0);
 $emp_user_id = (int)($eval['employee_user_id'] ?? 0);
 $rev_user_id = (int)($eval['reviewer_user_id'] ?? 0);
 
-if (!is_superadmin() && !has_permission('evaluations', 'approve')) {
-    if ($curr_user_id <= 0 || ($curr_user_id !== $emp_user_id && $curr_user_id !== $rev_user_id)) {
+$can_view_all_kpi = is_superadmin()
+    || has_permission('evaluations', 'approve')
+    || (is_all_scope() && (has_permission('evaluations', 'create') || has_permission('evaluations', 'edit')));
+
+if (!$can_view_all_kpi) {
+    if (is_branch_scope() || is_dept_scope()) {
+        if ($curr_user_id !== $emp_user_id && $curr_user_id !== $rev_user_id) {
+            require_employee_access((int)$eval['employee_id']);
+        }
+    } elseif ($curr_user_id <= 0 || ($curr_user_id !== $emp_user_id && $curr_user_id !== $rev_user_id)) {
         set_flash('danger', 'Truy cập bị từ chối: Bạn chỉ có thể xem phiếu đánh giá KPI của chính mình hoặc phiếu được giao thẩm định.');
         redirect('modules/evaluations/index.php');
     }
@@ -186,7 +194,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
             <?php if (in_array($eval['rating'], ['outstanding', 'excellent']) && has_permission('rewards', 'create')): ?>
                 <a href="<?= base_url('modules/rewards/form.php?employee_id=' . $eval['employee_id'] . '&evaluation_id=' . $eval['id']) ?>" 
-                   class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded-sm text-xs transition flex items-center gap-2">
+                   class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded-xl text-xs transition flex items-center gap-2 shadow-sm">
                     <i class="fa-solid fa-award"></i>
                     <span>Lập Khen Thưởng</span>
                 </a>
@@ -416,7 +424,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
     <!-- Mục Tiêu Trọng Tâm Đề Ra & Cam Kết Hiệu Suất Theo Vị Trí -->
     <?php if (!empty($eval['goals_summary']) || !empty($eval['custom_items_json'])): ?>
-        <div class="bg-indigo-50 dark:bg-slate-800 p-5 sm:p-6 rounded-sm border border-indigo-200 dark:border-indigo-900 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="bg-indigo-50/70 dark:bg-slate-800 p-5 sm:p-6 rounded-2xl border border-indigo-200/80 dark:border-indigo-900 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div class="space-y-1.5 flex-1">
                 <div class="flex items-center gap-2 flex-wrap">
                     <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-600 text-white flex items-center gap-1.5 shadow-sm">
@@ -445,27 +453,27 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
     <?php endif; ?>
 
-    <!-- 3 Tabs Navigation Bar -->
-    <div class="border-b border-slate-200 dark:border-slate-700 flex items-center gap-2 overflow-x-auto">
-        <button type="button" onclick="switchTab('self')" id="tabBtn_self"
-                class="px-5 py-3 font-bold text-xs border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 flex items-center gap-2 transition whitespace-nowrap">
+    <!-- 3 Tabs Navigation Bar (WAI-ARIA Tablist, Single Row) -->
+    <div role="tablist" aria-label="Tiến trình đánh giá KPI" class="enterprise-tablist border-b border-slate-200 dark:border-slate-700 items-center gap-1">
+        <button type="button" role="tab" aria-selected="true" aria-controls="tabContent_self" onclick="switchTab('self')" id="tabBtn_self"
+                class="px-5 py-3 font-semibold text-xs border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 flex items-center gap-2 transition whitespace-nowrap">
             <i class="fa-solid fa-user-pen"></i>
             <span>1. Tự Đánh Giá (Nhân Viên)</span>
             <?php if ($eval['self_score'] !== null): ?>
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span class="w-2 h-2 rounded-circle bg-emerald-500" title="Đã có điểm tự chấm"></span>
             <?php endif; ?>
         </button>
 
-        <button type="button" onclick="switchTab('manager')" id="tabBtn_manager"
+        <button type="button" role="tab" aria-selected="false" aria-controls="tabContent_manager" onclick="switchTab('manager')" id="tabBtn_manager"
                 class="px-5 py-3 font-semibold text-xs border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center gap-2 transition whitespace-nowrap">
             <i class="fa-solid fa-user-tie"></i>
             <span>2. Quản Lý Đánh Giá</span>
             <?php if ($eval['manager_score'] !== null): ?>
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span class="w-2 h-2 rounded-circle bg-emerald-500" title="Đã có điểm quản lý"></span>
             <?php endif; ?>
         </button>
 
-        <button type="button" onclick="switchTab('results')" id="tabBtn_results"
+        <button type="button" role="tab" aria-selected="false" aria-controls="tabContent_results" onclick="switchTab('results')" id="tabBtn_results"
                 class="px-5 py-3 font-semibold text-xs border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center gap-2 transition whitespace-nowrap">
             <i class="fa-solid fa-chart-pie"></i>
             <span>3. Kết Quả & Total Rewards</span>
@@ -755,26 +763,24 @@ require_once __DIR__ . '/../../includes/header.php';
                                 </div>
                             </div>
 
-                            <!-- Box Đối Chiếu Điểm Tự Chấm Của Nhân Viên -->
-                            <div class="bg-indigo-50/70 dark:bg-indigo-950/40 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900 flex items-center justify-between text-xs flex-wrap gap-2">
-                                <div class="flex items-center gap-3">
-                                    <div class="flex items-center gap-1.5">
-                                        <i class="fa-solid fa-user-pen text-indigo-500"></i>
-                                        <span class="text-slate-600 dark:text-slate-300">Nhân viên khai báo:</span>
-                                        <strong class="font-mono text-indigo-600 dark:text-indigo-400">
-                                            <?= $self_act !== '' ? e($self_act) . ' ' . e($it['unit'] ?? '') : '---' ?>
-                                        </strong>
-                                    </div>
-                                    <span>&bull;</span>
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-slate-600 dark:text-slate-300">Điểm tự chấm:</span>
-                                        <strong class="font-mono text-indigo-600 dark:text-indigo-400 text-sm">
-                                            <?= $self_pt !== null ? $self_pt . 'đ' : 'Chưa chấm' ?>
-                                        </strong>
-                                    </div>
+                            <!-- Box Đối Chiếu Điểm Tự Chấm Của Nhân Viên (Side-by-Side Comparison Strip) -->
+                            <div class="bg-indigo-50/70 dark:bg-indigo-950/40 p-3.5 rounded-xl border border-indigo-200/80 dark:border-indigo-900 grid grid-cols-1 md:grid-cols-12 gap-3 items-center text-xs">
+                                <div class="md:col-span-4 flex items-center gap-2 min-w-0">
+                                    <i class="fa-solid fa-user-pen text-indigo-600 dark:text-indigo-400 flex-shrink-0"></i>
+                                    <span class="text-slate-600 dark:text-slate-300">NV khai báo:</span>
+                                    <strong class="font-mono tabular-nums text-indigo-700 dark:text-indigo-300 truncate">
+                                        <?= $self_act !== '' ? e($self_act) . ' ' . e($it['unit'] ?? '') : '---' ?>
+                                    </strong>
                                 </div>
-                                <div class="text-slate-500 text-[11px] truncate max-w-sm" title="<?= e($saved_self['comment'] ?? '') ?>">
-                                    <?= !empty($saved_self['comment']) ? '“' . e($saved_self['comment']) . '”' : 'Không có ghi chú' ?>
+                                <div class="md:col-span-3 flex items-center gap-2">
+                                    <span class="text-slate-600 dark:text-slate-300">Điểm tự chấm:</span>
+                                    <span class="px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 font-mono tabular-nums font-bold text-indigo-700 dark:text-indigo-300">
+                                        <?= $self_pt !== null ? $self_pt . 'đ' : 'Chưa chấm' ?>
+                                    </span>
+                                </div>
+                                <div class="md:col-span-5 text-slate-600 dark:text-slate-300 text-[11px] truncate" title="<?= e($saved_self['comment'] ?? '') ?>">
+                                    <i class="fa-regular fa-comment-dots mr-1 text-indigo-400"></i>
+                                    <?= !empty($saved_self['comment']) ? '“' . e($saved_self['comment']) . '”' : '<span class="text-slate-400 italic">Nhân viên chưa ghi chú</span>' ?>
                                 </div>
                             </div>
 
@@ -1120,7 +1126,7 @@ const MGR_MAP = <?= json_encode($mgr_map) ?>;
 
 let radarChartInstance = null;
 
-// Chuyển Tab mượt mà
+// Chuyển Tab mượt mà (giữ ổn định font-weight & kích thước tab, cập nhật aria-selected)
 function switchTab(tabKey) {
     const tabs = ['self', 'manager', 'results'];
     tabs.forEach(t => {
@@ -1128,9 +1134,11 @@ function switchTab(tabKey) {
         const btn = document.getElementById('tabBtn_' + t);
         if (t === tabKey) {
             content.classList.remove('hidden');
-            btn.className = 'px-5 py-3 font-bold text-xs border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 flex items-center gap-2 transition whitespace-nowrap';
+            btn.setAttribute('aria-selected', 'true');
+            btn.className = 'px-5 py-3 font-semibold text-xs border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 flex items-center gap-2 transition whitespace-nowrap';
         } else {
             content.classList.add('hidden');
+            btn.setAttribute('aria-selected', 'false');
             btn.className = 'px-5 py-3 font-semibold text-xs border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center gap-2 transition whitespace-nowrap';
         }
     });

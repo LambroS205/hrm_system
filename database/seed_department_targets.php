@@ -1,5 +1,6 @@
 <?php
 // database/seed_department_targets.php - Khởi tạo dữ liệu mục tiêu phòng ban theo đợt cho WinCommerce
+if (PHP_SAPI !== 'cli') { http_response_code(403); exit('CLI only.'); }
 require_once __DIR__ . '/../core/auth.php';
 
 echo "=== KHỞI TẠO MỤC TIÊU PHÒNG BAN THEO ĐỢT (WINCOMMERCE KPI TARGETS) ===\n";
