@@ -29,17 +29,17 @@ $stmt = $pdo->prepare("
     WHERE p.id = ?
 ");
 $stmt->execute([$id]);
-$p = $stmt->fetch();
+$proposal = $stmt->fetch();
 
-if (!$p) {
+if (!$proposal) {
     set_flash('danger', 'Đề xuất không tồn tại.');
     redirect('modules/proposals/index.php');
 }
 
 // Kiểm tra quyền hạn theo Data Scope
-require_employee_access((int)$p['employee_id']);
+require_employee_access((int)$proposal['employee_id']);
 
-$page_title = 'Chi Tiết Đề Xuất ' . $p['proposal_code'];
+$page_title = 'Chi Tiết Đề Xuất ' . $proposal['proposal_code'];
 
 // Map labels
 $type_labels = [
@@ -72,9 +72,9 @@ $leave_type_labels = [
     'unpaid'    => 'Không Lương',
 ];
 
-$t = $type_labels[$p['type']] ?? ['Khác', 'fa-clipboard-list', 'slate'];
-$pr = $priority_labels[$p['priority']] ?? ['Bình Thường', 'sky'];
-$sc = $status_config[$p['status']] ?? $status_config['pending'];
+$t = $type_labels[$proposal['type']] ?? ['Khác', 'fa-clipboard-list', 'slate'];
+$pr = $priority_labels[$proposal['priority']] ?? ['Bình Thường', 'sky'];
+$sc = $status_config[$proposal['status']] ?? $status_config['pending'];
 
 require_once __DIR__ . '/../../includes/header.php';
 ?>
@@ -94,11 +94,11 @@ require_once __DIR__ . '/../../includes/header.php';
                         Ưu tiên: <?= $pr[0] ?>
                     </span>
                 </div>
-                <h2 class="text-xl font-bold text-slate-800 dark:text-white"><?= e($p['title']) ?></h2>
+                <h2 class="text-xl font-bold text-slate-800 dark:text-white"><?= e($proposal['title']) ?></h2>
                 <div class="flex items-center gap-3 mt-2 text-xs text-slate-500 dark:text-slate-400">
-                    <span class="font-mono font-bold text-violet-600 dark:text-violet-400"><?= e($p['proposal_code']) ?></span>
+                    <span class="font-mono font-bold text-violet-600 dark:text-violet-400"><?= e($proposal['proposal_code']) ?></span>
                     <span>•</span>
-                    <span>Tạo lúc <?= format_datetime($p['created_at']) ?></span>
+                    <span>Tạo lúc <?= format_datetime($proposal['created_at']) ?></span>
                 </div>
             </div>
 
@@ -117,14 +117,14 @@ require_once __DIR__ . '/../../includes/header.php';
         </div>
 
         <!-- Nút hành động cho quản lý -->
-        <?php if ($p['status'] === 'pending' && has_permission('proposals', 'approve')): ?>
+        <?php if ($proposal['status'] === 'pending' && has_permission('proposals', 'approve')): ?>
             <div class="mt-5 pt-5 border-t border-slate-200 dark:border-slate-700 flex items-center gap-3">
                 <form action="<?= base_url('modules/proposals/index.php') ?>" method="POST" class="inline">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action_type" value="approve_proposal">
-                    <input type="hidden" name="proposal_id" value="<?= $p['id'] ?>">
+                    <input type="hidden" name="proposal_id" value="<?= $proposal['id'] ?>">
                     <button type="submit" 
-                            data-confirm="Xác nhận PHÊ DUYỆT đề xuất <?= e($p['proposal_code']) ?>?"
+                            data-confirm="Xác nhận PHÊ DUYỆT đề xuất <?= e($proposal['proposal_code']) ?>?"
                             data-confirm-title="Xác Nhận Phê Duyệt Đề Xuất"
                             data-confirm-btn="Phê Duyệt"
                             data-confirm-danger="false"
@@ -145,7 +145,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 <form action="<?= base_url('modules/proposals/index.php') ?>" method="POST">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action_type" value="reject_proposal">
-                    <input type="hidden" name="proposal_id" value="<?= $p['id'] ?>">
+                    <input type="hidden" name="proposal_id" value="<?= $proposal['id'] ?>">
                     <label class="block text-xs font-bold text-rose-700 dark:text-rose-300 mb-1.5">Lý Do Từ Chối <span class="text-rose-500">*</span></label>
                     <textarea name="rejection_reason" rows="3" required placeholder="Nhập lý do từ chối..."
                               class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800 rounded-xl text-sm text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-rose-500 outline-none resize-none mb-3"></textarea>
@@ -174,62 +174,62 @@ require_once __DIR__ . '/../../includes/header.php';
                     Nội Dung Đề Xuất
                 </h3>
 
-                <?php if (!empty($p['description'])): ?>
-                    <div class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line"><?= e($p['description']) ?></div>
+                <?php if (!empty($proposal['description'])): ?>
+                    <div class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line"><?= e($proposal['description']) ?></div>
                 <?php else: ?>
                     <p class="text-sm text-slate-400 dark:text-slate-500 italic">Không có mô tả chi tiết.</p>
                 <?php endif; ?>
 
                 <!-- Thông tin bổ sung theo loại -->
                 <div class="mt-5 pt-5 border-t border-slate-200 dark:border-slate-700 grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    <?php if (!empty($p['start_date'])): ?>
+                    <?php if (!empty($proposal['start_date'])): ?>
                         <div>
                             <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Ngày Bắt Đầu</div>
-                            <div class="text-sm font-bold text-slate-800 dark:text-white font-mono"><?= format_date($p['start_date']) ?></div>
+                            <div class="text-sm font-bold text-slate-800 dark:text-white font-mono"><?= format_date($proposal['start_date']) ?></div>
                         </div>
                     <?php endif; ?>
 
-                    <?php if (!empty($p['end_date'])): ?>
+                    <?php if (!empty($proposal['end_date'])): ?>
                         <div>
                             <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Ngày Kết Thúc</div>
-                            <div class="text-sm font-bold text-slate-800 dark:text-white font-mono"><?= format_date($p['end_date']) ?></div>
+                            <div class="text-sm font-bold text-slate-800 dark:text-white font-mono"><?= format_date($proposal['end_date']) ?></div>
                         </div>
                     <?php endif; ?>
 
-                    <?php if ((float)$p['total_days'] > 0): ?>
+                    <?php if ((float)$proposal['total_days'] > 0): ?>
                         <div>
                             <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Tổng Ngày</div>
-                            <div class="text-sm font-bold text-slate-800 dark:text-white"><?= number_format((float)$p['total_days'], 1) ?> ngày</div>
+                            <div class="text-sm font-bold text-slate-800 dark:text-white"><?= number_format((float)$proposal['total_days'], 1) ?> ngày</div>
                         </div>
                     <?php endif; ?>
 
-                    <?php if ($p['type'] === 'leave' && !empty($p['leave_type'])): ?>
+                    <?php if ($proposal['type'] === 'leave' && !empty($proposal['leave_type'])): ?>
                         <div>
                             <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Loại Nghỉ Phép</div>
-                            <div class="text-sm font-bold text-slate-800 dark:text-white"><?= $leave_type_labels[$p['leave_type']] ?? 'N/A' ?></div>
+                            <div class="text-sm font-bold text-slate-800 dark:text-white"><?= $leave_type_labels[$proposal['leave_type']] ?? 'N/A' ?></div>
                         </div>
                     <?php endif; ?>
 
-                    <?php if ((float)$p['amount'] > 0): ?>
+                    <?php if ((float)$proposal['amount'] > 0): ?>
                         <div>
                             <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Số Tiền</div>
-                            <div class="text-sm font-bold text-amber-600 dark:text-amber-400 font-mono"><?= format_money($p['amount']) ?></div>
+                            <div class="text-sm font-bold text-amber-600 dark:text-amber-400 font-mono"><?= format_money($proposal['amount']) ?></div>
                         </div>
                     <?php endif; ?>
                 </div>
             </div>
 
             <!-- Lý do từ chối (nếu bị từ chối) -->
-            <?php if ($p['status'] === 'rejected' && !empty($p['rejection_reason'])): ?>
+            <?php if ($proposal['status'] === 'rejected' && !empty($proposal['rejection_reason'])): ?>
                 <div class="bg-rose-50 dark:bg-rose-950/30 p-5 rounded-2xl border border-rose-200 dark:border-rose-800">
                     <h3 class="text-sm font-bold text-rose-700 dark:text-rose-300 flex items-center gap-2 mb-3">
                         <i class="fa-solid fa-comment-slash"></i>
                         Lý Do Từ Chối
                     </h3>
-                    <div class="text-sm text-rose-800 dark:text-rose-200 leading-relaxed"><?= e($p['rejection_reason']) ?></div>
-                    <?php if (!empty($p['approver_name'])): ?>
+                    <div class="text-sm text-rose-800 dark:text-rose-200 leading-relaxed"><?= e($proposal['rejection_reason']) ?></div>
+                    <?php if (!empty($proposal['approver_name'])): ?>
                         <div class="mt-3 text-xs text-rose-500 dark:text-rose-400">
-                            Từ chối bởi <strong><?= e($p['approver_name']) ?></strong> lúc <?= format_datetime($p['approved_at']) ?>
+                            Từ chối bởi <strong><?= e($proposal['approver_name']) ?></strong> lúc <?= format_datetime($proposal['approved_at']) ?>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -254,14 +254,14 @@ require_once __DIR__ . '/../../includes/header.php';
                         <div class="ml-4">
                             <div class="text-sm font-bold text-slate-800 dark:text-white">Đề xuất được tạo</div>
                             <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                <strong><?= e($p['fullname']) ?></strong> đã gửi đề xuất <?= e($p['proposal_code']) ?>
+                                <strong><?= e($proposal['fullname']) ?></strong> đã gửi đề xuất <?= e($proposal['proposal_code']) ?>
                             </div>
-                            <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-mono"><?= format_datetime($p['created_at']) ?></div>
+                            <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-mono"><?= format_datetime($proposal['created_at']) ?></div>
                         </div>
                     </div>
 
                     <!-- Bước 2: Phê duyệt/Từ chối (nếu có) -->
-                    <?php if ($p['status'] === 'approved'): ?>
+                    <?php if ($proposal['status'] === 'approved'): ?>
                         <div class="relative">
                             <div class="absolute -left-5 w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs border-2 border-white dark:border-slate-800 shadow-sm">
                                 <i class="fa-solid fa-check text-[9px]"></i>
@@ -269,10 +269,10 @@ require_once __DIR__ . '/../../includes/header.php';
                             <div class="ml-4">
                                 <div class="text-sm font-bold text-emerald-700 dark:text-emerald-300">Đã được phê duyệt</div>
                                 <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                    Phê duyệt bởi <strong><?= e($p['approver_name'] ?? 'Quản lý') ?></strong>
+                                    Phê duyệt bởi <strong><?= e($proposal['approver_name'] ?? 'Quản lý') ?></strong>
                                 </div>
-                                <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-mono"><?= format_datetime($p['approved_at']) ?></div>
-                                <?php if ($p['type'] === 'leave'): ?>
+                                <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-mono"><?= format_datetime($proposal['approved_at']) ?></div>
+                                <?php if ($proposal['type'] === 'leave'): ?>
                                     <div class="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
                                         <i class="fa-solid fa-link text-[9px]"></i>
                                         Bản ghi chấm công nghỉ phép đã được tạo tự động
@@ -280,7 +280,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <?php endif; ?>
                             </div>
                         </div>
-                    <?php elseif ($p['status'] === 'rejected'): ?>
+                    <?php elseif ($proposal['status'] === 'rejected'): ?>
                         <div class="relative">
                             <div class="absolute -left-5 w-6 h-6 rounded-full bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center text-xs border-2 border-white dark:border-slate-800 shadow-sm">
                                 <i class="fa-solid fa-xmark text-[9px]"></i>
@@ -288,9 +288,9 @@ require_once __DIR__ . '/../../includes/header.php';
                             <div class="ml-4">
                                 <div class="text-sm font-bold text-rose-700 dark:text-rose-300">Đã bị từ chối</div>
                                 <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                    Từ chối bởi <strong><?= e($p['approver_name'] ?? 'Quản lý') ?></strong>
+                                    Từ chối bởi <strong><?= e($proposal['approver_name'] ?? 'Quản lý') ?></strong>
                                 </div>
-                                <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-mono"><?= format_datetime($p['approved_at']) ?></div>
+                                <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-mono"><?= format_datetime($proposal['approved_at']) ?></div>
                             </div>
                         </div>
                     <?php else: ?>
@@ -322,37 +322,37 @@ require_once __DIR__ . '/../../includes/header.php';
 
                 <div class="flex flex-col items-center text-center">
                     <!-- Avatar -->
-                    <?php if (!empty($p['avatar']) && file_exists(__DIR__ . '/../../assets/uploads/' . $p['avatar'])): ?>
-                        <img src="<?= base_url('assets/uploads/' . e($p['avatar'])) ?>" class="w-16 h-16 rounded-2xl object-cover border-2 border-slate-200 dark:border-slate-700 shadow-md" alt="">
+                    <?php if (!empty($proposal['avatar']) && file_exists(__DIR__ . '/../../assets/uploads/' . $proposal['avatar'])): ?>
+                        <img src="<?= base_url('assets/uploads/' . e($proposal['avatar'])) ?>" class="w-16 h-16 rounded-2xl object-cover border-2 border-slate-200 dark:border-slate-700 shadow-md" alt="">
                     <?php else: ?>
                         <div class="w-16 h-16 rounded-sm bg-indigo-600 text-white flex items-center justify-center font-bold text-xl">
-                            <?= strtoupper(mb_substr($p['fullname'], 0, 1, 'UTF-8')) ?>
+                            <?= strtoupper(mb_substr($proposal['fullname'], 0, 1, 'UTF-8')) ?>
                         </div>
                     <?php endif; ?>
 
                     <div class="mt-3">
-                        <div class="font-bold text-slate-800 dark:text-white text-base"><?= e($p['fullname']) ?></div>
-                        <div class="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5"><?= e($p['employee_code']) ?></div>
+                        <div class="font-bold text-slate-800 dark:text-white text-base"><?= e($proposal['fullname']) ?></div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5"><?= e($proposal['employee_code']) ?></div>
                     </div>
                 </div>
 
                 <div class="mt-5 space-y-3 text-xs">
                     <div class="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-700/60">
                         <span class="text-slate-500 dark:text-slate-400 font-semibold">Chức Vụ</span>
-                        <span class="font-bold text-slate-800 dark:text-white text-right max-w-[60%] truncate"><?= e($p['position_name'] ?? 'N/A') ?></span>
+                        <span class="font-bold text-slate-800 dark:text-white text-right max-w-[60%] truncate"><?= e($proposal['position_name'] ?? 'N/A') ?></span>
                     </div>
                     <div class="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-700/60">
                         <span class="text-slate-500 dark:text-slate-400 font-semibold">Phòng Ban</span>
-                        <span class="font-bold text-slate-800 dark:text-white text-right max-w-[60%] truncate"><?= e($p['department_name'] ?? 'N/A') ?></span>
+                        <span class="font-bold text-slate-800 dark:text-white text-right max-w-[60%] truncate"><?= e($proposal['department_name'] ?? 'N/A') ?></span>
                     </div>
                     <div class="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-700/60">
                         <span class="text-slate-500 dark:text-slate-400 font-semibold">Chi Nhánh</span>
-                        <span class="font-bold text-slate-800 dark:text-white text-right max-w-[60%] truncate"><?= e($p['branch_name'] ?? 'N/A') ?></span>
+                        <span class="font-bold text-slate-800 dark:text-white text-right max-w-[60%] truncate"><?= e($proposal['branch_name'] ?? 'N/A') ?></span>
                     </div>
-                    <?php if (!empty($p['email'])): ?>
+                    <?php if (!empty($proposal['email'])): ?>
                     <div class="flex items-center justify-between py-2">
                         <span class="text-slate-500 dark:text-slate-400 font-semibold">Email</span>
-                        <span class="font-semibold text-indigo-600 dark:text-indigo-400 text-right max-w-[60%] truncate"><?= e($p['email']) ?></span>
+                        <span class="font-semibold text-indigo-600 dark:text-indigo-400 text-right max-w-[60%] truncate"><?= e($proposal['email']) ?></span>
                     </div>
                     <?php endif; ?>
                 </div>
@@ -377,21 +377,21 @@ require_once __DIR__ . '/../../includes/header.php';
                         <span class="opacity-80">Trạng thái</span>
                         <span class="font-bold"><?= $sc[0] ?></span>
                     </div>
-                    <?php if ((float)$p['total_days'] > 0): ?>
+                    <?php if ((float)$proposal['total_days'] > 0): ?>
                     <div class="flex items-center justify-between">
                         <span class="opacity-80">Tổng ngày</span>
-                        <span class="font-bold font-mono"><?= number_format((float)$p['total_days'], 1) ?></span>
+                        <span class="font-bold font-mono"><?= number_format((float)$proposal['total_days'], 1) ?></span>
                     </div>
                     <?php endif; ?>
-                    <?php if ((float)$p['amount'] > 0): ?>
+                    <?php if ((float)$proposal['amount'] > 0): ?>
                     <div class="flex items-center justify-between">
                         <span class="opacity-80">Số tiền</span>
-                        <span class="font-bold font-mono"><?= format_money($p['amount']) ?></span>
+                        <span class="font-bold font-mono"><?= format_money($proposal['amount']) ?></span>
                     </div>
                     <?php endif; ?>
                     <div class="flex items-center justify-between pt-2 border-t border-white/20">
                         <span class="opacity-80">Cập nhật</span>
-                        <span class="font-bold font-mono text-[11px]"><?= format_datetime($p['updated_at']) ?></span>
+                        <span class="font-bold font-mono text-[11px]"><?= format_datetime($proposal['updated_at']) ?></span>
                     </div>
                 </div>
             </div>

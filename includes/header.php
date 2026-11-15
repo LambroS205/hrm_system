@@ -132,20 +132,20 @@ $flash = get_flash();
                         $current_redirect = urlencode($_SERVER['REQUEST_URI']);
                         ?>
                         <div class="divide-y divide-slate-100 dark:divide-slate-700/60 max-h-80 overflow-y-auto">
-                            <?php foreach ($personas_list as $p): 
-                                $is_current = ($curr_user_email === $p['email'] || $curr_user_name === $p['email']);
+                            <?php foreach ($personas_list as $persona_item): 
+                                $is_current = ($curr_user_email === $persona_item['email'] || $curr_user_name === $persona_item['email']);
                             ?>
-                                <a href="<?= base_url('demo_switch.php?account=' . urlencode($p['email']) . '&redirect=' . $current_redirect) ?>" 
+                                <a href="<?= base_url('demo_switch.php?account=' . urlencode($persona_item['email']) . '&redirect=' . $current_redirect) ?>" 
                                    class="block px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700/70 transition <?= $is_current ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-l-2 border-indigo-600' : '' ?>">
                                     <div class="flex items-center justify-between">
                                         <span class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                                            <i class="fa-solid <?= $p['icon'] ?> text-[11px] text-slate-500"></i>
-                                            <?= e($p['name']) ?>
+                                            <i class="fa-solid <?= $persona_item['icon'] ?> text-[11px] text-slate-500"></i>
+                                            <?= e($persona_item['name']) ?>
                                         </span>
-                                        <span class="text-[9px] px-1 py-0.2 rounded font-extrabold uppercase font-mono bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300"><?= $p['scope'] ?></span>
+                                        <span class="text-[9px] px-1 py-0.2 rounded font-extrabold uppercase font-mono bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300"><?= $persona_item['scope'] ?></span>
                                     </div>
                                     <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center justify-between">
-                                        <span><?= e($p['role']) ?></span>
+                                        <span><?= e($persona_item['role']) ?></span>
                                         <?php if ($is_current): ?>
                                             <span class="text-indigo-600 dark:text-indigo-400 font-bold text-[10px] flex items-center gap-0.5">
                                                 <i class="fa-solid fa-check"></i> Đang xem
@@ -153,7 +153,9 @@ $flash = get_flash();
                                         <?php endif; ?>
                                     </div>
                                 </a>
-                            <?php endforeach; ?>
+                            <?php endforeach; 
+                            unset($persona_item, $personas_list, $curr_user_email, $curr_user_name, $current_redirect, $is_current);
+                            ?>
                         </div>
                     </div>
                 </div>

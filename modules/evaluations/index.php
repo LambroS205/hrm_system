@@ -7,6 +7,9 @@ require_once __DIR__ . '/../../core/KpiService.php';
 require_once __DIR__ . '/../../config/kpi_rules.php';
 require_permission('evaluations', 'view');
 
+$user = current_user();
+$current_user = $user;
+
 // Cấu hình Cấp bậc Quản trị Nhân sự
 $hierarchy_levels = [
     'executive'   => ['label' => 'Lãnh Đạo (C-Level)', 'badge' => 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800', 'icon' => 'fa-crown'],
@@ -56,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
                 'target_description' => $target_description,
                 'kpi_items'          => $kpi_items
             ], $current_user['id'], $auto_cascade);
+            ], (int)($current_user['id'] ?? 0), $auto_cascade);
 
             $msg = "Đã lưu mục tiêu đợt cho phòng ban thành công!";
             if ($auto_cascade && $res['created_evaluations'] > 0) {

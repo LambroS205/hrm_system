@@ -263,6 +263,7 @@ final class KpiService {
      * Lưu hoặc cập nhật mục tiêu phòng ban theo đợt & Tự động phân bổ phiếu đánh giá
      */
     public static function saveDepartmentTarget(PDO $pdo, int $periodId, int $departmentId, array $data, int $userId, bool $autoCascade = false): array {
+    public static function saveDepartmentTarget(PDO $pdo, int $periodId, int $departmentId, array $data, ?int $userId = null, bool $autoCascade = false): array {
         $title = trim($data['target_title'] ?? '');
         $description = trim($data['target_description'] ?? '');
         $kpiItems = $data['kpi_items'] ?? [];
@@ -285,6 +286,7 @@ final class KpiService {
                 updated_at = NOW()
         ");
         $stmt->execute([$periodId, $departmentId, $title, $description, $itemsJson, $userId]);
+        $stmt->execute([$periodId, $departmentId, $title, $description, $itemsJson, $userId ?: null]);
 
         $createdCount = 0;
         $skippedCount = 0;

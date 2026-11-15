@@ -56,6 +56,15 @@ function e($string) {
  * Chuyển hướng an toàn
  */
 function redirect($path) {
+    if (strpos($path, 'http://') === 0 || strpos($path, 'https://') === 0) {
+        header("Location: " . $path);
+        exit;
+    }
+    $basePath = parse_url(base_url(), PHP_URL_PATH) ?? '';
+    if (!empty($basePath) && $basePath !== '/' && strpos($path, $basePath) === 0) {
+        header("Location: " . $path);
+        exit;
+    }
     header("Location: " . base_url($path));
     exit;
 }
