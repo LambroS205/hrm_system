@@ -5,6 +5,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/brand.php';
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/scope.php';
+require_once __DIR__ . '/DemoSyncService.php';
 
 /**
  * Kiểm tra xem người dùng đã đăng nhập chưa
@@ -190,4 +191,9 @@ function reload_user_permissions($pdo, $role_id) {
     } catch (PDOException $e) {
         log_system_error("Lỗi tải quyền hạn", $e);
     }
+}
+
+// Tự động đảm bảo dữ liệu trình diễn Live Demo luôn tươi mới theo ngày hiện tại (1 lần/ngày/phiên)
+if (PHP_SAPI !== 'cli' && isset($pdo) && $pdo instanceof PDO && is_demo_mode() && is_logged_in()) {
+    DemoSyncService::ensureLiveDemoFreshness($pdo);
 }

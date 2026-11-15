@@ -135,6 +135,29 @@ foreach ($personas as $email => $exp) {
     }
 }
 
+echo "\n[3] Kiểm tra DemoSyncService & Danh Sách 7 Persona Switcher:\n";
+require_once __DIR__ . '/../core/DemoSyncService.php';
+$syncRes = DemoSyncService::ensureLiveDemoFreshness($pdo, true);
+rbac_assert(isset($syncRes['skipped']) && $syncRes['skipped'] === false, "DemoSyncService::ensureLiveDemoFreshness(true) thực thi thành công");
+
+$attTodayCount = (int)$pdo->query("SELECT COUNT(*) FROM attendance WHERE date = CURDATE()")->fetchColumn();
+rbac_assert($attTodayCount >= 100, "Chấm công hôm nay được đồng bộ tự động (hiện có {$attTodayCount} bản ghi)");
+
+$expiringCount = (int)$pdo->query("
+    SELECT COUNT(*)
+    FROM employee_contracts ec
+    JOIN employees e ON ec.employee_id = e.id
+    WHERE ec.status = 'active'
+      AND e.employment_status != 'resigned'
+      AND ec.end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+")->fetchColumn();
+rbac_assert($expiringCount >= 3, "Có {$expiringCount} hợp đồng sắp hết hạn trong 30 ngày tới để hiển thị cảnh báo");
+
+$demoSwitchSource = file_get_contents(__DIR__ . '/../demo_switch.php');
+foreach (['admin@wincommerce.vn', 'phuong.le@wincommerce.vn', 'giang.tran@wincommerce.vn', 'cb@wincommerce.vn', 'mienbac@wincommerce.vn', 'long.vu@wincommerce.vn', 'ngoc.do@wincommerce.vn'] as $pEmail) {
+    rbac_assert(strpos($demoSwitchSource, $pEmail) !== false, "demo_switch.php cho phép chuyển nhanh {$pEmail}");
+}
+
 echo "\n============================================================\n";
 echo "KẾT QUẢ KIỂM THỬ RBAC & DATA SCOPE: {$passed} / " . ($passed + $failed) . " PASSED\n";
 echo "============================================================\n";

@@ -266,10 +266,22 @@ $kpi_stats = [
     'below_average_count' => 0,
     'poor_count' => 0
 ];
+$active_kpi_period = null;
 try {
-    $kpi_branch_join = ($is_branch_mgr && $branch_id)
-        ? "JOIN employees emp ON ev.employee_id = emp.id WHERE emp.branch_id = " . (int)$branch_id
-        : (($is_dept_mgr && $dept_id) ? "JOIN employees emp ON ev.employee_id = emp.id WHERE emp.department_id = " . (int)$dept_id : "");
+    $active_kpi_period = $pdo->query("SELECT id, code, name FROM evaluation_periods WHERE status = 'active' ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC) ?: null;
+} catch (Exception $e) {}
+
+try {
+    $kpi_conditions = ['1=1'];
+    if ($active_kpi_period) {
+        $kpi_conditions[] = 'ev.period_id = ' . (int)$active_kpi_period['id'];
+    }
+    if ($is_branch_mgr && $branch_id) {
+        $kpi_conditions[] = 'emp.branch_id = ' . (int)$branch_id;
+    } elseif ($is_dept_mgr && $dept_id) {
+        $kpi_conditions[] = 'emp.department_id = ' . (int)$dept_id;
+    }
+    $kpi_where_sql = implode(' AND ', $kpi_conditions);
     $kpi_data = $pdo->query("
         SELECT 
             COUNT(*) as total,
@@ -283,27 +295,29 @@ try {
             COUNT(CASE WHEN ev.rating = 'below_average' THEN 1 END) as below_average_count,
             COUNT(CASE WHEN ev.rating = 'poor' THEN 1 END) as poor_count
         FROM evaluations ev
-        {$kpi_branch_join}
+        JOIN employees emp ON ev.employee_id = emp.id
+        WHERE {$kpi_where_sql}
     ")->fetch();
     if ($kpi_data) {
         $kpi_stats = array_merge($kpi_stats, $kpi_data);
     }
 } catch (Exception $e) {}
 
-// Top 5 Nhân sự xuất sắc nhất theo KPI (lọc theo chi nhánh nếu là GĐ Chi nhánh)
+// Top 5 Nhân sự xuất sắc nhất theo KPI (lọc theo kỳ active và chi nhánh/phòng ban nếu có)
 $top_performers = [];
 try {
+    $top_period_where = $active_kpi_period ? ("AND e.period_id = " . (int)$active_kpi_period['id']) : "";
     $top_branch_where = ($is_branch_mgr && $branch_id)
         ? "AND emp.branch_id = " . (int)$branch_id
         : (($is_dept_mgr && $dept_id) ? "AND emp.department_id = " . (int)$dept_id : "");
     $top_performers = $pdo->query("
-        SELECT e.final_score, e.rating, emp.fullname, emp.employee_code, emp.avatar,
+        SELECT e.final_score, e.rating, emp.id AS employee_id, emp.fullname, emp.employee_code, emp.avatar,
                d.name AS department_name, p.name AS position_name, e.id AS eval_id
         FROM evaluations e
         JOIN employees emp ON e.employee_id = emp.id
         LEFT JOIN departments d ON emp.department_id = d.id
         LEFT JOIN positions p ON emp.position_id = p.id
-        WHERE e.status = 'completed' {$top_branch_where}
+        WHERE e.status = 'completed' {$top_period_where} {$top_branch_where}
         ORDER BY e.final_score DESC
         LIMIT 5
     ")->fetchAll();
@@ -487,21 +501,35 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </a>
 
-            <!-- Mục 4: Trạng thái kỳ lương hiện tại -->
-            <a href="<?= base_url('modules/payroll/index.php') ?>" 
-               class="p-3.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-between hover:border-indigo-400 transition group min-w-0">
-                <div class="min-w-0">
-                    <div class="text-[11px] font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-wider">Kỳ Lương Tháng <?= $current_month ?>/<?= $current_year ?></div>
-                    <div class="text-xs font-bold text-indigo-900 dark:text-indigo-100 mt-1">
-                        <span class="inline-block px-2 py-0.5 rounded-full <?= $payroll_status_info['class'] ?> text-[11px] font-bold">
-                            <?= $payroll_status_info['label'] ?>
-                        </span>
+            <!-- Mục 4: Trạng thái kỳ lương hiện tại (hoặc KPI Cần Duyệt nếu không có quyền xem lương) -->
+            <?php if ($can_view_payroll): ?>
+                <a href="<?= base_url('modules/payroll/index.php') ?>" 
+                   class="p-3.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-between hover:border-indigo-400 transition group min-w-0">
+                    <div class="min-w-0">
+                        <div class="text-[11px] font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-wider">Kỳ Lương Tháng <?= $current_month ?>/<?= $current_year ?></div>
+                        <div class="text-xs font-bold text-indigo-900 dark:text-indigo-100 mt-1">
+                            <span class="inline-block px-2 py-0.5 rounded-full <?= $payroll_status_info['class'] ?> text-[11px] font-bold">
+                                <?= $payroll_status_info['label'] ?>
+                            </span>
+                        </div>
                     </div>
-                </div>
-                <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs flex-shrink-0">
-                    <i class="fa-solid fa-arrow-right"></i>
-                </div>
-            </a>
+                    <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs flex-shrink-0">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </div>
+                </a>
+            <?php else: ?>
+                <a href="<?= base_url('modules/evaluations/index.php') ?>" 
+                   class="p-3.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-between hover:border-indigo-400 transition group min-w-0">
+                    <div class="min-w-0">
+                        <div class="text-[11px] font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-wider">Đánh Giá KPI Cần Duyệt</div>
+                        <div class="text-xl font-black text-indigo-900 dark:text-indigo-100 mt-0.5 font-mono tabular-nums"><?= (int)$kpi_stats['pending_review'] ?></div>
+                        <div class="text-[11px] text-indigo-700/80 dark:text-indigo-300/80 mt-0.5 truncate">Phiếu đang chờ chấm/duyệt <?= $active_kpi_period ? '(' . e($active_kpi_period['code']) . ')' : '' ?></div>
+                    </div>
+                    <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs flex-shrink-0">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </div>
+                </a>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -872,9 +900,9 @@ require_once __DIR__ . '/includes/header.php';
         <div class="bg-white dark:bg-slate-800 p-6 rounded-sm border border-slate-300 dark:border-slate-700 space-y-4 xl:col-span-2 min-w-0">
             <div class="flex items-center justify-between pb-3 border-b-2 border-slate-200 dark:border-slate-700">
                 <div>
-                    <h3 class="font-extrabold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                    <h3 class="font-extrabold text-slate-900 dark:text-white text-base flex items-center gap-2 flex-wrap">
                         <span>Top Nhân Sự Xuất Sắc Kỳ Này</span>
-                        <span class="px-2 py-0.5 rounded-sm text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700"><?= e(brand('company_short')) ?> Leaders</span>
+                        <span class="px-2 py-0.5 rounded-sm text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700"><?= e($active_kpi_period ? $active_kpi_period['code'] : (brand('company_short') . ' Leaders')) ?></span>
                     </h3>
                     <p class="text-xs font-semibold text-slate-500 dark:text-slate-300">Nhân sự đạt điểm KPI cao nhất được cấp quản lý chứng nhận</p>
                 </div>
@@ -903,7 +931,13 @@ require_once __DIR__ . '/includes/header.php';
                                 <td colspan="5" class="py-6 text-center text-slate-400">Chưa có kết quả hoàn tất đánh giá trong kỳ.</td>
                             </tr>
                         <?php endif; ?>
-                        <?php foreach ($top_performers as $rank => $tp): ?>
+                        <?php
+                        $can_open_top_eval = is_superadmin()
+                            || has_permission('evaluations', 'approve')
+                            || has_permission('evaluations', 'create')
+                            || ((is_branch_scope() || is_dept_scope()) && has_permission('evaluations', 'manager_review'));
+                        $can_view_top_profile = has_permission('employees', 'view');
+                        foreach ($top_performers as $rank => $tp): ?>
                             <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-700/40 transition">
                                 <td class="py-3 px-3">
                                     <div class="flex items-center gap-3">
@@ -933,11 +967,21 @@ require_once __DIR__ . '/includes/header.php';
                                     <?php endif; ?>
                                 </td>
                                 <td class="py-3 px-3 text-right">
-                                    <a href="<?= base_url('modules/evaluations/view.php?id=' . $tp['eval_id']) ?>" 
-                                       class="px-2.5 py-1 rounded-sm bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold text-[11px] transition inline-flex items-center gap-1">
-                                        <span>Xem Phiếu</span>
-                                        <i class="fa-solid fa-arrow-right text-[9px]"></i>
-                                    </a>
+                                    <?php if ($can_open_top_eval): ?>
+                                        <a href="<?= base_url('modules/evaluations/view.php?id=' . (int)$tp['eval_id']) ?>" 
+                                           class="px-2.5 py-1 rounded-sm bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold text-[11px] transition inline-flex items-center gap-1">
+                                            <span>Xem Phiếu</span>
+                                            <i class="fa-solid fa-arrow-right text-[9px]"></i>
+                                        </a>
+                                    <?php elseif ($can_view_top_profile): ?>
+                                        <a href="<?= base_url('modules/employees/view.php?id=' . (int)$tp['employee_id']) ?>" 
+                                           class="px-2.5 py-1 rounded-sm bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-[11px] transition inline-flex items-center gap-1">
+                                            <span>Xem Hồ Sơ</span>
+                                            <i class="fa-solid fa-arrow-right text-[9px]"></i>
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="text-[11px] text-slate-400">---</span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

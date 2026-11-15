@@ -116,15 +116,17 @@ $flash = get_flash();
 
                     <div id="personaSwitcherDropdown" class="hidden absolute right-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-sm border border-slate-300 dark:border-slate-700 py-1.5 z-50 shadow-xl animate-scale-up">
                         <div class="px-3 py-1.5 border-b border-slate-200 dark:border-slate-700 text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center justify-between">
-                            <span>5 Persona Trình Diễn</span>
+                            <span>7 Persona Trình Diễn (6 Vai Trò)</span>
                             <span class="text-amber-600 dark:text-amber-400"><i class="fa-solid fa-bolt"></i> 1-Click</span>
                         </div>
                         <?php
                         $personas_list = [
                             ['email' => 'admin@wincommerce.vn', 'name' => 'Nguyễn Hoàng Nam', 'role' => 'CEO / Super Admin', 'scope' => 'ALL', 'badge_color' => 'amber', 'icon' => 'fa-crown'],
                             ['email' => 'phuong.le@wincommerce.vn', 'name' => 'Lê Mai Phương', 'role' => 'CHRO (HR Director)', 'scope' => 'ALL', 'badge_color' => 'teal', 'icon' => 'fa-user-tie'],
+                            ['email' => 'giang.tran@wincommerce.vn', 'name' => 'Trần Thị Hương Giang', 'role' => 'Chuyên Viên Nhân Sự (Che Lương)', 'scope' => 'ALL', 'badge_color' => 'indigo', 'icon' => 'fa-id-card-clip'],
                             ['email' => 'cb@wincommerce.vn', 'name' => 'Phạm Thu Thảo', 'role' => 'Chuyên Viên C&B Chuỗi', 'scope' => 'ALL', 'badge_color' => 'emerald', 'icon' => 'fa-money-bill-wave'],
                             ['email' => 'mienbac@wincommerce.vn', 'name' => 'Trần Quốc Bảo', 'role' => 'GĐ Chi Nhánh Miền Bắc', 'scope' => 'BRANCH', 'badge_color' => 'sky', 'icon' => 'fa-building-user'],
+                            ['email' => 'long.vu@wincommerce.vn', 'name' => 'Vũ Hoàng Long', 'role' => 'Trưởng Phòng CNTT & Số Hóa', 'scope' => 'DEPT', 'badge_color' => 'orange', 'icon' => 'fa-sitemap'],
                             ['email' => 'ngoc.do@wincommerce.vn', 'name' => 'Đỗ Thị Bích Ngọc', 'role' => 'Nhân Viên Tech Lead (ESS)', 'scope' => 'SELF', 'badge_color' => 'purple', 'icon' => 'fa-user'],
                         ];
                         $curr_user_email = $_SESSION['user']['email'] ?? '';
@@ -156,6 +158,18 @@ $flash = get_flash();
                             <?php endforeach; 
                             unset($persona_item, $personas_list, $curr_user_email, $curr_user_name, $current_redirect, $is_current);
                             ?>
+                        </div>
+                        <div class="border-t border-slate-200 dark:border-slate-700 px-3 py-2 bg-slate-50 dark:bg-slate-900/60">
+                            <form method="POST" action="<?= base_url('demo_switch.php') ?>" class="m-0">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="action_type" value="reset_demo">
+                                <input type="hidden" name="redirect" value="<?= e($_SERVER['REQUEST_URI'] ?? 'index.php') ?>">
+                                <button type="submit"
+                                        class="w-full py-1.5 px-2.5 rounded bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
+                                    <i class="fa-solid fa-rotate"></i>
+                                    <span>Khôi Phục Dữ Liệu Demo</span>
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -225,6 +239,120 @@ $flash = get_flash();
 
     <!-- Khu vực nội dung cuộn (Main Body Container) -->
     <main class="flex-1 overflow-y-auto px-4 sm:px-6 py-5 bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
+        <?php if (is_demo_mode()):
+            $demoRoleId = (int)($user['role_id'] ?? 0);
+            $demoScope = data_scope();
+            if (is_superadmin()) {
+                $demoBadge = 'Super Admin • Scope ALL';
+                $demoPitch = 'Toàn cảnh 170+ nhân sự, quỹ lương toàn chuỗi, phê duyệt tối cao & Ma trận phân quyền RBAC.';
+                $demoShortcuts = [
+                    ['label' => 'Quy Hoạch Nhân Sự', 'url' => base_url('modules/planning/index.php'), 'icon' => 'fa-compass-drafting', 'tone' => 'indigo'],
+                    ['label' => 'Bảng Lương Chuỗi', 'url' => base_url('modules/payroll/index.php'), 'icon' => 'fa-money-check-dollar', 'tone' => 'emerald'],
+                    ['label' => 'Ma Trận RBAC', 'url' => base_url('modules/matrix/index.php'), 'icon' => 'fa-shield-halved', 'tone' => 'amber'],
+                ];
+            } elseif ($demoRoleId === 3) {
+                $demoBadge = 'HR Executive • Scope ALL (Che Lương)';
+                $demoPitch = 'Phân tách nhiệm vụ (SoD): HR xem 172 hồ sơ, hợp đồng & tuyển dụng nhưng KHÔNG truy cập được dữ liệu lương.';
+                $demoShortcuts = [
+                    ['label' => 'Hồ Sơ Nhân Sự', 'url' => base_url('modules/employees/index.php'), 'icon' => 'fa-users', 'tone' => 'indigo'],
+                    ['label' => 'Tuyển Dụng', 'url' => base_url('modules/recruitment/index.php'), 'icon' => 'fa-user-plus', 'tone' => 'emerald'],
+                    ['label' => 'Test Chặn Lương 403', 'url' => base_url('modules/payroll/index.php'), 'icon' => 'fa-ban', 'tone' => 'rose'],
+                ];
+            } elseif ($demoRoleId === 5) {
+                $demoBadge = 'C&B Specialist • Scope ALL';
+                $demoPitch = 'Phân hệ C&B: tính lương Net, thuế TNCN 5 bậc (NQ 110/2025), BHXH đa vùng I-IV & khóa kỳ lương.';
+                $demoShortcuts = [
+                    ['label' => 'Tính Bảng Lương', 'url' => base_url('modules/payroll/index.php'), 'icon' => 'fa-calculator', 'tone' => 'emerald'],
+                    ['label' => 'Bảng Chấm Công', 'url' => base_url('modules/attendance/index.php'), 'icon' => 'fa-calendar-check', 'tone' => 'indigo'],
+                    ['label' => 'Test Chặn RBAC 403', 'url' => base_url('modules/matrix/index.php'), 'icon' => 'fa-ban', 'tone' => 'rose'],
+                ];
+            } elseif ($demoScope === 'branch') {
+                $demoBadge = 'Quản Lý Chi Nhánh • Scope BRANCH';
+                $demoPitch = 'Cách ly theo Chi nhánh: chỉ thấy nhân sự, chấm công, quy hoạch & KPI thuộc Chi nhánh Miền Bắc.';
+                $demoShortcuts = [
+                    ['label' => 'Nhân Sự Miền Bắc', 'url' => base_url('modules/employees/index.php'), 'icon' => 'fa-building-user', 'tone' => 'indigo'],
+                    ['label' => 'Đánh Giá KPI Team', 'url' => base_url('modules/evaluations/index.php'), 'icon' => 'fa-chart-line', 'tone' => 'emerald'],
+                    ['label' => 'Test Chặn 403 (Xem HS CEO)', 'url' => base_url('modules/employees/view.php?id=1'), 'icon' => 'fa-shield-cat', 'tone' => 'rose'],
+                ];
+            } elseif ($demoScope === 'department') {
+                $demoBadge = 'Trưởng Phòng Ban • Scope DEPT';
+                $demoPitch = 'Cách ly theo Phòng ban: chỉ thấy 14 nhân sự Khối CNTT & Số Hóa, duyệt đơn & chấm điểm KPI cấp phòng.';
+                $demoShortcuts = [
+                    ['label' => 'Team Khối CNTT', 'url' => base_url('modules/employees/index.php'), 'icon' => 'fa-sitemap', 'tone' => 'indigo'],
+                    ['label' => 'Duyệt Đơn Phòng', 'url' => base_url('modules/proposals/index.php'), 'icon' => 'fa-inbox', 'tone' => 'emerald'],
+                    ['label' => 'Test Chặn 403 (Xem HS CEO)', 'url' => base_url('modules/employees/view.php?id=1'), 'icon' => 'fa-shield-cat', 'tone' => 'rose'],
+                ];
+            } else {
+                $demoBadge = 'Nhân Viên ESS • Scope SELF';
+                $demoPitch = 'Cổng tự phục vụ ESS: Check-in hàng ngày, xem phiếu lương cá nhân, nộp đơn & tự đánh giá KPI.';
+                $demoShortcuts = [
+                    ['label' => 'Chấm Công Cá Nhân', 'url' => base_url('modules/attendance/index.php'), 'icon' => 'fa-fingerprint', 'tone' => 'indigo'],
+                    ['label' => 'Phiếu Lương Của Tôi', 'url' => base_url('modules/payroll/index.php'), 'icon' => 'fa-file-invoice-dollar', 'tone' => 'emerald'],
+                    ['label' => 'Test Chặn 403 (Xem HS CEO)', 'url' => base_url('modules/employees/view.php?id=1'), 'icon' => 'fa-shield-cat', 'tone' => 'rose'],
+                ];
+            }
+            $toneClasses = [
+                'indigo' => 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/70 dark:text-indigo-300 dark:border-indigo-800',
+                'emerald' => 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/70 dark:text-emerald-300 dark:border-emerald-800',
+                'amber' => 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:hover:bg-amber-900/70 dark:text-amber-300 dark:border-amber-700',
+                'rose' => 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:hover:bg-rose-900/70 dark:text-rose-300 dark:border-rose-800',
+            ];
+        ?>
+            <!-- Interactive Demo Presenter Bar -->
+            <div id="demoPresenterBar" class="mb-4 rounded-xl bg-amber-50/90 dark:bg-slate-800/95 border border-amber-200 dark:border-amber-700/60 px-3.5 py-2.5 shadow-2xs transition-all">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500 text-white text-[10px] font-extrabold uppercase tracking-wider flex-shrink-0">
+                            <i class="fa-solid fa-tv"></i> Live Demo
+                        </span>
+                        <span class="text-xs font-bold text-slate-900 dark:text-white truncate"><?= e($demoBadge) ?></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="toggleDemoPresenterBarBtn"
+                                class="text-[11px] font-semibold text-amber-800 dark:text-amber-300 hover:underline flex items-center gap-1 cursor-pointer">
+                            <span id="demoPresenterBarToggleText">Thu gọn</span>
+                            <i id="demoPresenterBarToggleIcon" class="fa-solid fa-chevron-up text-[10px]"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="demoPresenterBarBody" class="mt-2 pt-2 border-t border-amber-200/70 dark:border-slate-700 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+                    <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                        <i class="fa-solid fa-microphone-lines text-amber-600 dark:text-amber-400 mr-1"></i>
+                        <?= e($demoPitch) ?>
+                    </p>
+                    <div class="flex flex-wrap items-center gap-1.5 flex-shrink-0">
+                        <?php foreach ($demoShortcuts as $sc): ?>
+                            <a href="<?= e($sc['url']) ?>"
+                               class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition inline-flex items-center gap-1 <?= $toneClasses[$sc['tone']] ?? $toneClasses['indigo'] ?>">
+                                <i class="fa-solid <?= e($sc['icon']) ?> text-[10px]"></i>
+                                <span><?= e($sc['label']) ?></span>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+            <script>
+            (function() {
+                var body = document.getElementById('demoPresenterBarBody');
+                var btn = document.getElementById('toggleDemoPresenterBarBtn');
+                var txt = document.getElementById('demoPresenterBarToggleText');
+                var icon = document.getElementById('demoPresenterBarToggleIcon');
+                if (!body || !btn) return;
+                function applyState(collapsed) {
+                    body.classList.toggle('hidden', collapsed);
+                    if (txt) txt.textContent = collapsed ? 'Mở hướng dẫn' : 'Thu gọn';
+                    if (icon) icon.className = collapsed ? 'fa-solid fa-chevron-down text-[10px]' : 'fa-solid fa-chevron-up text-[10px]';
+                }
+                applyState(localStorage.getItem('hrms_demo_bar_collapsed') === '1');
+                btn.addEventListener('click', function() {
+                    var next = !body.classList.contains('hidden');
+                    localStorage.setItem('hrms_demo_bar_collapsed', next ? '1' : '0');
+                    applyState(next);
+                });
+            })();
+            </script>
+        <?php endif; ?>
+
         <!-- Hiển thị Flash Message nếu có -->
         <?php if ($flash): ?>
             <div class="flash-alert-auto mb-6 p-4 rounded-2xl flex items-center justify-between border shadow-sm animate-fade-in <?= $flash['type'] === 'success' ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300' : ($flash['type'] === 'danger' ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300' : 'bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-sky-800 dark:text-sky-300') ?>">

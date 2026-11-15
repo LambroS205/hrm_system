@@ -188,14 +188,35 @@ $overall_fulfillment_rate = $total_target_headcount > 0 ? round(($total_current_
 // 2. Chạy thuật toán Mô Phỏng 4 Kịch Bản Thông Minh
 $scenarios = generate_smart_scenarios($pdo, $branch_analytics);
 
-// 3. Danh sách Đề xuất từ Chi nhánh
+// 3. Danh sách Đề xuất từ Chi nhánh (Lọc theo Data Scope)
+$can_view_payroll     = has_permission('payroll', 'view');
+$can_request_planning = has_permission('planning', 'request') || has_permission('planning', 'create');
+$can_create_transfer  = has_permission('transfers', 'create');
+
 $req_status_filter = $_GET['req_status'] ?? '';
-$req_where = "";
+$req_conditions = [];
 $req_params = [];
 if (!empty($req_status_filter)) {
-    $req_where = "WHERE r.status = ?";
-    $req_params = [$req_status_filter];
+    $req_conditions[] = "r.status = ?";
+    $req_params[] = $req_status_filter;
 }
+
+$pending_conds = ["status = 'pending'"];
+$pending_params = [];
+if (is_branch_scope() && current_user_branch_id()) {
+    $bid = (int)current_user_branch_id();
+    $req_conditions[] = "r.branch_id = ?";
+    $req_params[] = $bid;
+    $pending_conds[] = "branch_id = ?";
+    $pending_params[] = $bid;
+} elseif (is_dept_scope() && current_user_dept_id()) {
+    $did = (int)current_user_dept_id();
+    $req_conditions[] = "r.department_id = ?";
+    $req_params[] = $did;
+    $pending_conds[] = "department_id = ?";
+    $pending_params[] = $did;
+}
+$req_where = !empty($req_conditions) ? ("WHERE " . implode(' AND ', $req_conditions)) : "";
 
 $branch_requests_stmt = $pdo->prepare("
     SELECT 
@@ -221,7 +242,9 @@ $branch_requests_stmt = $pdo->prepare("
 $branch_requests_stmt->execute($req_params);
 $branch_requests = $branch_requests_stmt->fetchAll();
 
-$pending_requests_count = (int)($pdo->query("SELECT COUNT(*) FROM branch_workforce_requests WHERE status = 'pending'")->fetchColumn() ?: 0);
+$pending_stmt = $pdo->prepare("SELECT COUNT(*) FROM branch_workforce_requests WHERE " . implode(' AND ', $pending_conds));
+$pending_stmt->execute($pending_params);
+$pending_requests_count = (int)($pending_stmt->fetchColumn() ?: 0);
 
 // 4. Danh sách Kế Hoạch Quy Hoạch (Transfer Plans)
 $plans = $pdo->query("
@@ -287,11 +310,13 @@ require_once __DIR__ . '/../../includes/header.php';
                 <i class="fa-solid fa-sitemap text-indigo-600 dark:text-indigo-400"></i>
                 <span>Sơ Đồ Cây</span>
             </a>
-            <a href="<?= base_url('modules/planning/request_form.php') ?>" 
-               class="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-semibold rounded-xl border border-amber-200 dark:border-amber-800/50 transition flex items-center gap-1.5">
-                <i class="fa-solid fa-paper-plane text-amber-600 dark:text-amber-400"></i>
-                <span>Gửi Đề Xuất Nhu Cầu</span>
-            </a>
+            <?php if ($can_request_planning): ?>
+                <a href="<?= base_url('modules/planning/request_form.php') ?>" 
+                   class="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-semibold rounded-xl border border-amber-200 dark:border-amber-800/50 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-paper-plane text-amber-600 dark:text-amber-400"></i>
+                    <span>Gửi Đề Xuất Nhu Cầu</span>
+                </a>
+            <?php endif; ?>
             <?php if (has_permission('planning', 'create')): ?>
                 <a href="<?= base_url('modules/planning/form.php') ?>" 
                    class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2">
@@ -336,13 +361,20 @@ require_once __DIR__ . '/../../includes/header.php';
             <span class="text-[10px] text-rose-500 mt-1 block font-medium">Cần điều phối</span>
         </div>
 
-        <!-- 5. Quỹ Lương Hàng Tháng -->
+        <!-- 5. Quỹ Lương Hàng Tháng (Ẩn số tiền nếu không có quyền payroll:view) -->
         <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
             <span class="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Quỹ Lương Cơ Bản</span>
-            <div class="text-lg font-bold text-slate-800 dark:text-white mt-1 font-mono truncate" title="<?= format_money($total_monthly_payroll) ?>">
-                <?= format_money($total_monthly_payroll) ?>
-            </div>
-            <span class="text-[10px] text-slate-400 mt-1 block">Ước tính/tháng</span>
+            <?php if ($can_view_payroll): ?>
+                <div class="text-lg font-bold text-slate-800 dark:text-white mt-1 font-mono truncate" title="<?= format_money($total_monthly_payroll) ?>">
+                    <?= format_money($total_monthly_payroll) ?>
+                </div>
+                <span class="text-[10px] text-slate-400 mt-1 block">Ước tính/tháng</span>
+            <?php else: ?>
+                <div class="text-xs font-semibold text-slate-400 dark:text-slate-500 mt-2 italic">
+                    <i class="fa-solid fa-lock mr-1"></i>Giới hạn quyền C&B
+                </div>
+                <span class="text-[10px] text-slate-400 mt-1 block">Yêu cầu payroll:view</span>
+            <?php endif; ?>
         </div>
 
         <!-- 6. Đề Xuất Đang Chờ Duyệt -->
@@ -516,24 +548,31 @@ require_once __DIR__ . '/../../includes/header.php';
                                 </td>
 
                                 <td class="py-3.5 px-4 text-right font-mono font-semibold text-slate-800 dark:text-slate-200">
-                                    <?= format_money($ba['monthly_payroll']) ?>
+                                    <?= $can_view_payroll ? format_money($ba['monthly_payroll']) : '<span class="text-[11px] text-slate-400 italic font-sans">Che lương</span>' ?>
                                 </td>
 
                                 <td class="py-3.5 px-4 text-right font-mono text-slate-500 dark:text-slate-400">
-                                    <?= format_money($ba['avg_salary']) ?>
+                                    <?= $can_view_payroll ? format_money($ba['avg_salary']) : '<span class="text-[11px] text-slate-400 italic font-sans">---</span>' ?>
                                 </td>
 
                                 <td class="py-3.5 px-4 text-center space-x-1">
-                                    <a href="request_form.php?branch_id=<?= $ba['id'] ?>" 
-                                       class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-[11px] font-semibold rounded-lg transition"
-                                       title="Gửi đề xuất điều động cho chi nhánh này">
-                                        Đề Xuất
-                                    </a>
-                                    <a href="<?= base_url('modules/transfers/create.php?to_branch_id=' . $ba['id']) ?>" 
-                                       class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[11px] font-semibold rounded-lg transition"
-                                       title="Điều động nhân sự đến chi nhánh này">
-                                        Điều Động &rarr;
-                                    </a>
+                                    <?php if ($can_request_planning): ?>
+                                        <a href="request_form.php?branch_id=<?= $ba['id'] ?>" 
+                                           class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-[11px] font-semibold rounded-lg transition"
+                                           title="Gửi đề xuất điều động cho chi nhánh này">
+                                            Đề Xuất
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if ($can_create_transfer): ?>
+                                        <a href="<?= base_url('modules/transfers/create.php?to_branch_id=' . $ba['id']) ?>" 
+                                           class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[11px] font-semibold rounded-lg transition"
+                                           title="Điều động nhân sự đến chi nhánh này">
+                                            Điều Động &rarr;
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if (!$can_request_planning && !$can_create_transfer): ?>
+                                        <span class="text-[11px] text-slate-400">Chỉ xem</span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
 

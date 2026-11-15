@@ -14,11 +14,30 @@ if (!is_demo_mode()) {
 $allowed_personas = [
     'admin@wincommerce.vn',
     'phuong.le@wincommerce.vn',
+    'giang.tran@wincommerce.vn',
     'cb@wincommerce.vn',
     'nhanvien@wincommerce.vn',
     'mienbac@wincommerce.vn',
+    'long.vu@wincommerce.vn',
     'ngoc.do@wincommerce.vn'
 ];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action_type'] ?? '') === 'reset_demo') {
+    require_login();
+    verify_csrf();
+    $redirect_to = $_POST['redirect'] ?? 'index.php';
+    try {
+        $summary = DemoSyncService::resetDemoState($pdo);
+        set_flash(
+            'success',
+            "Đã khôi phục dữ liệu trình diễn Live Demo: bổ sung {$summary['attendance_inserted']} lượt chấm công, đồng bộ {$summary['contracts_adjusted']} HĐ sắp hết hạn, mở khóa {$summary['payrolls_unlocked']} phiếu lương, khôi phục {$summary['proposals_restored']} đề xuất chờ duyệt."
+        );
+    } catch (Throwable $e) {
+        log_system_error('demo_switch reset_demo error', $e);
+        set_flash('danger', 'Không thể khôi phục dữ liệu demo: ' . $e->getMessage());
+    }
+    redirect($redirect_to);
+}
 
 $target = $_REQUEST['account'] ?? '';
 $redirect_to = $_REQUEST['redirect'] ?? 'index.php';

@@ -259,81 +259,107 @@ $flash = get_flash();
                     </button>
                 </form>
 
-                <!-- Khối tài khoản trình diễn chuẩn hóa theo 5 Persona -->
+                <!-- Khối tài khoản trình diễn chuẩn hóa theo 7 Persona (6 Vai Trò & 4 Data Scope) -->
                 <div class="mt-6 pt-5 border-t border-slate-200 dark:border-slate-700/60">
                     <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 text-center flex items-center justify-center gap-1.5">
                         <i class="fa-solid fa-circle-play text-indigo-600 dark:text-indigo-400"></i>
-                        <span>5 Persona Trình Diễn (Mật khẩu: <span class="text-indigo-600 dark:text-indigo-400 font-extrabold">WinMart@2026</span>)</span>
+                        <span>7 Persona Trình Diễn &bull; 6 Vai Trò (Mật khẩu: <span class="text-indigo-600 dark:text-indigo-400 font-extrabold">WinMart@2026</span>)</span>
                     </h4>
-                    <div class="grid grid-cols-1 gap-2 text-xs">
-                        <!-- Persona 1: CEO / Super Admin -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <!-- Persona 1: CEO / Super Admin (Full width top) -->
                         <button type="button" onclick="fillAccount('admin@wincommerce.vn')"
-                                class="p-2.5 rounded-sm bg-amber-50/70 hover:bg-amber-100 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 text-amber-900 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800 flex items-center justify-between text-left transition cursor-pointer">
+                                class="sm:col-span-2 p-2.5 rounded-sm bg-amber-50/70 hover:bg-amber-100 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 text-amber-900 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800 flex items-center justify-between text-left transition cursor-pointer">
                             <div>
                                 <div class="flex items-center gap-1.5">
                                     <span class="font-bold text-xs">admin@wincommerce.vn</span>
                                     <span class="px-1.5 py-0.2 text-[9px] font-extrabold uppercase bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 rounded">CEO &bull; All</span>
                                 </div>
-                                <div class="text-[11px] opacity-90 mt-0.5">Nguyễn Hoàng Nam &bull; Tổng quan tập đoàn & Quản trị hệ thống</div>
+                                <div class="text-[11px] opacity-90 mt-0.5">Nguyễn Hoàng Nam &bull; Tổng quan tập đoàn & Quản trị RBAC</div>
                             </div>
                             <i class="fa-solid fa-crown text-amber-500 text-sm"></i>
                         </button>
 
                         <!-- Persona 2: CHRO -->
                         <button type="button" onclick="fillAccount('phuong.le@wincommerce.vn')"
-                                class="p-2.5 rounded-sm bg-teal-50/70 hover:bg-teal-100 dark:bg-teal-950/30 dark:hover:bg-teal-950/50 text-teal-900 dark:text-teal-300 border border-teal-200/80 dark:border-teal-800 flex items-center justify-between text-left transition cursor-pointer">
-                            <div>
-                                <div class="flex items-center gap-1.5">
-                                    <span class="font-bold text-xs">phuong.le@wincommerce.vn</span>
-                                    <span class="px-1.5 py-0.2 text-[9px] font-extrabold uppercase bg-teal-200 dark:bg-teal-900/60 text-teal-800 dark:text-teal-200 rounded">CHRO &bull; All</span>
+                                class="p-2.5 rounded-sm bg-teal-50/70 hover:bg-teal-100 dark:bg-teal-950/30 dark:hover:bg-teal-950/50 text-teal-900 dark:text-teal-300 border border-teal-200/80 dark:border-teal-800 flex items-center justify-between gap-2 text-left transition cursor-pointer">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1 flex-wrap">
+                                    <span class="font-bold text-[11px] truncate">phuong.le@...</span>
+                                    <span class="px-1 py-0.2 text-[9px] font-extrabold uppercase bg-teal-200 dark:bg-teal-900/60 text-teal-800 dark:text-teal-200 rounded">CHRO &bull; All</span>
                                 </div>
-                                <div class="text-[11px] opacity-90 mt-0.5">Lê Mai Phương &bull; Phê duyệt nhân sự, Chiến lược KPI & Định biên</div>
+                                <div class="text-[11px] opacity-90 mt-0.5 truncate">Lê Mai Phương &bull; GĐ Nhân Sự</div>
                             </div>
-                            <i class="fa-solid fa-user-tie text-teal-500 text-sm"></i>
+                            <i class="fa-solid fa-user-tie text-teal-500 text-sm flex-shrink-0"></i>
                         </button>
 
-                        <!-- Persona 3: C&B Specialist -->
+                        <!-- Persona 3: HR Executive (Role #3 - SoD Che Lương) -->
+                        <button type="button" onclick="fillAccount('giang.tran@wincommerce.vn')"
+                                class="p-2.5 rounded-sm bg-indigo-50/70 hover:bg-indigo-100 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50 text-indigo-900 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800 flex items-center justify-between gap-2 text-left transition cursor-pointer">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1 flex-wrap">
+                                    <span class="font-bold text-[11px] truncate">giang.tran@...</span>
+                                    <span class="px-1 py-0.2 text-[9px] font-extrabold uppercase bg-indigo-200 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200 rounded">HR &bull; All</span>
+                                </div>
+                                <div class="text-[11px] opacity-90 mt-0.5 truncate">Trần T. Hương Giang &bull; Che Lương</div>
+                            </div>
+                            <i class="fa-solid fa-id-card-clip text-indigo-500 text-sm flex-shrink-0"></i>
+                        </button>
+
+                        <!-- Persona 4: C&B Specialist (Role #5) -->
                         <button type="button" onclick="fillAccount('cb@wincommerce.vn')"
-                                class="p-2.5 rounded-sm bg-emerald-50/70 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 text-emerald-900 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 flex items-center justify-between text-left transition cursor-pointer">
-                            <div>
-                                <div class="flex items-center gap-1.5">
-                                    <span class="font-bold text-xs">cb@wincommerce.vn</span>
-                                    <span class="px-1.5 py-0.2 text-[9px] font-extrabold uppercase bg-emerald-200 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 rounded">C&B &bull; All</span>
+                                class="p-2.5 rounded-sm bg-emerald-50/70 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 text-emerald-900 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 flex items-center justify-between gap-2 text-left transition cursor-pointer">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1 flex-wrap">
+                                    <span class="font-bold text-[11px] truncate">cb@wincommerce.vn</span>
+                                    <span class="px-1 py-0.2 text-[9px] font-extrabold uppercase bg-emerald-200 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 rounded">C&B &bull; All</span>
                                 </div>
-                                <div class="text-[11px] opacity-90 mt-0.5">Phạm Thu Thảo &bull; Tính bảng lương tháng, BHXH & Quyết toán</div>
+                                <div class="text-[11px] opacity-90 mt-0.5 truncate">Phạm Thu Thảo &bull; Lương & BHXH</div>
                             </div>
-                            <i class="fa-solid fa-money-bill-wave text-emerald-500 text-sm"></i>
+                            <i class="fa-solid fa-money-bill-wave text-emerald-500 text-sm flex-shrink-0"></i>
                         </button>
 
-                        <!-- Persona 4: Branch Manager -->
+                        <!-- Persona 5: Branch Manager (Role #2) -->
                         <button type="button" onclick="fillAccount('mienbac@wincommerce.vn')"
-                                class="p-2.5 rounded-sm bg-sky-50/70 hover:bg-sky-100 dark:bg-sky-950/30 dark:hover:bg-sky-950/50 text-sky-900 dark:text-sky-300 border border-sky-200/80 dark:border-sky-800 flex items-center justify-between text-left transition cursor-pointer">
-                            <div>
-                                <div class="flex items-center gap-1.5">
-                                    <span class="font-bold text-xs">mienbac@wincommerce.vn</span>
-                                    <span class="px-1.5 py-0.2 text-[9px] font-extrabold uppercase bg-sky-200 dark:bg-sky-900/60 text-sky-800 dark:text-sky-200 rounded">GĐ Chi Nhánh &bull; Branch</span>
+                                class="p-2.5 rounded-sm bg-sky-50/70 hover:bg-sky-100 dark:bg-sky-950/30 dark:hover:bg-sky-950/50 text-sky-900 dark:text-sky-300 border border-sky-200/80 dark:border-sky-800 flex items-center justify-between gap-2 text-left transition cursor-pointer">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1 flex-wrap">
+                                    <span class="font-bold text-[11px] truncate">mienbac@...</span>
+                                    <span class="px-1 py-0.2 text-[9px] font-extrabold uppercase bg-sky-200 dark:bg-sky-900/60 text-sky-800 dark:text-sky-200 rounded">Branch</span>
                                 </div>
-                                <div class="text-[11px] opacity-90 mt-0.5">Trần Quốc Bảo &bull; Duyệt đề xuất, Chấm KPI Chi nhánh Miền Bắc</div>
+                                <div class="text-[11px] opacity-90 mt-0.5 truncate">Trần Quốc Bảo &bull; GĐ Miền Bắc</div>
                             </div>
-                            <i class="fa-solid fa-building-user text-sky-500 text-sm"></i>
+                            <i class="fa-solid fa-building-user text-sky-500 text-sm flex-shrink-0"></i>
                         </button>
 
-                        <!-- Persona 5: Employee -->
-                        <button type="button" onclick="fillAccount('ngoc.do@wincommerce.vn')"
-                                class="p-2.5 rounded-sm bg-purple-50/70 hover:bg-purple-100 dark:bg-purple-950/30 dark:hover:bg-purple-950/50 text-purple-900 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800 flex items-center justify-between text-left transition cursor-pointer">
-                            <div>
-                                <div class="flex items-center gap-1.5">
-                                    <span class="font-bold text-xs">ngoc.do@wincommerce.vn</span>
-                                    <span class="px-1.5 py-0.2 text-[9px] font-extrabold uppercase bg-purple-200 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200 rounded">Nhân Viên &bull; Self</span>
+                        <!-- Persona 6: Department Manager (Role #6) -->
+                        <button type="button" onclick="fillAccount('long.vu@wincommerce.vn')"
+                                class="p-2.5 rounded-sm bg-orange-50/70 hover:bg-orange-100 dark:bg-orange-950/30 dark:hover:bg-orange-950/50 text-orange-900 dark:text-orange-300 border border-orange-200/80 dark:border-orange-800 flex items-center justify-between gap-2 text-left transition cursor-pointer">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1 flex-wrap">
+                                    <span class="font-bold text-[11px] truncate">long.vu@...</span>
+                                    <span class="px-1 py-0.2 text-[9px] font-extrabold uppercase bg-orange-200 dark:bg-orange-900/60 text-orange-800 dark:text-orange-200 rounded">Dept</span>
                                 </div>
-                                <div class="text-[11px] opacity-90 mt-0.5">Đỗ Thị Bích Ngọc &bull; Tự phục vụ: Chấm công, Phiếu lương, Quỹ phép & KPI</div>
+                                <div class="text-[11px] opacity-90 mt-0.5 truncate">Vũ Hoàng Long &bull; TP CNTT (14 NV)</div>
                             </div>
-                            <i class="fa-solid fa-user text-purple-500 text-sm"></i>
+                            <i class="fa-solid fa-sitemap text-orange-500 text-sm flex-shrink-0"></i>
+                        </button>
+
+                        <!-- Persona 7: Employee ESS (Role #4) -->
+                        <button type="button" onclick="fillAccount('ngoc.do@wincommerce.vn')"
+                                class="p-2.5 rounded-sm bg-purple-50/70 hover:bg-purple-100 dark:bg-purple-950/30 dark:hover:bg-purple-950/50 text-purple-900 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800 flex items-center justify-between gap-2 text-left transition cursor-pointer">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1 flex-wrap">
+                                    <span class="font-bold text-[11px] truncate">ngoc.do@...</span>
+                                    <span class="px-1 py-0.2 text-[9px] font-extrabold uppercase bg-purple-200 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200 rounded">Self</span>
+                                </div>
+                                <div class="text-[11px] opacity-90 mt-0.5 truncate">Đỗ T. Bích Ngọc &bull; Nhân viên ESS</div>
+                            </div>
+                            <i class="fa-solid fa-user text-purple-500 text-sm flex-shrink-0"></i>
                         </button>
                     </div>
                     <div class="mt-3.5 p-2 rounded-sm bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/80 text-center text-[11px] text-slate-500 dark:text-slate-400">
                         <i class="fa-solid fa-circle-info text-indigo-500 mr-1"></i>
-                        Tất cả <b class="text-slate-700 dark:text-slate-200">86 nhân sự</b> trong hệ thống đều có thể đăng nhập bằng email công ty, mật khẩu: <span class="font-bold text-indigo-600 dark:text-indigo-400">WinMart@2026</span>
+                        Toàn bộ <b class="text-slate-700 dark:text-slate-200">170+ nhân sự (6 vai trò)</b> đều có thể đăng nhập bằng email công ty, mật khẩu: <span class="font-bold text-indigo-600 dark:text-indigo-400">WinMart@2026</span>
                     </div>
                 </div>
             </div>

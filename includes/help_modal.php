@@ -44,7 +44,7 @@
             </button>
             <button type="button" onclick="switchHelpTab('data_scope_guide')" id="helpTabBtn-data_scope_guide" class="help-tab-btn py-2.5 px-3.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white flex items-center gap-2 transition">
                 <i class="fa-solid fa-masks-theater text-amber-500"></i>
-                <span>5 Persona & Data Scope</span>
+                <span>7 Persona & Data Scope</span>
             </button>
         </div>
 
@@ -277,7 +277,7 @@
                 </div>
             </div>
 
-            <!-- TAB 5: 5 PERSONA TRÌNH DIỄN & PHẠM VI DỮ LIỆU (DATA SCOPE) -->
+            <!-- TAB 5: 7 PERSONA TRÌNH DIỄN & PHẠM VI DỮ LIỆU (DATA SCOPE) -->
             <div id="helpTabContent-data_scope_guide" class="space-y-6 hidden">
                 <div>
                     <h4 class="text-sm font-extrabold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
@@ -333,14 +333,16 @@
 
                 <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700">
                     <h5 class="font-bold text-xs text-slate-800 dark:text-white mb-2 flex items-center gap-1.5">
-                        <i class="fa-solid fa-circle-play text-indigo-600"></i> Danh Sách 5 Tài Khoản Demo Chuẩn
+                        <i class="fa-solid fa-circle-play text-indigo-600"></i> Danh Sách 7 Tài Khoản Demo Chuẩn (6 Vai Trò &bull; 170+ Nhân Sự, 6 Chi Nhánh, 16 Phòng Ban)
                     </h5>
                     <div class="text-[11px] space-y-1.5 text-slate-600 dark:text-slate-300">
-                        <div>1. <b>admin@wincommerce.vn</b> &bull; Nguyễn Hoàng Nam (CEO &bull; Toàn quyền Super Admin)</div>
-                        <div>2. <b>phuong.le@wincommerce.vn</b> &bull; Lê Mai Phương (CHRO &bull; Toàn quyền Nhân sự, Scope: ALL)</div>
-                        <div>3. <b>cb@wincommerce.vn</b> &bull; Phạm Thu Thảo (Chuyên Viên C&B &bull; Tính lương & BHXH, Scope: ALL)</div>
-                        <div>4. <b>mienbac@wincommerce.vn</b> &bull; Trần Quốc Bảo (GĐ Chi Nhánh &bull; Scope: BRANCH Miền Bắc)</div>
-                        <div>5. <b>ngoc.do@wincommerce.vn</b> &bull; Đỗ Thị Bích Ngọc (Nhân Viên Tech Lead &bull; Cổng ESS, Scope: SELF)</div>
+                        <div>1. <b>admin@wincommerce.vn</b> &bull; Nguyễn Hoàng Nam (CEO &bull; Toàn quyền Super Admin, Scope: ALL)</div>
+                        <div>2. <b>phuong.le@wincommerce.vn</b> &bull; Lê Mai Phương (CHRO &bull; Toàn quyền Quản trị Nhân sự, Scope: ALL)</div>
+                        <div>3. <b>giang.tran@wincommerce.vn</b> &bull; Trần Thị Hương Giang (Chuyên Viên Nhân Sự &bull; Hồ sơ, Hợp đồng, Tuyển dụng — Che Lương, Scope: ALL)</div>
+                        <div>4. <b>cb@wincommerce.vn</b> &bull; Phạm Thu Thảo (Chuyên Viên C&B &bull; Tính lương, Thuế TNCN & BHXH, Scope: ALL)</div>
+                        <div>5. <b>mienbac@wincommerce.vn</b> &bull; Trần Quốc Bảo (GĐ Chi Nhánh &bull; Scope: BRANCH Miền Bắc — 37 nhân sự)</div>
+                        <div>6. <b>long.vu@wincommerce.vn</b> &bull; Vũ Hoàng Long (Trưởng Phòng CNTT & Số Hóa &bull; Scope: DEPT — 14 nhân sự)</div>
+                        <div>7. <b>ngoc.do@wincommerce.vn</b> &bull; Đỗ Thị Bích Ngọc (Nhân Viên Tech Lead &bull; Cổng ESS, Scope: SELF)</div>
                         <div class="pt-2 text-indigo-600 dark:text-indigo-400 font-bold">
                             Mật khẩu chung cho tất cả tài khoản: <code class="font-mono bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-800">WinMart@2026</code>
                         </div>
